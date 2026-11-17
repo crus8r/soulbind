@@ -1,11 +1,7 @@
-name: build
-on: [push, workflow_dispatch]
-
-permissions:
-  contents: write
-
+name: diag
+on: [push]
 jobs:
-  build:
+  diag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,12 +12,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.7.1
-      - run: gradle build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: soulbind
-          path: build/libs/*.jar
-      # Publishes the jar on the repository's Releases page as a direct download.
-      - run: gh release create "build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind build ${{ github.run_number }}" --notes "Automatic build."
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - run: gradle compileJava -q || true
+      - run: |
+          j=$(find ~/.gradle -name "minecraft-merged-deobf-26.3.jar" | head -1)
+          echo "=====ENTITY"
+          javap -p -cp "$j" net.minecraft.world.entity.Entity | grep -iE "tag"
+          echo "=====RESPAWN"
+          javap -p -c -cp "$j" net.minecraft.server.players.PlayerList | awk '/ServerPlayer respawn\(/{p=1} p{print} p&&/^$/{p=0}' | grep -iE "respawn|tag|restoreFrom"
+          echo "=====PARTICLES"
+          javap -p -cp "$j" net.minecraft.server.level.ServerLevel | grep -i "sendParticles"
+          echo "=====HURT"
+          javap -p -cp "$j" net.minecraft.world.item.ItemStack | grep -iE "hurtAndBreak"
