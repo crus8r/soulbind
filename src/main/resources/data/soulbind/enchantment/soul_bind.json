@@ -5,14 +5,14 @@
 	},
 	"supported_items": "#soulbind:soul_bindable",
 	"weight": 2,
-	"max_level": 3,
+	"max_level": 5,
 	"min_cost": {
 		"base": 1,
-		"per_level_above_first": 14
+		"per_level_above_first": 17
 	},
 	"max_cost": {
-		"base": 21,
-		"per_level_above_first": 14
+		"base": 18,
+		"per_level_above_first": 17
 	},
 	"anvil_cost": 4,
 	"slots": [

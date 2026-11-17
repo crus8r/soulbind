@@ -33,6 +33,7 @@ public abstract class AnvilMenuMixin {
 		ItemStack left = self.getSlot(0).getItem();
 		ItemStack result = self.getSlot(2).getItem();
 		soulbind$trimmedResult = false;
+		SoulBind.capGearLevel(result);
 		if (left.getCount() > 1 && SoulBind.isSoulBindBook(left) && !result.isEmpty()) {
 			result.setCount(1);
 			soulbind$trimmedResult = true;
