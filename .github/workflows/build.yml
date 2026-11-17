@@ -17,16 +17,6 @@ jobs:
         with:
           gradle-version: 9.7.1
       - run: gradle build
-      - name: Diagnostics
-        if: failure()
-        run: |
-          for j in $(find ~/.gradle . -name "*.jar" -size +5M 2>/dev/null); do
-            if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/world/level/storage/loot/LootContext.class"; then
-              echo "JAR $j"
-              javap -cp "$j" net.minecraft.world.level.storage.loot.LootContext net.minecraft.world.entity.player.Inventory net.minecraft.world.inventory.AnvilMenu net.minecraft.world.inventory.ItemCombinerMenu
-              break
-            fi
-          done
       - uses: actions/upload-artifact@v4
         with:
           name: soulbind
