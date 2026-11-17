@@ -18,6 +18,19 @@ jobs:
           java-version: 25
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew && ./gradlew build
+      - name: Check mixin targets exist in NeoForge's Minecraft
+        run: |
+          for j in $(find ~/.gradle build -name "*.jar" -size +1M 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/world/entity/player/Inventory.class"; then
+              echo "JAR $j"
+              javap -p -cp "$j" net.minecraft.world.entity.player.Inventory | grep "void dropAll()"
+              javap -p -cp "$j" net.minecraft.world.inventory.AnvilMenu | grep "void createResult()"
+              javap -p -cp "$j" net.minecraft.world.inventory.AnvilMenu | grep "void onTake("
+              javap -p -cp "$j" net.minecraft.world.entity.player.Player | grep "int getBaseExperienceReward("
+              exit 0
+            fi
+          done
+          echo "Minecraft jar not found"; exit 1
       - name: Diagnostics
         if: failure()
         run: |
