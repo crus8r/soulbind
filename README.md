@@ -36,6 +36,24 @@ When you die, soul-bound items stay in the same slots:
 - A placed shulker box (or ender chest) keeps its bind and gets it back when broken.
 - A grindstone removes Soul Bind and gives back very little XP.
 
+## Added in 1.1.0
+
+- **Soul Bind IV and V** exist only on bundles, shulker boxes and ender chests. Books
+  from drops, chests and the enchanting table stop at III; combine in an anvil to go
+  higher. Tools, weapons and armor are capped at III.
+- **Unbreaking on containers.** Bundles, shulker boxes and ender chests can take
+  Unbreaking. Each death it gives a chance to keep the Soul Bind level instead of
+  losing one: I = 50%, II = 67%, III = 75%.
+- **Enchanted bundles.** About 3% of the chests that can hold a Soul Bind book also
+  hold a bundle with Soul Bind or Unbreaking (I-III).
+- **Starter bundle.** Every player gets one Soul Bind II + Unbreaking II bundle the
+  first time they join.
+- **Wayfinder.** A common, cheap enchantment for helmets and filled maps. Sneak while
+  holding a map and a short dotted trail points toward the map's target (its marked
+  X or icon, or its center if it has none).
+  - On a helmet it works with any map and costs 1 durability per second while showing.
+  - On a map it is free, and is used up when you arrive at the target.
+
 ## Tuning
 
 All balance numbers are constants at the top of
