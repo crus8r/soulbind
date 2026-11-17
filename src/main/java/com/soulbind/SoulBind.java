@@ -198,7 +198,7 @@ public class SoulBind implements ModInitializer {
 	}
 
 	private static void giveStarterBundle(ServerPlayer player) {
-		if (player.getTags().contains(STARTER_TAG)) return;
+		if (player.entityTags().contains(STARTER_TAG)) return;
 		player.addTag(STARTER_TAG);
 		ItemStack bundle = createBundle(player.level().registryAccess(), STARTER_SOUL_BIND, STARTER_UNBREAKING);
 		if (!player.getInventory().add(bundle)) {
