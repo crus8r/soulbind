@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "com.soulbind.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"AnvilMenuMixin",
+		"InventoryMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
