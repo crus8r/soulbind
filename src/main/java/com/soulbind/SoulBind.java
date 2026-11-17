@@ -178,8 +178,8 @@ public class SoulBind implements ModInitializer {
 	 * dropped item, so the bind is only paused while the box sits in the world.
 	 */
 	private static void carryBindFromPlacedBlock(LootContext context, List<ItemStack> drops) {
-		BlockEntity blockEntity = context.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
-		if (blockEntity == null) return;
+		if (!context.hasParameter(LootContextParams.BLOCK_ENTITY)) return;
+		BlockEntity blockEntity = context.getParameter(LootContextParams.BLOCK_ENTITY);
 		ItemEnchantments remembered = blockEntity.components().get(DataComponents.ENCHANTMENTS);
 		if (remembered == null) return;
 		Holder<Enchantment> bind = findSoulBind(remembered);
