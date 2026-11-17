@@ -1,5 +1,8 @@
-name: build
-on: [push, workflow_dispatch]
+name: build-neoforge
+on:
+  push:
+    branches: [neoforge]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,14 +17,21 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 9.7.1
-      - run: gradle build
+      - run: chmod +x gradlew && ./gradlew build
+      - name: Diagnostics
+        if: failure()
+        run: |
+          for j in $(find ~/.gradle build -name "*.jar" -size +1M 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q "net/neoforged/neoforge/common/loot/LootModifier.class"; then
+              echo "=====JAR $j"
+              javap -p -cp "$j" net.neoforged.neoforge.common.loot.LootModifier net.neoforged.neoforge.common.loot.IGlobalLootModifier 'net.neoforged.neoforge.registries.NeoForgeRegistries$Keys' 'net.neoforged.neoforge.event.entity.player.PlayerEvent$Clone' net.neoforged.neoforge.event.entity.living.LivingDeathEvent 'net.neoforged.neoforge.event.tick.ServerTickEvent' net.minecraft.world.level.storage.loot.LootContext | grep -vE "^\s*private"
+              break
+            fi
+          done
       - uses: actions/upload-artifact@v4
         with:
-          name: soulbind
+          name: soulbind-neoforge
           path: build/libs/*.jar
-      # Publishes the jar on the repository's Releases page as a direct download.
-      - run: gh release create "build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind build ${{ github.run_number }}" --notes "Automatic build."
+      - run: gh release create "neoforge-build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind for NeoForge, build ${{ github.run_number }}" --notes "Automatic build."
         env:
           GH_TOKEN: ${{ github.token }}

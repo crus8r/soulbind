@@ -1,4 +1,4 @@
-# Soul Bind (Fabric, Minecraft 26.3)
+# Soul Bind (NeoForge, Minecraft 26.3)
 
 A balanced alternative to keepInventory. Keep weapons/tools/armor at the cost of some durability, and keep items by storing them in a bundle/shulker box/ender chest enchanted with Soul Bind.
 
@@ -62,10 +62,9 @@ All balance numbers are constants at the top of
 
 ## Building
 
-Easiest: push this folder to a GitHub repository. GitHub builds the mod by itself
-and puts the finished jar on the repository's Releases page.
+This branch is the NeoForge version. The Fabric version lives on the `main` branch.
 
-On your own computer: install JDK 25, then run `gradlew build` (Windows) or
-`./gradlew build` (Mac/Linux) in this folder. The jar appears in `build/libs/`.
-
-Put the jar in your `mods` folder next to Fabric API.
+Pushing to this branch makes GitHub build the mod and publish the jar on the
+Releases page. To build on your own computer, install JDK 25 and run
+`gradlew build` (Windows) or `./gradlew build` (Mac/Linux). The jar appears in
+`build/libs/`. Put it in your `mods` folder. NeoForge needs no extra library mod.

@@ -1,10 +1,5 @@
 package com.soulbind;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
@@ -32,11 +27,21 @@ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class SoulBind implements ModInitializer {
+@Mod(SoulBind.MOD_ID)
+public class SoulBind {
+
+	public static final String MOD_ID = "soulbind";
 
 	// ---------------------------------------------------------------
 	// Balance knobs. Change these and rebuild.
@@ -121,58 +126,61 @@ public class SoulBind implements ModInitializer {
 			EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
 	};
 
-	@Override
-	public void onInitialize() {
-		// Endermen sometimes drop a Soul Bind book when a player kills them.
-		ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
-			if (!(damageSource.getEntity() instanceof Player)) return;
-			if (!DROP_SOURCE.equals(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())) return;
-			if (!DROPS_IN_THE_END && entity.level().dimension() == Level.END) return;
-			if (entity.getRandom().nextFloat() >= BOOK_DROP_CHANCE) return;
-			dropBook(entity);
-		});
+	public SoulBind(IEventBus modBus) {
+		SoulBindLootModifier.SERIALIZERS.register(modBus);
+		NeoForge.EVENT_BUS.addListener(SoulBind::onLivingDeath);
+		NeoForge.EVENT_BUS.addListener(SoulBind::onPlayerClone);
+		NeoForge.EVENT_BUS.addListener(SoulBind::onServerTick);
+	}
 
-		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
-			addBookToChest(table.getRegisteredName(), context, drops);
-			carryBindFromPlacedBlock(context, drops);
-		});
+	// Endermen sometimes drop a Soul Bind book when a player kills them.
+	private static void onLivingDeath(LivingDeathEvent event) {
+		LivingEntity entity = event.getEntity();
+		if (entity.level().isClientSide()) return;
+		if (!(event.getSource().getEntity() instanceof Player)) return;
+		if (!DROP_SOURCE.equals(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())) return;
+		if (!DROPS_IN_THE_END && entity.level().dimension() == Level.END) return;
+		if (entity.getRandom().nextFloat() >= BOOK_DROP_CHANCE) return;
+		dropBook(entity);
+	}
 
-		// On respawn, hand back kept items and saved XP.
-		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {
-			if (alive) return; // returning from the End, nothing was lost
-			Inventory from = oldPlayer.getInventory();
-			Inventory to = newPlayer.getInventory();
-			for (int i = 0; i < from.getContainerSize(); i++) {
-				ItemStack stack = from.getItem(i);
-				// If the slot is already filled, keepInventory copied it for us.
-				if (!stack.isEmpty() && to.getItem(i).isEmpty()) {
-					to.setItem(i, stack.copy());
+	// On respawn, hand back kept items and saved XP.
+	private static void onPlayerClone(PlayerEvent.Clone event) {
+		if (!event.isWasDeath()) return; // returning from the End, nothing was lost
+		Player oldPlayer = event.getOriginal();
+		Player newPlayer = event.getEntity();
+		Inventory from = oldPlayer.getInventory();
+		Inventory to = newPlayer.getInventory();
+		for (int i = 0; i < from.getContainerSize(); i++) {
+			ItemStack stack = from.getItem(i);
+			// If the slot is already filled, keepInventory copied it for us.
+			if (!stack.isEmpty() && to.getItem(i).isEmpty()) {
+				to.setItem(i, stack.copy());
+			}
+		}
+		restoreXp(oldPlayer, newPlayer);
+	}
+
+	// Once a second, for every player: starter bundle, book stacking, Wayfinder trail.
+	private static void onServerTick(ServerTickEvent.Post event) {
+		if (event.getServer().getTickCount() % 20 != 0) return;
+		for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+			giveStarterBundle(player);
+			// Books from the enchanting table, anvils or commands don't know they can stack.
+			Inventory inventory = player.getInventory();
+			for (int i = 0; i < inventory.getContainerSize(); i++) {
+				ItemStack stack = inventory.getItem(i);
+				if (isPureSoulBindBook(stack) && stack.getMaxStackSize() != BOOK_STACK_SIZE) {
+					stack.set(DataComponents.MAX_STACK_SIZE, BOOK_STACK_SIZE);
 				}
 			}
-			restoreXp(oldPlayer, newPlayer);
-		});
-
-		// Once a second, for every player: starter bundle, book stacking, Wayfinder trail.
-		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (server.getTickCount() % 20 != 0) return;
-			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-				giveStarterBundle(player);
-				// Books from the enchanting table, anvils or commands don't know they can stack.
-				Inventory inventory = player.getInventory();
-				for (int i = 0; i < inventory.getContainerSize(); i++) {
-					ItemStack stack = inventory.getItem(i);
-					if (isPureSoulBindBook(stack) && stack.getMaxStackSize() != BOOK_STACK_SIZE) {
-						stack.set(DataComponents.MAX_STACK_SIZE, BOOK_STACK_SIZE);
-					}
-				}
-				showWayfinderTrail(player);
-			}
-		});
+			showWayfinderTrail(player);
+		}
 	}
 
 	// ----- Getting the book -----
 
-	private static void addBookToChest(String tableId, LootContext context, List<ItemStack> drops) {
+	public static void addBookToChest(String tableId, LootContext context, List<ItemStack> drops) {
 		if (!CHESTS.contains(tableId)) return;
 		RegistryAccess registries = context.getLevel().registryAccess();
 		if (context.getRandom().nextFloat() < CHEST_CHANCE) {
@@ -242,7 +250,7 @@ public class SoulBind implements ModInitializer {
 	 * does not give them back when the block is broken. This puts Soul Bind back on the
 	 * dropped item, so the bind is only paused while the box sits in the world.
 	 */
-	private static void carryBindFromPlacedBlock(LootContext context, List<ItemStack> drops) {
+	public static void carryBindFromPlacedBlock(LootContext context, List<ItemStack> drops) {
 		BlockEntity blockEntity = context.getOptional(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity == null) return;
 		ItemEnchantments remembered = blockEntity.components().get(DataComponents.ENCHANTMENTS);
