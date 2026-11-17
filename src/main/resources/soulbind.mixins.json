@@ -5,6 +5,7 @@
 	"mixins": [
 		"AnvilMenuMixin",
 		"InventoryMixin",
+		"ItemMixin",
 		"PlayerMixin"
 	],
 	"injectors": {

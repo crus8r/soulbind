@@ -62,9 +62,8 @@ All balance numbers are constants at the top of
 
 ## 1.21.1 notes
 
-Bundles are an experimental feature in Minecraft 1.21.1. Without the "Bundle"
-experiment turned on for the world, there is no starter bundle and no enchanted
-bundles in chests. Everything else works the same.
+Bundles are an experimental feature in vanilla 1.21.1. This mod turns them on in
+every world, no experiment needed, and adds a recipe: 1 string above 1 leather.
 
 ## Building
 

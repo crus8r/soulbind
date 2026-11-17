@@ -27,6 +27,7 @@ jobs:
               javap -p -cp "$j" net.minecraft.world.inventory.AnvilMenu | grep "void createResult()"
               javap -p -cp "$j" net.minecraft.world.inventory.AnvilMenu | grep "void onTake("
               javap -p -cp "$j" net.minecraft.world.entity.player.Player | grep "int getBaseExperienceReward("
+              javap -p -cp "$j" net.minecraft.world.item.Item | grep "FeatureFlagSet requiredFeatures()"
               exit 0
             fi
           done
