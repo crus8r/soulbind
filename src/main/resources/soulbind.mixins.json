@@ -4,7 +4,8 @@
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"AnvilMenuMixin",
-		"InventoryMixin"
+		"InventoryMixin",
+		"PlayerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

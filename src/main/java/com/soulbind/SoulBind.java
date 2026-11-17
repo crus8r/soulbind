@@ -263,23 +263,25 @@ public class SoulBind implements ModInitializer {
 	private static void restoreXp(Player oldPlayer, Player newPlayer) {
 		// keepInventory already carried XP over.
 		if (newPlayer.experienceLevel > 0 || newPlayer.experienceProgress > 0f) return;
-
-		float kept = 0f;
-		for (EquipmentSlot slot : ARMOR_SLOTS) {
-			kept += byLevel(XP_KEPT_PER_ARMOR_PIECE, soulBindLevel(oldPlayer.getItemBySlot(slot)));
-		}
-		if (kept <= 0f) return;
-		kept = Math.min(kept, 1f);
-
-		int total = totalXp(oldPlayer);
-		// The player also dropped this much as orbs on death. Never hand back more
-		// than what is left, or dying would create XP.
-		int droppedAsOrbs = Math.min(oldPlayer.experienceLevel * 7, 100);
-		int points = Math.min((int) (total * kept), Math.max(0, total - droppedAsOrbs));
+		int points = keptXp(oldPlayer);
 		if (points > 0) newPlayer.giveExperiencePoints(points);
 	}
 
-	private static int totalXp(Player player) {
+	/**
+	 * How many XP points this player's worn Soul Bind armor saves on death.
+	 * Used twice: to hand the points back on respawn, and to shrink the pile of
+	 * XP orbs dropped at the death spot so dying can never create XP.
+	 */
+	public static int keptXp(Player player) {
+		float kept = 0f;
+		for (EquipmentSlot slot : ARMOR_SLOTS) {
+			kept += byLevel(XP_KEPT_PER_ARMOR_PIECE, soulBindLevel(player.getItemBySlot(slot)));
+		}
+		if (kept <= 0f) return 0;
+		return (int) (totalXp(player) * Math.min(kept, 1f));
+	}
+
+	public static int totalXp(Player player) {
 		int level = player.experienceLevel;
 		double atLevel;
 		if (level <= 16) {
