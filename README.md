@@ -1,13 +1,12 @@
 # Soul Bind (Fabric, Minecraft 26.3)
 
-A balanced alternative to keepInventory. No setup or config.
+A balanced alternative to keepInventory. Keep weapons/tools/armor at the cost of some durability, and keep items by storing them in a bundle/shulker box/ender chest enchanted with Soul Bind.
 
 ## How it plays
 
 Soul Bind has three levels. Books come from:
 
-- Endermen killed by a player: 25% chance of a Soul Bind I book (half as often as a
-  pearl). Endermen in the End never drop it.
+- Endermen killed by a player: 25% chance of a Soul Bind I book. Endermen in the End never drop it.
 - Chests that hold enchanted books or ender pearls: about 11% contain a Soul Bind I
   book (dungeons, mineshafts, temples, strongholds, mansions, ancient cities, ocean
   ruins, outposts, bastions, trial chamber corridors).
