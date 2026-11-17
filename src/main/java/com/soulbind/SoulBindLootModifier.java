@@ -3,7 +3,6 @@ package com.soulbind;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.minecraft.core.Holder;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
@@ -12,7 +11,6 @@ import net.neoforged.neoforge.common.loot.LootModifier;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
-import java.util.Optional;
 
 /**
  * Runs after every loot table. Adds Soul Bind books and enchanted bundles to
@@ -30,8 +28,8 @@ public class SoulBindLootModifier extends LootModifier {
 		SERIALIZERS.register("loot", () -> CODEC);
 	}
 
-	public SoulBindLootModifier(Optional<Holder<LootItemCondition>> condition, int priority) {
-		super(condition, priority);
+	public SoulBindLootModifier(LootItemCondition[] conditions) {
+		super(conditions);
 	}
 
 	@Override

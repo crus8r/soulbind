@@ -1,4 +1,4 @@
-# Soul Bind (NeoForge, Minecraft 26.3)
+# Soul Bind (NeoForge, Minecraft 1.21.1)
 
 A balanced alternative to keepInventory. Keep weapons/tools/armor at the cost of some durability, and keep items by storing them in a bundle/shulker box/ender chest enchanted with Soul Bind.
 
@@ -60,9 +60,15 @@ All balance numbers are constants at the top of
 `src/main/java/com/soulbind/SoulBind.java`. The anvil price is `anvil_cost` in
 `src/main/resources/data/soulbind/enchantment/soul_bind.json` (books pay half).
 
+## 1.21.1 notes
+
+Bundles are an experimental feature in Minecraft 1.21.1. Without the "Bundle"
+experiment turned on for the world, there is no starter bundle and no enchanted
+bundles in chests. Everything else works the same.
+
 ## Building
 
-This branch is the NeoForge version. The Fabric version lives on the `main` branch.
+This branch is the NeoForge 1.21.1 version. The NeoForge 26.3 version lives on the `neoforge` branch. The Fabric version lives on the `main` branch.
 
 Pushing to this branch makes GitHub build the mod and publish the jar on the
 Releases page. To build on your own computer, install JDK 25 and run

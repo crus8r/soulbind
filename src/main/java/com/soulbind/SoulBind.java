@@ -187,7 +187,8 @@ public class SoulBind {
 			ItemStack book = createBook(registries);
 			if (!book.isEmpty()) drops.add(book);
 		}
-		if (context.getRandom().nextFloat() < BUNDLE_CHEST_CHANCE) {
+		if (Items.BUNDLE.isEnabled(context.getLevel().enabledFeatures())
+				&& context.getRandom().nextFloat() < BUNDLE_CHEST_CHANCE) {
 			int level = 1 + context.getRandom().nextInt(3);
 			boolean soulBind = context.getRandom().nextBoolean();
 			drops.add(createBundle(registries, soulBind ? level : 0, soulBind ? 0 : level));
@@ -206,12 +207,14 @@ public class SoulBind {
 	}
 
 	private static void giveStarterBundle(ServerPlayer player) {
-		if (player.entityTags().contains(STARTER_TAG)) return;
+		if (player.getTags().contains(STARTER_TAG)) return;
 		player.addTag(STARTER_TAG);
-		ItemStack bundle = createBundle(player.level().registryAccess(), STARTER_SOUL_BIND, STARTER_UNBREAKING);
+		// Bundles are an experimental feature in 1.21.1. Without it there is nothing to give.
+		if (!Items.BUNDLE.isEnabled(player.serverLevel().enabledFeatures())) return;
+		ItemStack bundle = createBundle(player.serverLevel().registryAccess(), STARTER_SOUL_BIND, STARTER_UNBREAKING);
 		if (!player.getInventory().add(bundle)) {
-			ItemEntity drop = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), bundle);
-			player.level().addFreshEntity(drop);
+			ItemEntity drop = new ItemEntity(player.serverLevel(), player.getX(), player.getY(), player.getZ(), bundle);
+			player.serverLevel().addFreshEntity(drop);
 		}
 	}
 
@@ -251,7 +254,7 @@ public class SoulBind {
 	 * dropped item, so the bind is only paused while the box sits in the world.
 	 */
 	public static void carryBindFromPlacedBlock(LootContext context, List<ItemStack> drops) {
-		BlockEntity blockEntity = context.getOptional(LootContextParams.BLOCK_ENTITY);
+		BlockEntity blockEntity = context.getParamOrNull(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity == null) return;
 		ItemEnchantments remembered = blockEntity.components().get(DataComponents.ENCHANTMENTS);
 		if (remembered == null) return;
@@ -372,7 +375,7 @@ public class SoulBind {
 		boolean onMap = enchantmentLevel(map, WAYFINDER_ID) > 0;
 		if (!onHelmet && !onMap) return;
 
-		ServerLevel level = player.level();
+		ServerLevel level = player.serverLevel();
 		double[] target = mapTarget(map, level);
 		if (target == null) return;
 

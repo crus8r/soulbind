@@ -1,7 +1,7 @@
-name: build-neoforge
+name: build-neoforge-1.21.1
 on:
   push:
-    branches: [neoforge]
+    branches: [neoforge-1.21.1]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 25
+          java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew && ./gradlew build
       - name: Check mixin targets exist in NeoForge's Minecraft
@@ -43,8 +43,8 @@ jobs:
           done
       - uses: actions/upload-artifact@v4
         with:
-          name: soulbind-neoforge
+          name: soulbind-neoforge-1.21.1
           path: build/libs/*.jar
-      - run: gh release create "neoforge-build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind for NeoForge, build ${{ github.run_number }}" --notes "Automatic build."
+      - run: gh release create "neoforge-1.21.1-build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind for NeoForge 1.21.1, build ${{ github.run_number }}" --notes "Automatic build."
         env:
           GH_TOKEN: ${{ github.token }}

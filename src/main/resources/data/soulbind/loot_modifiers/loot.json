@@ -1,3 +1,4 @@
 {
-	"type": "soulbind:loot"
+	"type": "soulbind:loot",
+	"conditions": []
 }
