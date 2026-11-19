@@ -1,11 +1,11 @@
 package com.soulbind;
 
-import net.minecraft.core.Holder;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -13,28 +13,40 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
-import net.minecraft.world.item.component.MapDecorations;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.loot.IGlobalLootModifier;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -51,16 +63,10 @@ public class SoulBind {
 	/** Chance an enderman killed by a player drops a Soul Bind I book. Pearls are ~50%, so this is twice as rare. */
 	public static final float BOOK_DROP_CHANCE = 0.25f;
 
-	/** Which mob drops the book. */
-	public static final String DROP_SOURCE = "minecraft:enderman";
-
 	/** false = endermen in the End never drop books, so End farms can't mass-produce them. */
 	public static final boolean DROPS_IN_THE_END = false;
 
-	/**
-	 * Chance a Soul Bind I book appears in each of the chests listed below.
-	 * Ender pearls show up in roughly 20-23% of the chests that hold them, so this is half that.
-	 */
+	/** Chance a Soul Bind I book appears in each of the chests listed below (pearls are ~20-23%). */
 	public static final float CHEST_CHANCE = 0.11f;
 
 	/** Chests that hold enchanted books and/or ender pearls in vanilla. */
@@ -77,8 +83,7 @@ public class SoulBind {
 			"minecraft:chests/underwater_ruin_big",
 			"minecraft:chests/underwater_ruin_small",
 			"minecraft:chests/pillager_outpost",
-			"minecraft:chests/bastion_other",
-			"minecraft:chests/trial_chambers/corridor"
+			"minecraft:chests/bastion_other"
 	);
 
 	/** How many Soul Bind books of the same level fit in one stack. */
@@ -92,10 +97,9 @@ public class SoulBind {
 
 	// Bundles, shulker boxes and ender chests have no durability. They lose one
 	// level of Soul Bind per death instead: V -> IV -> III -> II -> I -> gone.
-	// Unbreaking on them gives a chance to skip that loss, using the vanilla
-	// Unbreaking odds: I = 50%, II = 67%, III = 75%.
+	// Unbreaking on them gives a chance to skip that loss: I = 50%, II = 67%, III = 75%.
 
-	/** Highest Soul Bind level tools, weapons and armor can hold. Containers can reach V. */
+	/** Highest Soul Bind level tools, weapons and armor can hold, and the highest found naturally. */
 	public static final int MAX_GEAR_LEVEL = 3;
 
 	/** Chance each listed chest also holds a bundle enchanted with Soul Bind or Unbreaking (I-III). */
@@ -109,7 +113,7 @@ public class SoulBind {
 	public static final double TRAIL_LENGTH = 14.0;
 	public static final double TRAIL_SPACING = 1.5;
 
-	/** Wayfinder: within this many blocks of the target you have arrived. The trail stops, and a map's Wayfinder is used up. */
+	/** Wayfinder: within this many blocks of the target you have arrived. */
 	public static final double ARRIVAL_DISTANCE = 8.0;
 
 	/** Wayfinder: helmet durability lost per second while the trail is showing. */
@@ -117,31 +121,56 @@ public class SoulBind {
 
 	// ---------------------------------------------------------------
 
-	public static final String ENCHANTMENT_ID = "soulbind:soul_bind";
-	public static final String WAYFINDER_ID = "soulbind:wayfinder";
-	public static final String UNBREAKING_ID = "minecraft:unbreaking";
 	private static final String STARTER_TAG = "soulbind.starter_bundle";
+	/** Key in a placed block's saved data that remembers its Soul Bind level. */
+	public static final String PLACED_LEVEL_KEY = "soulbind_level";
 
 	private static final EquipmentSlot[] ARMOR_SLOTS = {
 			EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
 	};
 
-	public SoulBind(IEventBus modBus) {
-		SoulBindLootModifier.SERIALIZERS.register(modBus);
-		NeoForge.EVENT_BUS.addListener(SoulBind::onLivingDeath);
-		NeoForge.EVENT_BUS.addListener(SoulBind::onPlayerClone);
-		NeoForge.EVENT_BUS.addListener(SoulBind::onServerTick);
+	// ----- Registration -----
+
+	public static final EnchantmentCategory BINDABLE =
+			EnchantmentCategory.create("SOULBIND_BINDABLE", item -> item.canBeDepleted() || isContainer(item));
+	public static final EnchantmentCategory WAYFINDABLE =
+			EnchantmentCategory.create("SOULBIND_WAYFINDABLE", item ->
+					(item instanceof ArmorItem armor && armor.getType() == ArmorItem.Type.HELMET) || item == Items.FILLED_MAP);
+
+	public static final DeferredRegister<Enchantment> ENCHANTMENTS =
+			DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, MOD_ID);
+	public static final RegistryObject<Enchantment> SOUL_BIND = ENCHANTMENTS.register("soul_bind", SoulBindEnchantment::new);
+	public static final RegistryObject<Enchantment> WAYFINDER = ENCHANTMENTS.register("wayfinder", WayfinderEnchantment::new);
+
+	public static final DeferredRegister<Codec<? extends IGlobalLootModifier>> LOOT_MODIFIERS =
+			DeferredRegister.create(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, MOD_ID);
+	static {
+		LOOT_MODIFIERS.register("loot", () -> SoulBindLootModifier.CODEC);
 	}
+
+	public SoulBind() {
+		IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+		ENCHANTMENTS.register(modBus);
+		LOOT_MODIFIERS.register(modBus);
+		MinecraftForge.EVENT_BUS.addListener(SoulBind::onLivingDeath);
+		MinecraftForge.EVENT_BUS.addListener(SoulBind::onPlayerClone);
+		MinecraftForge.EVENT_BUS.addListener(SoulBind::onExperienceDrop);
+		MinecraftForge.EVENT_BUS.addListener(SoulBind::onServerTick);
+	}
+
+	// ----- Events -----
 
 	// Endermen sometimes drop a Soul Bind book when a player kills them.
 	private static void onLivingDeath(LivingDeathEvent event) {
 		LivingEntity entity = event.getEntity();
 		if (entity.level().isClientSide()) return;
 		if (!(event.getSource().getEntity() instanceof Player)) return;
-		if (!DROP_SOURCE.equals(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())) return;
+		if (!"minecraft:enderman".equals(String.valueOf(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType())))) return;
 		if (!DROPS_IN_THE_END && entity.level().dimension() == Level.END) return;
 		if (entity.getRandom().nextFloat() >= BOOK_DROP_CHANCE) return;
-		dropBook(entity);
+		ItemEntity drop = new ItemEntity(entity.level(), entity.getX(), entity.getY(), entity.getZ(), createBook());
+		drop.setDefaultPickUpDelay();
+		entity.level().addFreshEntity(drop);
 	}
 
 	// On respawn, hand back kept items and saved XP.
@@ -158,174 +187,122 @@ public class SoulBind {
 				to.setItem(i, stack.copy());
 			}
 		}
-		restoreXp(oldPlayer, newPlayer);
+		// keepInventory already carried XP over.
+		if (newPlayer.experienceLevel > 0 || newPlayer.experienceProgress > 0f) return;
+		int points = keptXp(oldPlayer);
+		if (points > 0) newPlayer.giveExperiencePoints(points);
 	}
 
-	// Once a second, for every player: starter bundle, book stacking, Wayfinder trail.
-	private static void onServerTick(ServerTickEvent.Post event) {
-		if (event.getServer().getTickCount() % 20 != 0) return;
-		for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+	// XP saved by Soul Bind armor comes out of the orbs dropped at the death spot.
+	private static void onExperienceDrop(LivingExperienceDropEvent event) {
+		if (!(event.getEntity() instanceof Player player)) return;
+		int kept = keptXp(player);
+		if (kept <= 0) return;
+		int left = Math.max(0, totalXp(player) - kept);
+		event.setDroppedExperience(Math.min(event.getDroppedExperience(), left));
+	}
+
+	// Once a second, for every player: starter bundle and Wayfinder trail.
+	private static void onServerTick(TickEvent.ServerTickEvent event) {
+		if (event.phase != TickEvent.Phase.END) return;
+		MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+		if (server == null || server.getTickCount() % 20 != 0) return;
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			giveStarterBundle(player);
-			// Books from the enchanting table, anvils or commands don't know they can stack.
-			Inventory inventory = player.getInventory();
-			for (int i = 0; i < inventory.getContainerSize(); i++) {
-				ItemStack stack = inventory.getItem(i);
-				if (isPureSoulBindBook(stack) && stack.getMaxStackSize() != BOOK_STACK_SIZE) {
-					stack.set(DataComponents.MAX_STACK_SIZE, BOOK_STACK_SIZE);
-				}
-			}
 			showWayfinderTrail(player);
 		}
 	}
 
-	// ----- Getting the book -----
+	// ----- Items -----
 
-	public static void addBookToChest(String tableId, LootContext context, List<ItemStack> drops) {
-		if (!CHESTS.contains(tableId)) return;
-		RegistryAccess registries = context.getLevel().registryAccess();
-		if (context.getRandom().nextFloat() < CHEST_CHANCE) {
-			ItemStack book = createBook(registries);
-			if (!book.isEmpty()) drops.add(book);
-		}
-		if (Items.BUNDLE.isEnabled(context.getLevel().enabledFeatures())
-				&& context.getRandom().nextFloat() < BUNDLE_CHEST_CHANCE) {
-			int level = 1 + context.getRandom().nextInt(3);
-			boolean soulBind = context.getRandom().nextBoolean();
-			drops.add(createBundle(registries, soulBind ? level : 0, soulBind ? 0 : level));
-		}
+	public static ItemStack createBook() {
+		return EnchantedBookItem.createForEnchantment(new EnchantmentInstance(SOUL_BIND.get(), 1));
 	}
 
-	private static ItemStack createBundle(RegistryAccess registries, int soulBindLevel, int unbreakingLevel) {
+	private static ItemStack createBundle(int soulBindLevel, int unbreakingLevel) {
 		ItemStack bundle = new ItemStack(Items.BUNDLE);
-		Holder<Enchantment> soulBind = findEnchantment(registries, ENCHANTMENT_ID);
-		Holder<Enchantment> unbreaking = findEnchantment(registries, UNBREAKING_ID);
-		EnchantmentHelper.updateEnchantments(bundle, enchantments -> {
-			if (soulBind != null && soulBindLevel > 0) enchantments.set(soulBind, soulBindLevel);
-			if (unbreaking != null && unbreakingLevel > 0) enchantments.set(unbreaking, unbreakingLevel);
-		});
+		if (soulBindLevel > 0) bundle.enchant(SOUL_BIND.get(), soulBindLevel);
+		if (unbreakingLevel > 0) bundle.enchant(Enchantments.UNBREAKING, unbreakingLevel);
 		return bundle;
 	}
 
 	private static void giveStarterBundle(ServerPlayer player) {
 		if (player.getTags().contains(STARTER_TAG)) return;
 		player.addTag(STARTER_TAG);
-		// Bundles are an experimental feature in 1.21.1. Without it there is nothing to give.
-		if (!Items.BUNDLE.isEnabled(player.serverLevel().enabledFeatures())) return;
-		ItemStack bundle = createBundle(player.serverLevel().registryAccess(), STARTER_SOUL_BIND, STARTER_UNBREAKING);
+		ItemStack bundle = createBundle(STARTER_SOUL_BIND, STARTER_UNBREAKING);
 		if (!player.getInventory().add(bundle)) {
 			ItemEntity drop = new ItemEntity(player.serverLevel(), player.getX(), player.getY(), player.getZ(), bundle);
 			player.serverLevel().addFreshEntity(drop);
 		}
 	}
 
-	private static Holder<Enchantment> findEnchantment(RegistryAccess registries, String id) {
-		return registries.lookupOrThrow(Registries.ENCHANTMENT)
-				.listElements()
-				.filter(holder -> id.equals(holder.getRegisteredName()))
-				.findFirst()
-				.orElse(null);
-	}
+	// ----- Loot (called by SoulBindLootModifier for every loot table) -----
 
-	private static void dropBook(LivingEntity entity) {
-		ItemStack book = createBook(entity.level().registryAccess());
-		if (book.isEmpty()) return;
-		ItemEntity drop = new ItemEntity(entity.level(), entity.getX(), entity.getY(), entity.getZ(), book);
-		drop.setDefaultPickUpDelay();
-		entity.level().addFreshEntity(drop);
-	}
+	public static void modifyLoot(String tableId, LootContext context, List<ItemStack> drops) {
+		// Random enchanted books and gear in loot stop at Soul Bind III.
+		for (ItemStack stack : drops) capLevel(stack, MAX_GEAR_LEVEL);
 
-	private static ItemStack createBook(RegistryAccess registries) {
-		Holder<Enchantment> enchantment = findEnchantment(registries, ENCHANTMENT_ID);
-		if (enchantment == null) return ItemStack.EMPTY;
+		if (CHESTS.contains(tableId)) {
+			if (context.getRandom().nextFloat() < CHEST_CHANCE) drops.add(createBook());
+			if (context.getRandom().nextFloat() < BUNDLE_CHEST_CHANCE) {
+				int level = 1 + context.getRandom().nextInt(3);
+				boolean soulBind = context.getRandom().nextBoolean();
+				drops.add(createBundle(soulBind ? level : 0, soulBind ? 0 : level));
+			}
+		}
 
-		ItemEnchantments.Mutable stored = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
-		stored.set(enchantment, 1);
-		ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
-		book.set(DataComponents.STORED_ENCHANTMENTS, stored.toImmutable());
-		book.set(DataComponents.MAX_STACK_SIZE, BOOK_STACK_SIZE);
-		return book;
-	}
-
-	// ----- Placed shulker boxes and ender chests -----
-
-	/**
-	 * A placed block remembers the enchantments of the item that placed it, but vanilla
-	 * does not give them back when the block is broken. This puts Soul Bind back on the
-	 * dropped item, so the bind is only paused while the box sits in the world.
-	 */
-	public static void carryBindFromPlacedBlock(LootContext context, List<ItemStack> drops) {
+		// A placed shulker box or ender chest remembers its Soul Bind level. Give it back when broken.
 		BlockEntity blockEntity = context.getParamOrNull(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity == null) return;
-		ItemEnchantments remembered = blockEntity.components().get(DataComponents.ENCHANTMENTS);
-		if (remembered == null) return;
-		Holder<Enchantment> bind = findSoulBind(remembered);
-		if (bind == null) return;
-		int level = remembered.getLevel(bind);
-
+		int level = blockEntity.getPersistentData().getInt(PLACED_LEVEL_KEY);
+		if (level <= 0) return;
 		Item blockItem = blockEntity.getBlockState().getBlock().asItem();
 		for (ItemStack drop : drops) {
-			if (drop.is(blockItem) && !hasSoulBind(drop)) {
-				EnchantmentHelper.updateEnchantments(drop, enchantments -> enchantments.set(bind, level));
-			}
+			if (drop.is(blockItem) && soulBindLevel(drop) == 0) setLevel(drop, SOUL_BIND.get(), level);
 		}
 	}
 
 	// ----- Checks -----
 
-	private static boolean isSoulBind(Holder<Enchantment> holder) {
-		return ENCHANTMENT_ID.equals(holder.getRegisteredName());
+	/** Bundles, shulker boxes and ender chests: Soul Bind items with no durability. */
+	public static boolean isContainer(Item item) {
+		return item == Items.BUNDLE || item == Items.ENDER_CHEST || Block.byItem(item) instanceof ShulkerBoxBlock;
 	}
 
-	private static Holder<Enchantment> findSoulBind(ItemEnchantments enchantments) {
-		for (Holder<Enchantment> holder : enchantments.keySet()) {
-			if (isSoulBind(holder)) return holder;
-		}
-		return null;
+	public static boolean isContainer(ItemStack stack) {
+		return !stack.isEmpty() && isContainer(stack.getItem());
 	}
 
-	/** Level of any enchantment on an item, by id: 0 if it has none. */
-	public static int enchantmentLevel(ItemStack stack, String id) {
+	/** Level of an enchantment on an item or book: 0 if it has none. */
+	public static int level(ItemStack stack, Enchantment enchantment) {
 		if (stack.isEmpty()) return 0;
-		ItemEnchantments enchantments = stack.getEnchantments();
-		for (Holder<Enchantment> holder : enchantments.keySet()) {
-			if (id.equals(holder.getRegisteredName())) return enchantments.getLevel(holder);
-		}
-		return 0;
+		Integer level = EnchantmentHelper.getEnchantments(stack).get(enchantment);
+		return level == null ? 0 : level;
 	}
 
-	/**
-	 * Tools, weapons and armor stop at Soul Bind III. Called on every anvil result,
-	 * so a level IV or V book can't push gear past the cap.
-	 */
-	public static void capGearLevel(ItemStack stack) {
-		if (!stack.isDamageableItem() || soulBindLevel(stack) <= MAX_GEAR_LEVEL) return;
-		Holder<Enchantment> bind = findSoulBind(stack.getEnchantments());
-		EnchantmentHelper.updateEnchantments(stack, enchantments -> enchantments.set(bind, MAX_GEAR_LEVEL));
-	}
-
-	/** Soul Bind level on an item: 0 if it has none. */
 	public static int soulBindLevel(ItemStack stack) {
-		if (stack.isEmpty()) return 0;
-		ItemEnchantments enchantments = stack.getEnchantments();
-		Holder<Enchantment> bind = findSoulBind(enchantments);
-		return bind == null ? 0 : enchantments.getLevel(bind);
+		return level(stack, SOUL_BIND.get());
 	}
 
-	public static boolean hasSoulBind(ItemStack stack) {
-		return soulBindLevel(stack) > 0;
-	}
-
-	/** An enchanted book that carries Soul Bind (possibly with other enchantments). */
-	public static boolean isSoulBindBook(ItemStack stack) {
-		if (!stack.is(Items.ENCHANTED_BOOK)) return false;
-		ItemEnchantments stored = stack.get(DataComponents.STORED_ENCHANTMENTS);
-		return stored != null && findSoulBind(stored) != null;
+	/** Sets (or with 0, removes) one enchantment on an item or book, keeping the others. */
+	public static void setLevel(ItemStack stack, Enchantment enchantment, int level) {
+		Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
+		if (level > 0) enchantments.put(enchantment, level);
+		else enchantments.remove(enchantment);
+		EnchantmentHelper.setEnchantments(enchantments, stack);
 	}
 
 	/** An enchanted book that carries Soul Bind and nothing else. Only these stack. */
 	public static boolean isPureSoulBindBook(ItemStack stack) {
-		if (!isSoulBindBook(stack)) return false;
-		return stack.get(DataComponents.STORED_ENCHANTMENTS).keySet().size() == 1;
+		if (!stack.is(Items.ENCHANTED_BOOK)) return false;
+		Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
+		return enchantments.size() == 1 && enchantments.containsKey(SOUL_BIND.get());
+	}
+
+	/** Lowers Soul Bind to the given level if it is higher. Containers are exempt from the gear cap. */
+	public static void capLevel(ItemStack stack, int max) {
+		if (isContainer(stack)) return;
+		if (soulBindLevel(stack) > max) setLevel(stack, SOUL_BIND.get(), max);
 	}
 
 	// ----- Death -----
@@ -341,7 +318,8 @@ public class SoulBind {
 
 		if (stack.isDamageableItem()) {
 			int max = stack.getMaxDamage();
-			int cost = Math.max(1, (int) Math.ceil(max * byLevel(DURABILITY_COST, level)));
+			float fraction = DURABILITY_COST[Math.min(level, DURABILITY_COST.length - 1)];
+			int cost = Math.max(1, (int) Math.ceil(max * fraction));
 			int remaining = max - stack.getDamageValue();
 			if (remaining <= cost) return false; // too worn to pay: it drops
 			stack.setDamageValue(stack.getDamageValue() + cost);
@@ -350,20 +328,14 @@ public class SoulBind {
 
 		// Bundles, shulker boxes, ender chests, unbreakable items: lose one level,
 		// unless Unbreaking saves it.
-		int unbreaking = enchantmentLevel(stack, UNBREAKING_ID);
+		int unbreaking = level(stack, Enchantments.UNBREAKING);
 		if (unbreaking > 0 && ThreadLocalRandom.current().nextInt(unbreaking + 1) > 0) return true;
-		Holder<Enchantment> bind = findSoulBind(stack.getEnchantments());
-		EnchantmentHelper.updateEnchantments(stack, enchantments -> enchantments.set(bind, level - 1));
+		setLevel(stack, SOUL_BIND.get(), level - 1);
 		return true;
 	}
 
 	// ----- Wayfinder -----
 
-	/**
-	 * While a player sneaks holding a map, draw a short dotted line of particles
-	 * from them toward the map's target. Needs Wayfinder on the helmet (costs
-	 * durability) or on the map itself (used up on arrival).
-	 */
 	private static void showWayfinderTrail(ServerPlayer player) {
 		if (!player.isShiftKeyDown()) return;
 		ItemStack map = player.getMainHandItem();
@@ -371,8 +343,8 @@ public class SoulBind {
 		if (!map.is(Items.FILLED_MAP)) return;
 
 		ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
-		boolean onHelmet = enchantmentLevel(helmet, WAYFINDER_ID) > 0;
-		boolean onMap = enchantmentLevel(map, WAYFINDER_ID) > 0;
+		boolean onHelmet = level(helmet, WAYFINDER.get()) > 0;
+		boolean onMap = level(map, WAYFINDER.get()) > 0;
 		if (!onHelmet && !onMap) return;
 
 		ServerLevel level = player.serverLevel();
@@ -383,10 +355,7 @@ public class SoulBind {
 		double dz = target[1] - player.getZ();
 		double distance = Math.sqrt(dx * dx + dz * dz);
 		if (distance <= ARRIVAL_DISTANCE) {
-			if (!onHelmet) {
-				EnchantmentHelper.updateEnchantments(map, enchantments ->
-						enchantments.removeIf(holder -> WAYFINDER_ID.equals(holder.getRegisteredName())));
-			}
+			if (!onHelmet) setLevel(map, WAYFINDER.get(), 0);
 			return;
 		}
 
@@ -400,16 +369,18 @@ public class SoulBind {
 		}
 
 		if (onHelmet && HELMET_COST_PER_SECOND > 0) {
-			helmet.hurtAndBreak(HELMET_COST_PER_SECOND, player, EquipmentSlot.HEAD);
+			helmet.hurtAndBreak(HELMET_COST_PER_SECOND, player, p -> p.broadcastBreakEvent(EquipmentSlot.HEAD));
 		}
 	}
 
 	/** Where a map points: its marked target (treasure X, structure icon) if it has one, else its center. */
 	private static double[] mapTarget(ItemStack map, ServerLevel level) {
-		MapDecorations decorations = map.get(DataComponents.MAP_DECORATIONS);
-		if (decorations != null) {
-			for (MapDecorations.Entry entry : decorations.decorations().values()) {
-				return new double[]{entry.x(), entry.z()};
+		CompoundTag tag = map.getTag();
+		if (tag != null && tag.contains("Decorations", Tag.TAG_LIST)) {
+			ListTag decorations = tag.getList("Decorations", Tag.TAG_COMPOUND);
+			if (!decorations.isEmpty()) {
+				CompoundTag first = decorations.getCompound(0);
+				return new double[]{first.getDouble("x"), first.getDouble("z")};
 			}
 		}
 		MapItemSavedData data = MapItem.getSavedData(map, level);
@@ -419,22 +390,12 @@ public class SoulBind {
 
 	// ----- XP -----
 
-	private static void restoreXp(Player oldPlayer, Player newPlayer) {
-		// keepInventory already carried XP over.
-		if (newPlayer.experienceLevel > 0 || newPlayer.experienceProgress > 0f) return;
-		int points = keptXp(oldPlayer);
-		if (points > 0) newPlayer.giveExperiencePoints(points);
-	}
-
-	/**
-	 * How many XP points this player's worn Soul Bind armor saves on death.
-	 * Used twice: to hand the points back on respawn, and to shrink the pile of
-	 * XP orbs dropped at the death spot so dying can never create XP.
-	 */
+	/** How many XP points this player's worn Soul Bind armor saves on death. */
 	public static int keptXp(Player player) {
 		float kept = 0f;
 		for (EquipmentSlot slot : ARMOR_SLOTS) {
-			kept += byLevel(XP_KEPT_PER_ARMOR_PIECE, soulBindLevel(player.getItemBySlot(slot)));
+			int level = soulBindLevel(player.getItemBySlot(slot));
+			kept += XP_KEPT_PER_ARMOR_PIECE[Math.min(level, XP_KEPT_PER_ARMOR_PIECE.length - 1)];
 		}
 		if (kept <= 0f) return 0;
 		return (int) (totalXp(player) * Math.min(kept, 1f));
@@ -451,9 +412,5 @@ public class SoulBind {
 			atLevel = 4.5 * level * level - 162.5 * level + 2220;
 		}
 		return (int) (atLevel + player.experienceProgress * player.getXpNeededForNextLevel());
-	}
-
-	private static float byLevel(float[] values, int level) {
-		return values[Math.max(0, Math.min(level, values.length - 1))];
 	}
 }

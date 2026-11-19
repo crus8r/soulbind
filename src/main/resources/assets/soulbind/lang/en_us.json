@@ -1,4 +1,6 @@
 {
 	"enchantment.soulbind.soul_bind": "Soul Bind",
-	"enchantment.soulbind.wayfinder": "Wayfinder"
+	"enchantment.soulbind.wayfinder": "Wayfinder",
+	"enchantment.soulbind.soul_bind.desc": "Keeps the item with you when you die, at a cost.",
+	"enchantment.soulbind.wayfinder.desc": "Sneak holding a map to see a trail toward its target."
 }

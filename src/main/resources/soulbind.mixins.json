@@ -1,12 +1,16 @@
 {
 	"required": true,
+	"minVersion": "0.8",
 	"package": "com.soulbind.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_17",
+	"refmap": "soulbind.refmap.json",
 	"mixins": [
 		"AnvilMenuMixin",
+		"BlockItemMixin",
+		"DigDurabilityEnchantmentMixin",
+		"EnchantedBookItemMixin",
 		"InventoryMixin",
-		"ItemMixin",
-		"PlayerMixin"
+		"ItemMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

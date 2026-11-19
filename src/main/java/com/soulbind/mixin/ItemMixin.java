@@ -9,9 +9,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * In 1.21.1 the bundle is only usable in worlds created with the "Bundle"
+ * In 1.20.1 the bundle is only usable in worlds created with the "Bundle"
  * experiment. Telling the game it needs no experiment turns it on everywhere,
- * using the normal vanilla item, look and behaviour.
+ * using the normal vanilla item. The world is not marked experimental.
  */
 @Mixin(Item.class)
 public abstract class ItemMixin {

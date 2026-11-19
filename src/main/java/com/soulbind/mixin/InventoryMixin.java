@@ -14,8 +14,8 @@ import java.util.Map;
 
 /**
  * Inventory.dropAll() is what scatters a player's items on death.
- * We lift soul-bound items out just before it runs and put them back in the
- * same slots just after, so they never hit the ground.
+ * Soul-bound items are lifted out just before it runs and put back in the same
+ * slots just after, so they never hit the ground (or a grave/corpse mod).
  */
 @Mixin(Inventory.class)
 public abstract class InventoryMixin {

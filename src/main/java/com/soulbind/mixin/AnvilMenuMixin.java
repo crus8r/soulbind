@@ -11,10 +11,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Vanilla anvils assume enchanted books never stack. Soul Bind books do, so:
- *  - a stack on the right would be eaten whole for one use, and
- *  - a stack on the left would be upgraded whole for the price of one.
- * This makes the anvil use exactly one book from each side.
+ * Vanilla anvils assume enchanted books never stack. Soul Bind books do, so this
+ * makes the anvil use exactly one book from each side. It also caps tools,
+ * weapons and armor at Soul Bind III.
  * Anvil slots: 0 = left input, 1 = right input, 2 = result.
  */
 @Mixin(AnvilMenu.class)
@@ -27,20 +26,22 @@ public abstract class AnvilMenuMixin {
 	@Unique
 	private ItemStack soulbind$leftoverRight = ItemStack.EMPTY;
 
-	@Inject(method = "createResult", at = @At("RETURN"), require = 0)
+	@Inject(method = "createResult", at = @At("RETURN"))
 	private void soulbind$oneBookOut(CallbackInfo ci) {
 		AbstractContainerMenu self = (AbstractContainerMenu) (Object) this;
 		ItemStack left = self.getSlot(0).getItem();
 		ItemStack result = self.getSlot(2).getItem();
 		soulbind$trimmedResult = false;
-		SoulBind.capGearLevel(result);
-		if (left.getCount() > 1 && SoulBind.isSoulBindBook(left) && !result.isEmpty()) {
+		if (!result.isEmpty() && !result.is(net.minecraft.world.item.Items.ENCHANTED_BOOK)) {
+			SoulBind.capLevel(result, SoulBind.MAX_GEAR_LEVEL);
+		}
+		if (left.getCount() > 1 && SoulBind.soulBindLevel(left) > 0 && !result.isEmpty()) {
 			result.setCount(1);
 			soulbind$trimmedResult = true;
 		}
 	}
 
-	@Inject(method = "onTake", at = @At("HEAD"), require = 0)
+	@Inject(method = "onTake", at = @At("HEAD"))
 	private void soulbind$rememberStacks(CallbackInfo ci) {
 		AbstractContainerMenu self = (AbstractContainerMenu) (Object) this;
 		ItemStack left = self.getSlot(0).getItem();
@@ -50,12 +51,12 @@ public abstract class AnvilMenuMixin {
 		if (soulbind$trimmedResult && left.getCount() > 1) {
 			soulbind$leftoverLeft = left.copyWithCount(left.getCount() - 1);
 		}
-		if (right.getCount() > 1 && SoulBind.isSoulBindBook(right)) {
+		if (right.getCount() > 1 && SoulBind.soulBindLevel(right) > 0) {
 			soulbind$leftoverRight = right.copyWithCount(right.getCount() - 1);
 		}
 	}
 
-	@Inject(method = "onTake", at = @At("RETURN"), require = 0)
+	@Inject(method = "onTake", at = @At("RETURN"))
 	private void soulbind$returnRest(CallbackInfo ci) {
 		AbstractContainerMenu self = (AbstractContainerMenu) (Object) this;
 		ItemStack left = soulbind$leftoverLeft;

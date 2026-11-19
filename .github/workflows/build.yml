@@ -1,7 +1,7 @@
-name: build-neoforge-1.21.1
+name: build-forge-1.20.1
 on:
   push:
-    branches: [neoforge-1.21.1]
+    branches: [forge-1.20.1]
   workflow_dispatch:
 
 permissions:
@@ -15,37 +15,19 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew && ./gradlew build
-      - name: Check mixin targets exist in NeoForge's Minecraft
+      - run: chmod +x gradlew && ./gradlew build --warning-mode none 2>&1 | tee build.log; test ${PIPESTATUS[0]} -eq 0
+      - name: Fail if any mixin target was not found
         run: |
-          for j in $(find ~/.gradle build -name "*.jar" -size +1M 2>/dev/null); do
-            if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/world/entity/player/Inventory.class"; then
-              echo "JAR $j"
-              javap -p -cp "$j" net.minecraft.world.entity.player.Inventory | grep "void dropAll()"
-              javap -p -cp "$j" net.minecraft.world.inventory.AnvilMenu | grep "void createResult()"
-              javap -p -cp "$j" net.minecraft.world.inventory.AnvilMenu | grep "void onTake("
-              javap -p -cp "$j" net.minecraft.world.entity.player.Player | grep "int getBaseExperienceReward("
-              javap -p -cp "$j" net.minecraft.world.item.Item | grep "FeatureFlagSet requiredFeatures()"
-              exit 0
-            fi
-          done
-          echo "Minecraft jar not found"; exit 1
-      - name: Diagnostics
-        if: failure()
-        run: |
-          for j in $(find ~/.gradle build -name "*.jar" -size +1M 2>/dev/null); do
-            if unzip -l "$j" 2>/dev/null | grep -q "net/neoforged/neoforge/common/loot/LootModifier.class"; then
-              echo "=====JAR $j"
-              javap -p -cp "$j" net.neoforged.neoforge.common.loot.LootModifier net.neoforged.neoforge.common.loot.IGlobalLootModifier 'net.neoforged.neoforge.registries.NeoForgeRegistries$Keys' 'net.neoforged.neoforge.event.entity.player.PlayerEvent$Clone' net.neoforged.neoforge.event.entity.living.LivingDeathEvent 'net.neoforged.neoforge.event.tick.ServerTickEvent' net.minecraft.world.level.storage.loot.LootContext | grep -vE "^\s*private"
-              break
-            fi
-          done
+          if grep -iE "Cannot find target|Unable to locate obfuscation mapping|not found in target" build.log; then exit 1; fi
+          ls -la build/libs
+          unzip -l build/libs/*.jar | grep -E "refmap|mixins.json|mods.toml"
+          unzip -p build/libs/*.jar soulbind.refmap.json | head -60
       - uses: actions/upload-artifact@v4
         with:
-          name: soulbind-neoforge-1.21.1
+          name: soulbind-forge-1.20.1
           path: build/libs/*.jar
-      - run: gh release create "neoforge-1.21.1-build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind for NeoForge 1.21.1, build ${{ github.run_number }}" --notes "Automatic build."
+      - run: gh release create "forge-1.20.1-build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind for Forge 1.20.1, build ${{ github.run_number }}" --notes "Automatic build."
         env:
           GH_TOKEN: ${{ github.token }}
