@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:pale_oak_planks",
+    "C": "minecraft:blaze_rod"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "pale_oak",
+        "omni_core": "blaze_rod"
+      },
+      "minecraft:item_name": "Pale Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          15064025,
+          16763699
+        ]
+      }
+    }
+  }
+}

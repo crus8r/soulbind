@@ -1,0 +1,18 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "omnispell:item/wand",
+    "tints": [
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 0,
+        "default": 12096607
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 1,
+        "default": 5658198
+      }
+    ]
+  }
+}

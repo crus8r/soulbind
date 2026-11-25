@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:acacia_planks",
+    "C": "minecraft:quartz"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "acacia",
+        "omni_core": "quartz"
+      },
+      "minecraft:item_name": "Acacia Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12215095,
+          15656670
+        ]
+      }
+    }
+  }
+}

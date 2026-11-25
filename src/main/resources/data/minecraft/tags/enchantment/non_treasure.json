@@ -1,6 +1,8 @@
 {
 	"replace": false,
 	"values": [
-		"soulbind:wayfinder"
+		"soulbind:wayfinder",
+		"omnispell:reservoir",
+		"omnispell:wellspring"
 	]
 }

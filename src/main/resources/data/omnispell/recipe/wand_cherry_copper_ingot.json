@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:cherry_planks",
+    "C": "minecraft:copper_ingot"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "cherry",
+        "omni_core": "copper_ingot"
+      },
+      "minecraft:item_name": "Cherry Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          15188667,
+          15170646
+        ]
+      }
+    }
+  }
+}

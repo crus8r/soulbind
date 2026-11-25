@@ -9,6 +9,31 @@ base {
 	archivesName = project.archives_base_name
 }
 
+loom {
+	// Client-only code (screens, HUD, key binds) lives in src/client so it can never
+	// be loaded by accident on a dedicated server.
+	splitEnvironmentSourceSets()
+
+	mods {
+		"omnispell" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+fabricApi {
+	// Automated tests that start a real game, play it and take screenshots.
+	// Run with: ./gradlew runClientGameTest
+	configureTests {
+		createSourceSet = true
+		modId = "omnispell-test"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"

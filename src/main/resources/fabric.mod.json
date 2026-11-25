@@ -1,19 +1,25 @@
 {
 	"schemaVersion": 1,
-	"id": "soulbind",
+	"id": "omnispell",
 	"version": "${version}",
-	"name": "Soul Bind",
-	"description": "A rare enchantment that keeps an item with you when you die, at a cost.",
+	"name": "Omnispell",
+	"description": "Craft your own spells from words of power. Includes the Soul Bind enchantment.",
 	"authors": [],
 	"license": "MIT",
 	"environment": "*",
+	"provides": ["soulbind"],
 	"entrypoints": {
 		"main": [
-			"com.soulbind.SoulBind"
+			"com.soulbind.SoulBind",
+			"com.omnispell.Omnispell"
+		],
+		"client": [
+			"com.omnispell.client.OmnispellClient"
 		]
 	},
 	"mixins": [
-		"soulbind.mixins.json"
+		"soulbind.mixins.json",
+		"omnispell.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.18.0",

@@ -19,9 +19,9 @@ jobs:
       - run: gradle build
       - uses: actions/upload-artifact@v4
         with:
-          name: soulbind
+          name: omnispell
           path: build/libs/*.jar
       # Publishes the jar on the repository's Releases page as a direct download.
-      - run: gh release create "build-${{ github.run_number }}" build/libs/*.jar --title "Soul Bind build ${{ github.run_number }}" --notes "Automatic build."
+      - run: gh release create "build-${{ github.run_number }}" build/libs/*.jar --title "Omnispell build ${{ github.run_number }}" --notes "Automatic build."
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:spruce_planks",
+    "C": "minecraft:ender_pearl"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "spruce",
+        "omni_core": "ender_pearl"
+      },
+      "minecraft:item_name": "Spruce Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          8018483,
+          2936241
+        ]
+      }
+    }
+  }
+}

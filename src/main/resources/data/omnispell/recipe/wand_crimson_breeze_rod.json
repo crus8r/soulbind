@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:crimson_planks",
+    "C": "minecraft:breeze_rod"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "crimson",
+        "omni_core": "breeze_rod"
+      },
+      "minecraft:item_name": "Crimson Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          8272470,
+          12175336
+        ]
+      }
+    }
+  }
+}

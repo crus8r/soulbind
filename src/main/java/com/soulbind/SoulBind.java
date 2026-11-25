@@ -116,6 +116,7 @@ public class SoulBind implements ModInitializer {
 	public static final String WAYFINDER_ID = "soulbind:wayfinder";
 	public static final String UNBREAKING_ID = "minecraft:unbreaking";
 	private static final String STARTER_TAG = "soulbind.starter_bundle";
+	private static final String STARTER_KIT_TAG = "omnispell.starter_kit";
 
 	private static final EquipmentSlot[] ARMOR_SLOTS = {
 			EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
@@ -198,11 +199,31 @@ public class SoulBind implements ModInitializer {
 	}
 
 	private static void giveStarterBundle(ServerPlayer player) {
-		if (player.entityTags().contains(STARTER_TAG)) return;
+		boolean hadBundle = player.entityTags().contains(STARTER_TAG);
+		boolean hadKit = player.entityTags().contains(STARTER_KIT_TAG);
+		if (hadBundle && hadKit) return;
+		// Marked only after the enchantment was found, so a bundle is never given blank and then never again.
+		Holder<Enchantment> soulBind = findEnchantment(player.level().registryAccess(), ENCHANTMENT_ID);
+		if (soulBind == null && STARTER_SOUL_BIND > 0) return;
 		player.addTag(STARTER_TAG);
+		player.addTag(STARTER_KIT_TAG);
+
+		List<ItemStack> kit = com.omnispell.Omnispell.starterKit();
+		if (hadBundle) {
+			// A player from before Omnispell already has their bundle: hand the new items over directly.
+			for (ItemStack stack : kit) giveOrDrop(player, stack);
+			return;
+		}
 		ItemStack bundle = createBundle(player.level().registryAccess(), STARTER_SOUL_BIND, STARTER_UNBREAKING);
-		if (!player.getInventory().add(bundle)) {
-			ItemEntity drop = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), bundle);
+		List<net.minecraft.world.item.ItemStackTemplate> contents = new java.util.ArrayList<>();
+		for (ItemStack stack : kit) contents.add(net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(stack));
+		bundle.set(DataComponents.BUNDLE_CONTENTS, new net.minecraft.world.item.component.BundleContents(contents));
+		giveOrDrop(player, bundle);
+	}
+
+	private static void giveOrDrop(ServerPlayer player, ItemStack stack) {
+		if (!player.getInventory().add(stack)) {
+			ItemEntity drop = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), stack);
 			player.level().addFreshEntity(drop);
 		}
 	}

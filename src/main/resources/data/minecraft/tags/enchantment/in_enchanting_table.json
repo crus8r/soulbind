@@ -1,6 +1,8 @@
 {
 	"replace": false,
 	"values": [
-		"soulbind:soul_bind"
+		"soulbind:soul_bind",
+		"omnispell:reservoir",
+		"omnispell:wellspring"
 	]
 }

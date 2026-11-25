@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "omnispell-test",
+	"version": "1.0.0",
+	"name": "Omnispell tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.omnispell.test.OmnispellClientTest"
+		]
+	},
+	"depends": {
+		"omnispell": "*"
+	}
+}

@@ -1,0 +1,17 @@
+{
+  "item.omnispell.wand": "Wand",
+  "item.omnispell.grimoire": "Book of Words",
+  "item.omnispell.word_scroll": "Word Scroll",
+  "item.omnispell.arcane_potion": "Arcane Potion",
+  "block.omnispell.arcane_well": "Arcane Well",
+  "enchantment.omnispell.reservoir": "Reservoir",
+  "enchantment.omnispell.wellspring": "Wellspring",
+  "key.category.omnispell.omnispell": "Omnispell",
+  "key.omnispell.cast_1": "Cast Spell 1",
+  "key.omnispell.cast_2": "Cast Spell 2",
+  "key.omnispell.cast_3": "Cast Spell 3",
+  "key.omnispell.cast_4": "Cast Spell 4",
+  "key.omnispell.cast_5": "Cast Spell 5",
+  "key.omnispell.hud": "Show / Hide Mana",
+  "key.omnispell.book": "Open Book of Words"
+}
