@@ -285,7 +285,7 @@ public final class Modifiers {
 		double reflect = value(player, "damage_reflection");
 		if (reflect > 0) {
 			double want = dealt * reflect / 100.0;
-			back += Mana.spend(player, ManaPool.MIRROR, want / scale) * scale;
+			back += Mana.spend(player, ManaPool.BARRIER, want / scale) * scale;
 		}
 		if (back > 0) attacker.hurtServer(level, level.damageSources().thorns(player), (float) back);
 	}

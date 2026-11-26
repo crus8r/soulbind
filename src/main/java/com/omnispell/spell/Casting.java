@@ -140,17 +140,25 @@ public final class Casting {
 		if (spell.isExploration()) {
 			return switch (spell.toggle == null ? "" : spell.toggle) {
 				case "invisibility", "fade", "camouflage", "silent_step", "teleport", "phase" -> com.omnispell.player.ManaPool.PHASE;
-				case "stun", "trap", "golem", "guardian" -> com.omnispell.player.ManaPool.CONTROL;
+				case "stun", "trap", "golem", "guardian" -> com.omnispell.player.ManaPool.SPIRIT;
 				default -> null;
 			};
 		}
-		if (spell.type.equals("attack")) return com.omnispell.player.ManaPool.FORCE;
+		// Attacks of the body's elements (fire, ice, storm, stone, nature) draw on Force; attacks of the unseen ones (shadow, light, void, blood, arcane) draw on Spirit.
+		if (spell.type.equals("attack")) return spiritElement(spell.code.element) ? com.omnispell.player.ManaPool.SPIRIT : com.omnispell.player.ManaPool.FORCE;
 		return switch (spell.code.type == null ? "" : spell.code.type) {
 			case "heal" -> com.omnispell.player.ManaPool.RESTORATION;
 			case "shield" -> com.omnispell.player.ManaPool.BARRIER;
-			case "debuff", "status" -> com.omnispell.player.ManaPool.CONTROL;
+			case "debuff", "status" -> com.omnispell.player.ManaPool.SPIRIT;
 			case "damage" -> com.omnispell.player.ManaPool.FORCE;
 			default -> null;
+		};
+	}
+
+	public static boolean spiritElement(String element) {
+		return switch (element == null ? "" : element.toLowerCase()) {
+			case "shadow", "dark", "darkness", "light", "holy", "radiant", "void", "blood", "arcane", "spirit", "psychic", "death", "necrotic", "ethereal" -> true;
+			default -> false;
 		};
 	}
 

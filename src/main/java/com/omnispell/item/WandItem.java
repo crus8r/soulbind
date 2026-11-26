@@ -183,7 +183,9 @@ public class WandItem extends Item {
 			player.setItemInHand(otherHand, stack);
 			level.playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_GENERIC.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.4f);
 		}
-		if (level.isClientSide() && !player.isShiftKeyDown()) {
+		ItemStack inOtherHand = player.getItemInHand(hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
+		boolean reading = com.omnispell.familiar.Familiars.isEgg(inOtherHand) || inOtherHand.is(OmniItems.FAMILIAR); // reading an egg or familiar, not raising the ward
+		if (level.isClientSide() && !player.isShiftKeyDown() && !reading) {
 			player.startUsingItem(hand);
 			return InteractionResult.CONSUME;
 		}

@@ -220,7 +220,7 @@ public final class CombatEffects {
 					cast.tell(target.getName().getString() + " resists.");
 					return;
 				}
-				double paid = Mana.spend(player, ManaPool.CONTROL, wanted);
+				double paid = Mana.spend(player, ManaPool.SPIRIT, wanted * 10.0) / 10.0;
 				if (paid < 0.5) {
 					cast.tell("Your Control mana is spent.");
 					return;

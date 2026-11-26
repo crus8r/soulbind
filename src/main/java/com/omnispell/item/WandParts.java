@@ -75,16 +75,16 @@ public final class WandParts {
 	public static final Map<String, Core> CORES = new LinkedHashMap<>();
 
 	static {
-		wood(new Wood("oak", "Oak", 0xB8945F, "Sturdy and loyal.").mana(ManaPool.BARRIER, 25).mana(ManaPool.MIRROR, 15));
+		wood(new Wood("oak", "Oak", 0xB8945F, "Sturdy and loyal.").mana(ManaPool.BARRIER, 30).mana(ManaPool.FORCE, 10));
 		wood(new Wood("birch", "Birch", 0xD7CB8D, "Pure offensive focus.").damage(10));
 		wood(new Wood("spruce", "Spruce", 0x7A5A33, "Noble and defensive.").mana(ManaPool.BARRIER, 20).mana(ManaPool.RESTORATION, 15));
 		wood(new Wood("jungle", "Jungle", 0xB88764, "Graceful and adaptive.").mana(ManaPool.RESTORATION, 30).mana(ManaPool.BARRIER, 10));
 		wood(new Wood("acacia", "Acacia", 0xBA6337, "Balanced and versatile.").all(5));
-		wood(new Wood("dark_oak", "Dark Oak", 0x4F3218, "Powerful and unyielding.").mana(ManaPool.CONTROL, 25).mana(ManaPool.MIRROR, 20));
-		wood(new Wood("mangrove", "Mangrove", 0x7B3636, "A warrior's wand.").mana(ManaPool.MIRROR, 25).mana(ManaPool.BARRIER, 15));
-		wood(new Wood("cherry", "Cherry", 0xE7C2BB, "A mystical guardian.").mana(ManaPool.PHASE, 25).mana(ManaPool.CONTROL, 15));
+		wood(new Wood("dark_oak", "Dark Oak", 0x4F3218, "Powerful and unyielding.").mana(ManaPool.SPIRIT, 25).mana(ManaPool.FORCE, 20));
+		wood(new Wood("mangrove", "Mangrove", 0x7B3636, "A warrior's wand.").mana(ManaPool.BARRIER, 30).mana(ManaPool.FORCE, 10));
+		wood(new Wood("cherry", "Cherry", 0xE7C2BB, "A mystical guardian.").mana(ManaPool.PHASE, 25).mana(ManaPool.SPIRIT, 15));
 		wood(new Wood("bamboo", "Bamboo", 0xD3BD5A, "Rare and temperamental.").all(10));
-		wood(new Wood("pale_oak", "Pale Oak", 0xE5DBD9, "Ancient power over life and death.").mana(ManaPool.CONTROL, 30).mana(ManaPool.PHASE, 15));
+		wood(new Wood("pale_oak", "Pale Oak", 0xE5DBD9, "Ancient power over life and death.").mana(ManaPool.SPIRIT, 30).mana(ManaPool.PHASE, 15));
 		wood(new Wood("crimson", "Crimson", 0x7E3A56, "Grown in fire. Fire spells burn hotter.").element("fire").damage(5));
 		wood(new Wood("warped", "Warped", 0x398382, "Grown in shadow. Shadow spells strike deeper.").element("shadow").mana(ManaPool.PHASE, 15));
 

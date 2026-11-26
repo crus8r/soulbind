@@ -6,10 +6,9 @@ package com.omnispell.player;
  * so numbers in spell descriptions line up with what is spent.
  */
 public enum ManaPool {
-	BARRIER("Barrier", 0x3b82f6, 100),       // shields
+	BARRIER("Barrier", 0x3b82f6, 100),       // shields, the wand's ward, and damage thrown back
 	RESTORATION("Restoration", 0x22c55e, 75), // healing
-	CONTROL("Control", 0xa855f7, 6),          // turns of stun, charm, fear, confusion
-	MIRROR("Mirror", 0xf59e0b, 60),           // damage reflected
+	SPIRIT("Spirit", 0xa855f7, 60),           // holds on the mind (stun, charm, fear) and attack spells of shadow, light, void and blood
 	PHASE("Phase", 0x06b6d4, 5),              // dodges, the wand sprint and air-walking
 	FORCE("Force", 0xef4444, 60);             // attack spells and the wand's plain bolt
 

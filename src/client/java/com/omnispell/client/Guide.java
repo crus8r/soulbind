@@ -60,7 +60,7 @@ public final class Guide {
 				"A rare charge word, found on Ancient scrolls. Put it in a spell's Charge slot and the spell spreads: an attack or affliction also washes over everything within a few blocks of its target at a little over half strength, and an environment spell reaches one tier further.",
 				"Kills made with fire magic leave their meat already cooked.",
 				"WHAT SPELLS COST",
-				"Attack spells cost Force mana: 7 for a tier 1 spell, 3 more per tier, less with Minima. The wand's plain bolt costs 5. Shields draw on Barrier, healing on Restoration, holds and stuns on Control, reflection on Mirror, and vanishing and stepping through space on Phase. The coloured pip on a spell's square shows which reserve it uses, and that reserve's bar flashes when it is drawn on.",
+				"Attack spells cost 7 mana at tier 1 and 3 more per tier, less with Minima. Which reserve depends on the element: fire, ice, storm, stone and nature draw on Force; shadow, light, void, blood and arcane draw on Spirit. Carry some of each and you have two reserves to fight from. The wand's plain bolt costs 5 Force. Shields draw on Barrier, healing on Restoration, holds and stuns on Spirit, and vanishing and stepping through space on Phase. The coloured pip on a spell's square shows which reserve it uses, and that reserve's bar flashes when it is drawn on.",
 				"ENVIRONMENT SPELLS",
 				"The command and the intention together choose the effect; the base word colours it. There are ten kinds of command and six kinds of intention, so sixty pairings. The spell's description always says what it will do.",
 				"Harsh intentions (Malice, Banishment, Weakening, Nullification) break things: carve a tunnel, drill a shaft, blast a crater, open a pit, dig a moat, flatten the land, drive off water and snow, wither plants away, transmute blocks, or call a strike from the sky.",
@@ -114,8 +114,8 @@ public final class Guide {
 				"Reservoir enlarges every mana reserve. Wellspring refills them faster. Alacrity shortens the wait between casts. All three go on armor."));
 		s.put("Mana", List.of(
 				"You have five mana reserves. Each pays for one kind of magic and refills on its own.",
-				"Barrier pays for shields. Restoration pays for healing. Control pays for stuns, charms, fear and confusion. Mirror pays for reflected damage. Phase pays for dodging, teleporting and vanishing.",
-				"Attack spells cost no mana. They are limited by their cooldown: stronger spells take longer to be ready again. Some wand cores and armor shorten it.",
+				"Barrier pays for shields, the wand's ward and damage thrown back. Restoration pays for healing. Force pays for attacks of fire, ice, storm, stone and nature, and for the wand's bolt. Spirit pays for attacks of shadow, light, void, blood and the arcane, and for stuns, charms, fear and confusion. Phase pays for dodging, teleporting, vanishing, the wand sprint and air-walking.",
+				"Every spell also has a cooldown: stronger spells take longer to be ready again. Some wand cores and armor shorten it.",
 				"Your reserves grow with what you carry, not with a level. The wand's wood raises some of them. Gold and leather armor hold the most magic, chainmail and copper some, iron a little, diamond and netherite none.",
 				"The Materials page says what each material is good for.",
 				"Press H to show or hide the mana display."));

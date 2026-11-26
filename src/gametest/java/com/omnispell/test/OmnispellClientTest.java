@@ -91,7 +91,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 
 	private static void cast(ClientGameTestContext context, int slot) {
 		// Attack spells cost Force mana; the play-through is not about running dry.
-		if (SERVER != null) SERVER.runOnServer(s -> PlayerStore.get(player(s)).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 60);
+		if (SERVER != null) SERVER.runOnServer(s -> {
+			PlayerStore.get(player(s)).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 60;
+			PlayerStore.get(player(s)).mana[com.omnispell.player.ManaPool.SPIRIT.ordinal()] = 60;
+		});
 		context.getInput().pressKey(OmnispellClient.CAST[slot]);
 		context.waitTicks(3);
 		context.getInput().pressKey(OmnispellClient.CAST[slot]);
@@ -676,10 +679,17 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				ItemStack costWand = WandItem.create("oak", "nether_star");
 				WandItem.setSpell(costWand, 0, attack);
 				p.getInventory().setItem(6, costWand);
-				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 60;
+				var attackPool = com.omnispell.spell.Casting.poolOf(attack);
+				PlayerStore.get(p).mana[attackPool.ordinal()] = 60;
 				com.omnispell.spell.Casting.cast(p, costWand, 0);
-				double left = PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()];
-				check(Math.abs(left - (60 - com.omnispell.spell.Casting.manaCost(attack))) < 0.01, "casting it spent " + (60 - left) + " Force mana");
+				double left = PlayerStore.get(p).mana[attackPool.ordinal()];
+				check(Math.abs(left - (60 - com.omnispell.spell.Casting.manaCost(attack))) < 0.01, "casting it spent " + (60 - left) + " " + attackPool.label + " mana");
+				com.omnispell.spell.Spell probe = new com.omnispell.spell.Spell();
+				probe.type = "attack";
+				probe.code.element = "fire";
+				boolean fireIsForce = com.omnispell.spell.Casting.poolOf(probe) == com.omnispell.player.ManaPool.FORCE;
+				probe.code.element = "shadow";
+				check(fireIsForce && com.omnispell.spell.Casting.poolOf(probe) == com.omnispell.player.ManaPool.SPIRIT, "fire attacks draw on Force and shadow attacks on Spirit");
 				p.getInventory().setItem(6, ItemStack.EMPTY);
 
 				// Villagers sell scrolls: the trades are in the game's trade lists.

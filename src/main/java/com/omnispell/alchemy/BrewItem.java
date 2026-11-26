@@ -117,8 +117,8 @@ public class BrewItem extends Item {
 		return switch (manaType) {
 			case "shield_generated" -> ManaPool.BARRIER;
 			case "healing_done" -> ManaPool.RESTORATION;
-			case "control_turns" -> ManaPool.CONTROL;
-			case "damage_reflected" -> ManaPool.MIRROR;
+			case "control_turns" -> ManaPool.SPIRIT;
+			case "damage_reflected" -> ManaPool.BARRIER;
 			case "evasion_dodges" -> ManaPool.PHASE;
 			default -> null;
 		};

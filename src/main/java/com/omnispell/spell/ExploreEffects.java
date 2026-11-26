@@ -492,7 +492,7 @@ public final class ExploreEffects {
 				}
 				if (MobControl.immune(target)) yield c.fail(target.getName().getString() + " resists.");
 				double turns = (spell.toggle.equals("stun") ? 2 : 3) * power * lasting;
-				double paid = Mana.spend(p, ManaPool.CONTROL, turns);
+				double paid = Mana.spend(p, ManaPool.SPIRIT, turns * 10.0) / 10.0;
 				if (paid < 0.5) yield c.fail("Your Control mana is spent.");
 				String kind = switch (spell.toggle) {
 					case "stun" -> "stun";
@@ -518,7 +518,7 @@ public final class ExploreEffects {
 					for (LivingEntity e : Targeting.around(p, at, 1.8, false)) {
 						if (!(e instanceof Mob)) continue;
 						sprung[0] = true;
-						double paid = Mana.spend(p, ManaPool.CONTROL, turns);
+						double paid = Mana.spend(p, ManaPool.SPIRIT, turns * 10.0) / 10.0;
 						if (paid >= 0.5) MobControl.apply(p, e, "root", c.turns(paid), null);
 						hurt(c, e, (4 + 2 * tier) * power, fxElement);
 						Fx.ring(level, at, 1.8, color, extra);
@@ -557,7 +557,7 @@ public final class ExploreEffects {
 				if (!(target instanceof Mob mob) || MobControl.immune(target) || target.getMaxHealth() > 30 + tier * 10 || target.entityTags().contains(Summons.TAG)) {
 					yield c.fail(target.getName().getString() + " cannot be reshaped.");
 				}
-				if (Mana.spend(p, ManaPool.CONTROL, 3) < 3) yield c.fail("Your Control mana is spent.");
+				if (Mana.spend(p, ManaPool.SPIRIT, 30) < 30) yield c.fail("Your Spirit mana is spent.");
 				EntityType<?> original = mob.getType();
 				Vec3 where = mob.position();
 				float health = mob.getHealth();

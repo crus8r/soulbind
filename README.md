@@ -50,8 +50,9 @@ replaces it.
   Dragon each drop a scroll of their own.
 - **Wands** are crafted: plank, core, plank of the same wood in a vertical line.
   The wood sets mana bonuses, the core sets how many words a spell may hold.
-- **Mana** has six reserves (Barrier, Restoration, Control, Mirror, Phase, Force). Attack
-  spells and the wand's bolt cost Force; a pip on each spell square shows its reserve. Their size
+- **Mana** has five reserves: Barrier, Restoration, Spirit, Phase, Force. Attack spells of
+  fire, ice, storm, stone and nature cost Force (as does the wand's bolt); those of shadow,
+  light, void, blood and the arcane cost Spirit. A pip on each spell square shows its reserve. Their size
   comes from the wand's wood, your armor material, and the Reservoir and Wellspring
   enchantments.
 - **Arcane essence** is drawn from an Arcane Well: use it, wait for the surge, use it
