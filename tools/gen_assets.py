@@ -331,6 +331,49 @@ def focus(x, y):
 tex('arcane_focus', focus, 'item')
 tex('familiar_eyes', orb_eyes, 'item')
 
+# Familiar skins: one 64x64 sheet per species. The regions must match FamiliarRender.layer().
+def region(u, v, w, h, d):
+    return (u, v, u + 2 * (w + d), v + d + h)
+FAM_REGIONS = {'body': region(0, 0, 6, 5, 10), 'head': region(0, 16, 5, 5, 5), 'snout': region(20, 16, 3, 2, 3), 'beak': region(32, 16, 2, 2, 3),
+               'ears': region(44, 16, 2, 2, 1), 'horns': region(52, 16, 1, 4, 1), 'antlers': region(56, 16, 2, 5, 1), 'crest': region(20, 22, 1, 3, 4),
+               'legs': region(0, 27, 2, 7, 2), 'wings': region(0, 37, 9, 1, 7), 'tail': region(32, 0, 2, 2, 7), 'shell': region(0, 46, 8, 4, 11),
+               'orb': region(40, 28, 6, 6, 6)}
+FAM_SKINS = {
+    'griffin': {'base': (201, 162, 92), 'wings': (240, 234, 214), 'beak': (232, 170, 44), 'head': (236, 228, 206), 'ears': (236, 228, 206), 'tail': (170, 130, 70)},
+    'phoenix': {'base': (226, 84, 36), 'wings': (250, 168, 40), 'tail': (255, 208, 70), 'beak': (250, 222, 96), 'crest': (255, 222, 84), 'legs': (240, 190, 70)},
+    'drake': {'base': (62, 130, 96), 'wings': (38, 88, 70), 'horns': (232, 230, 208), 'snout': (80, 150, 110), 'tail': (50, 110, 82)},
+    'wisp': {'base': (150, 220, 255), 'orb': (170, 232, 255)},
+    'stag': {'base': (150, 105, 70), 'antlers': (236, 226, 200), 'snout': (176, 132, 96), 'legs': (120, 84, 56), 'tail': (240, 236, 226)},
+    'kodama': {'base': (236, 240, 230), 'legs': (214, 222, 208)},
+    'direwolf': {'base': (96, 100, 112), 'ears': (64, 66, 76), 'snout': (140, 144, 154), 'tail': (120, 124, 136), 'legs': (84, 88, 100)},
+    'tortoise': {'base': (120, 150, 90), 'shell': (92, 72, 50), 'legs': (104, 134, 78)},
+}
+for species, skin in FAM_SKINS.items():
+    img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+    for part, (x0, y0, x1, y1) in FAM_REGIONS.items():
+        col = skin.get(part, skin['base'])
+        for y in range(y0, min(64, y1)):
+            for x in range(x0, min(64, x1)):
+                n = noise(x, y, 47 + len(species))
+                shade = 0.82 + 0.26 * n
+                if part == 'shell' and (x % 4 == 0 or y % 4 == 0): shade *= 0.7
+                if part == 'wings' and x % 3 == 0: shade *= 0.86
+                if part == 'body' and species == 'direwolf' and y < 10: shade *= 0.85
+                img.putpixel((x, y), tuple(max(0, min(255, int(c * shade))) for c in col) + (255,))
+    # eyes on the front of the head (u 5..9, v 21..25) and of the wisp's orb (u 46..51, v 34..39)
+    eye = (20, 16, 30, 255) if species != 'phoenix' else (255, 244, 180, 255)
+    big = species == 'kodama'
+    for ex in (5, 9):
+        img.putpixel((ex, 22), eye)
+        if big: img.putpixel((ex, 23), eye)
+    if species == 'kodama': img.putpixel((7, 24), eye)
+    for ex in (47, 50):
+        img.putpixel((ex, 36), (255, 255, 255, 255))
+        img.putpixel((ex, 37), (255, 255, 255, 255))
+    path = os.path.join(ASSETS, 'textures', 'entity', 'familiar', species + '.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -588,6 +631,7 @@ lang = {
     'biome.omnispell.ancient_spires': 'Ancient Spires',
     'item.omnispell.brew': 'Potion',
     'item.omnispell.familiar_egg': 'Familiar Egg',
+    'entity.omnispell.familiar': 'Familiar',
     'item.omnispell.arcane_focus': 'Arcane Focus',
     'item.omnispell.familiar': 'Familiar',
     'enchantment.omnispell.attunement': 'Attunement',

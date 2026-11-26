@@ -1065,6 +1065,33 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(carried && com.omnispell.familiar.Familiars.familiarOf(p) == null, "the familiar goes into a pocket with its stats intact");
 				p.getInventory().setItem(7, ItemStack.EMPTY);
 			});
+			// Every kind of familiar, side by side, in its own body and skin.
+			java.util.List<net.minecraft.world.entity.Entity> parade = new java.util.ArrayList<>();
+			server.runCommand("time set noon");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos b = site[0];
+				int n = 0;
+				for (var species : com.omnispell.familiar.Familiars.SPECIES.values()) {
+					var body = com.omnispell.familiar.Familiars.TYPE.create(level, EntitySpawnReason.COMMAND);
+					check(body != null, "a " + species.name() + " body can be made");
+					body.setSpecies(species.id());
+					body.setNoAi(true);
+					body.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SCALE).setBaseValue(species.scale());
+					body.snapTo(b.getX() - 6.5 + n * 1.9, b.getY(), b.getZ() - 7.5, 20f, 0f);
+					body.setYBodyRot(20f);
+					body.setYHeadRot(20f);
+					level.addFreshEntity(body);
+					parade.add(body);
+					n++;
+				}
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() - 1.5, java.util.Set.of(), 180f, 12f, true);
+			});
+			context.waitTicks(30);
+			context.takeScreenshot("29-familiar-kinds");
+			server.runOnServer(s -> parade.forEach(net.minecraft.world.entity.Entity::discard));
+
 			context.runOnClient(c -> c.gui.setScreen(BookScreen.onTab(4)));
 			context.waitTicks(8);
 			context.takeScreenshot("28-book-lore");

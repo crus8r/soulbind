@@ -78,6 +78,11 @@ public final class Familiars {
 	}
 
 	public static final Map<String, Species> SPECIES = new LinkedHashMap<>();
+	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.entity.EntityType<?>> TYPE_KEY =
+			net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE, Omnispell.id("familiar"));
+	public static final net.minecraft.world.entity.EntityType<FamiliarEntity> TYPE = net.minecraft.core.Registry.register(BuiltInRegistries.ENTITY_TYPE, TYPE_KEY,
+			net.minecraft.world.entity.EntityType.Builder.<FamiliarEntity>of(FamiliarEntity::new, net.minecraft.world.entity.MobCategory.CREATURE)
+					.sized(0.7f, 0.8f).eyeHeight(0.6f).clientTrackingRange(10).build(TYPE_KEY));
 	public static final int MAX_SOAKS = 8;
 	public static final int SOAK_POINTS = 2;
 	public static final long SOAK_INTERVAL = 6000; // five minutes
@@ -86,14 +91,14 @@ public final class Familiars {
 	private static final String DATA_PREFIX = "omnifam|";
 
 	static {
-		species("griffin", "Griffin", Stat.SWIFTNESS, 1.5, "antarchy:manticore", "naturalist:vulture", "minecraft:parrot");
-		species("phoenix", "Phoenix", Stat.SPIRIT, 1.6, "naturalist:bird", "minecraft:parrot");
-		species("drake", "Drake", Stat.POWER, 0.6, "uselessreptile:river_pikehorn", "naturalist:lizard", "minecraft:ocelot");
+		species("griffin", "Griffin", Stat.SWIFTNESS, 1.3, "antarchy:manticore", "naturalist:vulture", "minecraft:parrot");
+		species("phoenix", "Phoenix", Stat.SPIRIT, 1.0, "naturalist:bird", "minecraft:parrot");
+		species("drake", "Drake", Stat.POWER, 1.1, "uselessreptile:river_pikehorn", "naturalist:lizard", "minecraft:ocelot");
 		species("wisp", "Wisp", Stat.SPIRIT, 0.8, "friendsandfoes:glare", "minecraft:bee");
-		species("stag", "Stag", Stat.SWIFTNESS, 1.0, "naturalist:deer", "antarchy:ouranwood_deer", "minecraft:fox");
-		species("kodama", "Kodama", Stat.SPIRIT, 1.0, "aerialhell:kodama", "minecraft:fox");
-		species("direwolf", "Direwolf", Stat.POWER, 1.4, "minecraft:wolf");
-		species("tortoise", "Tortoise", Stat.VITALITY, 1.0, "naturalist:tortoise", "minecraft:turtle");
+		species("stag", "Stag", Stat.SWIFTNESS, 1.2, "naturalist:deer", "antarchy:ouranwood_deer", "minecraft:fox");
+		species("kodama", "Kodama", Stat.SPIRIT, 0.8, "aerialhell:kodama", "minecraft:fox");
+		species("direwolf", "Direwolf", Stat.POWER, 1.25, "minecraft:wolf");
+		species("tortoise", "Tortoise", Stat.VITALITY, 1.1, "naturalist:tortoise", "minecraft:turtle");
 	}
 
 	private static void species(String id, String name, Stat gift, double scale, String... bodies) {
@@ -315,19 +320,7 @@ public final class Familiars {
 	/** Brings a familiar into the world beside its owner. Returns null if no body could be made. */
 	public static Mob release(ServerPlayer owner, Species species, int[] stats, String name, Vec3 at) {
 		ServerLevel level = owner.level();
-		Mob mob = null;
-		for (String body : species.bodies()) {
-			var type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(body));
-			if (type.isEmpty()) continue;
-			try {
-				if (type.get().create(level, EntitySpawnReason.MOB_SUMMONED) instanceof Mob made) {
-					mob = made;
-					break;
-				}
-			} catch (Exception e) {
-				Omnispell.LOG.warn("Familiar body {} could not be made; trying the next", body, e);
-			}
-		}
+		FamiliarEntity mob = TYPE.create(level, EntitySpawnReason.MOB_SUMMONED);
 		if (mob == null) return null;
 		mob.snapTo(at.x, at.y, at.z, owner.getYRot(), 0);
 		mob.addTag(TAG);
@@ -343,6 +336,7 @@ public final class Familiars {
 	}
 
 	private static void adopt(Mob mob, UUID owner, Species species, int[] stats) {
+		if (mob instanceof FamiliarEntity familiar) familiar.setSpecies(species.id());
 		((MobGoalsAccessor) mob).omnispell$targetSelector().removeAllGoals(goal -> true);
 		mob.setTarget(null);
 		set(mob.getAttribute(Attributes.SCALE), species.scale());
@@ -495,6 +489,7 @@ public final class Familiars {
 	// ------------------------------------------------------------- handlers
 
 	public static void register() {
+		net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(TYPE, FamiliarEntity.attributes());
 		// Soaking: an egg held against a cauldron or an arcane well.
 		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
 			ItemStack held = player.getItemInHand(hand);

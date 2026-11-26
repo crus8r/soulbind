@@ -44,12 +44,14 @@ replaces it.
   elemental fields, water breathing and other attunements, teleports, bridges...). The
   base word's element leaves its mark on everything the spell touches (fire scorches,
   ice freezes, water floods, void drags inward) and its tier sets the reach.
-- **Words** come from Word Scrolls in structure chests and, rarely, from hostile mobs.
+- **Words** come from Word Scrolls in structure chests, from librarians, clerics and
+  wandering traders for emeralds, and, rarely, from hostile mobs.
   A scroll always teaches a word you do not know. The Wither, the Warden and the Ender
   Dragon each drop a scroll of their own.
 - **Wands** are crafted: plank, core, plank of the same wood in a vertical line.
   The wood sets mana bonuses, the core sets how many words a spell may hold.
-- **Mana** has five reserves (Barrier, Restoration, Control, Mirror, Phase). Their size
+- **Mana** has six reserves (Barrier, Restoration, Control, Mirror, Phase, Force). Attack
+  spells and the wand's bolt cost Force; a pip on each spell square shows its reserve. Their size
   comes from the wand's wood, your armor material, and the Reservoir and Wellspring
   enchantments.
 - **Arcane essence** is drawn from an Arcane Well: use it, wait for the surge, use it
@@ -70,7 +72,8 @@ replaces it.
 - **Waypoints** are crafted in pairs. Place both and use either to travel to the other.
 - **The Enchanted Forest** is Omnispell's own realm, reached by a craftable Forest Gate.
   Everything hostile there is half again as strong and scrolls found there are rarer.
-  It is the only source of faewood, fae dust and familiar eggs.
+  It is the only source of faewood, fae dust and familiar eggs, and holds ruins with
+  chests and nests where eggs are found.
 - **Charms**: enchant a gem (amethyst, lapis, quartz, prismarine, emerald, echo shard,
   diamond, netherite) at an enchanting table with a **Runic Bookshelf** (faewood planks
   and books) within two blocks. Each gem leans to certain charms; diamond and netherite
