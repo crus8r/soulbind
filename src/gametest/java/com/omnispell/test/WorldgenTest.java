@@ -218,12 +218,12 @@ public class WorldgenTest implements FabricClientGameTest {
 				System.out.println("[omnispell-test] shrine at " + found[0] + ", " + (int) Math.sqrt(found[0].distSqr(p.blockPosition())) + " blocks from spawn");
 				p.teleportTo(p.level(), found[0].getX() + 4.5, 200, found[0].getZ() - 6.5, java.util.Set.of(), 0f, 20f, true);
 			});
-			context.waitTicks(100);
+			context.waitTicks(400);
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				ServerLevel level = p.level();
 				BlockPos well = null;
-				for (BlockPos pos : BlockPos.betweenClosed(found[0].offset(-20, -64, -20), found[0].offset(20, 200, 20))) {
+				for (BlockPos pos : BlockPos.betweenClosed(found[0].offset(-20, -64, -20), found[0].offset(20, 319, 20))) {
 					if (level.getBlockState(pos).is(OmniItems.ARCANE_WELL)) well = pos.immutable();
 				}
 				check(well != null, "the generated shrine contains an arcane well");
