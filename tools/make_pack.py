@@ -12,7 +12,7 @@ Edit pack/mods.txt to add or remove mods (one Modrinth slug per line, # for note
 """
 import hashlib, json, os, sys, time, urllib.parse, urllib.request, zipfile
 
-GAME, LOADER, LOADER_VERSION = '26.3', 'fabric', '0.19.5'
+GAME, LOADER, LOADER_VERSION = '26.3', 'fabric', '0.20.1'
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 PACK = os.path.join(ROOT, 'pack')
 API = 'https://api.modrinth.com/v2/'

@@ -48,12 +48,28 @@ replaces it.
   drop word scrolls and unlock new kinds of spell. **Razza** is called by using a wand
   on the dragon egg after the Ender Dragon is dead.
 - **Potions** are brewed in an Alchemy Cauldron (cauldron + blaze rod + amethyst shard):
-  blaze powder to charge it, a liquid (water, honey, milk, lava, dragon's breath), up to
+  blaze powder to charge it, one of ten liquids (water, honey, milk, lava, dragon's breath
+  and more), up to
   three ingredients and two catalysts, a heat source underneath, then a glass bottle.
   The Omnispell potioneer decides the result; a recipe always gives the same potion.
 - **Waypoints** are crafted in pairs. Place both and use either to travel to the other.
+- **The Enchanted Forest** is Omnispell's own realm, reached by a craftable Forest Gate.
+  Everything hostile there is half again as strong and scrolls found there are rarer.
+  It is the only source of faewood, fae dust and familiar eggs.
+- **Charms**: enchant a gem (amethyst, lapis, quartz, prismarine, emerald, echo shard,
+  diamond, netherite) at an enchanting table with a **Runic Bookshelf** (faewood planks
+  and books) within two blocks. Each gem leans to certain charms; diamond and netherite
+  usually take more than one. On an anvil, armor + charmed gem sets the charm into the
+  armor. Hover over armor to see its charm slots; the Attunement enchantment adds slots.
+- **Familiars** hatch from eggs found in the forest. The egg's name, shell colour and
+  band show its leanings. Soak it (lava, powder snow or water cauldron, or an Arcane
+  Well) to raise a stat, up to eight times, five minutes apart. Sneak-use it on the
+  ground to hatch. The familiar follows and fights for you; sneak-use an empty hand on
+  it to pocket it. Hold the egg or pocketed familiar in one hand and use a wand to read
+  its stats.
 
-The book's Guide tab explains all of this in the game.
+The book's Guide and Lore tabs explain all of this in the game, including every custom
+enchantment and the gate to each realm.
 
 ## The content pack
 

@@ -45,7 +45,22 @@ geckolib           # needed by Antarchy
 # --- sky realm
 aerial-hell
 
+# --- more to explore: added to make up for the mods left out below
+incendium                  # Nether biomes, castles and bosses (in place of BetterNether)
+nullscape                  # taller, stranger End terrain (in place of BetterEnd)
+villages-and-pillages
+adorabuild-structures
+explorations
+tidal-towns
+ati-structures-vanilla-edition
+decubed-dungeons
+it-takes-a-pillage-continuation
+ecologics                  # creatures
+natures-compass
+explorers-compass
+
 # --- tried and left out (2026-11-26)
 # the-graveyard-fabric   crashes on start with Minecraft 26.3 ("overrides final method Mob.isSunBurnTick")
 # adventurez              crashes the server when its deer spawns ("Can't find attribute minecraft:tempt_range")
 # betternether, betterend   their library (World Weaver) crashed at start next to the other mods in testing
+# formations (+ overworld, nether)   marked for 26.3 but built against old class names; crashes on start
