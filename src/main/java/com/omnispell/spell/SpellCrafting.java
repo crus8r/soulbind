@@ -70,6 +70,7 @@ public final class SpellCrafting {
 			if (!allowed && !typeId.equals("exploration") && (word.type.equals("source") || word.type.equals("attribute") || word.type.equals("charge") || word.type.equals("intention"))) allowed = true;
 			if (!allowed && typeId.equals("exploration") && (word.type.equals("charge") || word.type.equals("attribute"))) allowed = true;
 			if (!allowed) return capitalize(word.type) + " words cannot go in " + type.name.toLowerCase() + ".";
+			if (word.type.equals("attribute") && !WordBank.attributeFits(typeId, word)) return word.shortName() + " does not belong in " + type.name.toLowerCase() + ".";
 		}
 		for (WordBank.Slot slot : type.wordSlots) {
 			if (slot.required && !counts.containsKey(slot.type)) return type.name + " need a " + slot.type + " word.";

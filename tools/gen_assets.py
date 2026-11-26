@@ -329,6 +329,38 @@ def focus(x, y):
     if d < 1.6: return (250, 240, 255, 255)
     return mix((92, 60, 190), (190, 130, 255), noise(x, y, 43) * 0.6 + (5.6 - d) / 9)
 tex('arcane_focus', focus, 'item')
+# The Wizard's Hat: a tall cone with a wide brim (grey, tinted by its dye) and a gold band and stars (untinted).
+def hat_cone(x, y):
+    if y >= 12 and 0 <= x < 16 and y <= 13: return (200, 200, 200, 255) if y == 12 else (150, 150, 150, 255)   # brim
+    half = (y + 1) * 0.42                                                                                     # cone widens downward
+    tip_x = 9 - y * 0.25                                                                                       # and leans a little
+    if y < 12 and abs(x - tip_x) <= half: return tuple(int(c) for c in mix((230, 230, 230), (170, 170, 170), (x - tip_x + half) / (2 * half + 0.01))[:3]) + (255,)
+    return (0, 0, 0, 0)
+def hat_band(x, y):
+    if y in (10, 11) and abs(x - 6.5) <= 4.6: return (236, 196, 84, 255)
+    if (x, y) in ((8, 4), (6, 7), (9, 8)): return (255, 240, 170, 255)
+    return (0, 0, 0, 0)
+tex('wizard_hat', hat_cone, 'item')
+tex('wizard_hat_band', hat_band, 'item')
+# Worn: an armour sheet for the head (64x32). Grey cap and brim, tinted by the dye, with a gold band overlay.
+def hat_worn(x, y, band):
+    head = x < 32 and y < 16
+    if not head: return (0, 0, 0, 0)
+    if band:
+        return (236, 196, 84, 255) if 12 <= y < 14 and not (8 <= x < 24 and y < 8) else ((255, 240, 170, 255) if noise(x, y, 79) > 0.95 and y < 12 else (0, 0, 0, 0))
+    v = 200 + int(40 * noise(x, y, 73))
+    return (v, v, v, 255)
+for name, band in (('wizard_hat', False), ('wizard_hat_overlay', True)):
+    img = Image.new('RGBA', (64, 32))
+    for yy in range(32):
+        for xx in range(64):
+            img.putpixel((xx, yy), hat_worn(xx, yy, band))
+    path = os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', name + '.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+write(os.path.join(ASSETS, 'equipment', 'wizard_hat.json'), {'layers': {'humanoid': [
+    {'texture': 'omnispell:wizard_hat', 'dyeable': {'color_when_undyed': -12570246}},
+    {'texture': 'omnispell:wizard_hat_overlay'}]}})
 tex('familiar_eyes', orb_eyes, 'item')
 
 # Familiar skins: one 64x64 sheet per species. The regions must match FamiliarRender.layer().
@@ -427,6 +459,10 @@ write(os.path.join(ASSETS, 'items', 'familiar.json'), {'model': {
     'tints': [{'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xC9A0FF},
               {'type': 'minecraft:constant', 'value': -1}]}})
 flat_item('arcane_focus', ['arcane_focus'])
+flat_item('wizard_hat', ['wizard_hat', 'wizard_hat_band'])
+write(os.path.join(ASSETS, 'items', 'wizard_hat.json'), {'model': {
+    'type': 'minecraft:model', 'model': 'omnispell:item/wizard_hat',
+    'tints': [{'type': 'minecraft:dye', 'default': -12570246}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'arcane_focus.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:item/arcane_focus'}})
 flat_item('brew', ['brew_bottle', 'brew_liquid'])
 write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {
@@ -633,6 +669,7 @@ lang = {
     'item.omnispell.familiar_egg': 'Familiar Egg',
     'entity.omnispell.familiar': 'Familiar',
     'item.omnispell.arcane_focus': 'Arcane Focus',
+    'item.omnispell.wizard_hat': "Wizard's Hat",
     'item.omnispell.familiar': 'Familiar',
     'enchantment.omnispell.attunement': 'Attunement',
     'enchantment.omnispell.reservoir': 'Reservoir',
@@ -718,6 +755,9 @@ for tag, values in {'block/mineable/axe': ['omnispell:faewood_log', 'omnispell:f
                     'block/planks': ['omnispell:faewood_planks'], 'item/planks': ['omnispell:faewood_planks'],
                     'block/enchantment_power_provider': ['omnispell:runic_bookshelf']}.items():
     write(os.path.join(ROOT, 'data', 'minecraft', 'tags', tag + '.json'), {'replace': False, 'values': values})
+write(os.path.join(recipe_dir, 'wizard_hat_dyed.json'), {'type': 'minecraft:crafting_dye', 'dye': '#minecraft:dyes', 'group': 'dyed_armor',
+                                                       'result': {'id': 'omnispell:wizard_hat'}, 'target': 'omnispell:wizard_hat'})
+write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'item', 'cauldron_can_remove_dye.json'), {'replace': False, 'values': ['omnispell:wizard_hat']})
 write(os.path.join(recipe_dir, 'arcane_focus.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'equipment',
     'key': {'G': 'minecraft:gold_ingot', 'A': 'minecraft:amethyst_shard', 'L': 'minecraft:lapis_lazuli'},
@@ -864,7 +904,7 @@ write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'block', 'mineable', 'pick
 def enchantment(name, fallback, weight, max_level):
     write(os.path.join(DATA, 'enchantment', name + '.json'), {
         'description': {'translate': f'enchantment.omnispell.{name}', 'fallback': fallback},
-        'supported_items': '#minecraft:enchantable/armor',
+        'supported_items': '#omnispell:enchantable/mana_gear',
         'weight': weight, 'max_level': max_level,
         'min_cost': {'base': 8, 'per_level_above_first': 9},
         'max_cost': {'base': 40, 'per_level_above_first': 9},
@@ -874,7 +914,8 @@ enchantment('wellspring', 'Wellspring', 4, 3)  # +15% mana refill speed per leve
 enchantment('alacrity', 'Alacrity', 3, 3)      # -4% spell cooldown per level, per piece
 enchantment('attunement', 'Attunement', 2, 2)  # +1 charm slot per level
 # Charm enchantments only ever sit on gems. The mod itself decides which gem gets which.
-GEMS = ['minecraft:amethyst_shard', 'minecraft:lapis_lazuli', 'minecraft:quartz', 'minecraft:prismarine_crystals',
+write(os.path.join(DATA, 'tags', 'item', 'enchantable', 'mana_gear.json'), {'replace': False, 'values': ['#minecraft:enchantable/armor', 'omnispell:wizard_hat']})
+GEMS = ['minecraft:totem_of_undying', 'minecraft:amethyst_shard', 'minecraft:lapis_lazuli', 'minecraft:quartz', 'minecraft:prismarine_crystals',
         'minecraft:emerald', 'minecraft:echo_shard', 'minecraft:diamond', 'minecraft:netherite_ingot']
 write(os.path.join(DATA, 'tags', 'item', 'charm_gems.json'), {'replace': False, 'values': GEMS})
 for cid, cname, _ in CHARMS:

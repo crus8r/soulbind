@@ -140,6 +140,21 @@ public final class WordBank {
 	}
 
 	/** True if this intention suits the spell type. Only a hint on the website, and only a hint here. */
+	/** Which kinds of spell an attribute word belongs to. Colours and qualities go anywhere. */
+	public static boolean attributeFits(String spellType, Word attribute) {
+		String name = attribute.english;
+		List<String> kinds = switch (name) {
+			case "Sword", "Blade/Knife", "Club", "Spear" -> List.of("attack");
+			case "Arrow", "Bow" -> List.of("attack", "conjuration");
+			case "Shield", "Cloak", "Door", "Statue" -> List.of("defense", "conjuration");
+			case "Wall", "Tower" -> List.of("defense", "conjuration", "exploration");
+			case "Bridge", "Bed", "Fireplace", "Chest/Box", "Currency", "Cloud" -> List.of("exploration", "conjuration", "defense");
+			case "Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog" -> List.of("conjuration", "attack", "defense");
+			default -> null;
+		};
+		return kinds == null || kinds.contains(spellType);
+	}
+
 	public static boolean intentionFits(String spellType, Word intention) {
 		Set<String> names = COMPATIBLE.get(spellType);
 		return names == null || names.contains(intention.english);

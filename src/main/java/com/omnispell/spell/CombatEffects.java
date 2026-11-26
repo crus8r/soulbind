@@ -118,7 +118,7 @@ public final class CombatEffects {
 	}
 
 	/** Deals a spell's damage to one target, with every offensive toggle the caster has switched on. */
-	static void strike(Cast cast, LivingEntity target, double websiteDamage, boolean mayRepeat) {
+	public static void strike(Cast cast, LivingEntity target, double websiteDamage, boolean mayRepeat) {
 		ServerPlayer player = cast.player;
 		String element = cast.spell.code.element;
 		double damage = websiteDamage;

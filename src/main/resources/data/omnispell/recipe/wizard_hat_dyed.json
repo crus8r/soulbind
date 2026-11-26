@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_dye",
+  "dye": "#minecraft:dyes",
+  "group": "dyed_armor",
+  "result": {
+    "id": "omnispell:wizard_hat"
+  },
+  "target": "omnispell:wizard_hat"
+}

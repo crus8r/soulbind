@@ -59,6 +59,14 @@ public final class OmniItems {
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(3.0f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 12));
 	public static final Item FOREST_GATE_ITEM = register("forest_gate", p -> new BlockItem(FOREST_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Item FAE_DUST = register("fae_dust", Item::new, new Item.Properties());
+	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.item.equipment.EquipmentAsset> HAT_ASSET =
+			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_hat"));
+	public static final Item WIZARD_HAT = register("wizard_hat", WizardHatItem::new, new Item.Properties().stacksTo(1)
+			.component(net.minecraft.core.component.DataComponents.EQUIPPABLE, net.minecraft.world.item.equipment.Equippable.builder(net.minecraft.world.entity.EquipmentSlot.HEAD)
+					.setAsset(HAT_ASSET).setEquipSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER).setDamageOnHurt(false).build())
+			.component(net.minecraft.core.component.DataComponents.ENCHANTABLE, new net.minecraft.world.item.enchantment.Enchantable(15))
+			.component(net.minecraft.core.component.DataComponents.CONTAINER, net.minecraft.world.item.component.ItemContainerContents.EMPTY)
+			.rarity(net.minecraft.world.item.Rarity.EPIC));
 	public static final Item ARCANE_FOCUS = register("arcane_focus", Item::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR_EGG = register("familiar_egg", com.omnispell.familiar.FamiliarEggItem::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR = register("familiar", com.omnispell.familiar.FamiliarItem::new, new Item.Properties().stacksTo(1));
@@ -91,6 +99,7 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_WELL_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_POTION));
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_FOCUS));
+					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_HAT));
 					output.accept(new net.minecraft.world.item.ItemStack(ALCHEMY_CAULDRON_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
 					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));

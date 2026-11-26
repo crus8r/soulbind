@@ -291,7 +291,21 @@ public final class Modifiers {
 	}
 
 	/** Last Stand: once, survive a killing blow with a sliver of health. Returns false to cancel the death. */
+	private static final java.util.Map<java.util.UUID, Long> TOTEM_READY = new java.util.HashMap<>();
+
 	public static boolean allowDeath(ServerPlayer player) {
+		// A wand with a totem core, in either hand, cheats death once every ten minutes.
+		net.minecraft.world.item.ItemStack wand = com.omnispell.item.WandItem.heldWand(player);
+		if (!wand.isEmpty() && "totem_of_undying".equals(com.omnispell.item.WandItem.core(wand)) && TOTEM_READY.getOrDefault(player.getUUID(), 0L) <= Tasks.now()) {
+			TOTEM_READY.put(player.getUUID(), Tasks.now() + 12000);
+			player.setHealth(4.0f);
+			player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
+			player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
+			player.level().sendParticles(net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1, player.getZ(), 40, 0.4, 0.6, 0.4, 0.4);
+			player.level().playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.TOTEM_USE, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.2f);
+			player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("Your wand's totem holds you to life."));
+			return false;
+		}
 		if (consume(player, "last_stand") == 0) return true;
 		player.setHealth(1.0f);
 		player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 40, 4));

@@ -461,7 +461,7 @@ public class BookScreen extends Screen {
 		for (Word word : WordBank.wordsOfType(wordType)) {
 			if (!ClientState.words.contains(word.id) || slotWords.contains(word.id)) continue;
 			if (!query.isEmpty() && !word.english.toLowerCase().contains(query) && !word.spelling.toLowerCase().contains(query)) continue;
-			boolean suits = !wordType.equals("intention") || WordBank.intentionFits(craftType, word);
+			boolean suits = wordType.equals("intention") ? WordBank.intentionFits(craftType, word) : !wordType.equals("attribute") || WordBank.attributeFits(craftType, word);
 			(suits ? fits : odd).add(word);
 		}
 		fits.sort((a, b) -> a.spelling.compareToIgnoreCase(b.spelling));

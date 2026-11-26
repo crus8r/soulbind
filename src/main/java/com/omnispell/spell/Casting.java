@@ -47,6 +47,11 @@ public final class Casting {
 	 * instead, so a wizard always has something to hit with.
 	 */
 	public static void primary(ServerPlayer player, ItemStack wand) {
+		// A wand made into a weapon strikes in melee until its enchantment fades.
+		if (Weapons.imbued(player)) {
+			Weapons.swing(player, wand);
+			return;
+		}
 		int slot = WandItem.selected(wand);
 		Spell spell = slot < 0 ? null : WandItem.spell(wand, slot);
 		long now = Tasks.now();
@@ -112,7 +117,7 @@ public final class Casting {
 		if ("fire".equals(spell.code.element) || "fire".equals(spell.element)) FIRE_UNTIL.put(player.getUUID(), now + (spell.isExploration() ? 500 : 100));
 		boolean done;
 		try {
-			done = spell.isExploration() ? ExploreEffects.cast(cast) : CombatEffects.cast(cast);
+			done = spell.isExploration() ? ExploreEffects.cast(cast) : Weapons.cast(cast) || CombatEffects.cast(cast);
 		} catch (Exception e) {
 			Omnispell.LOG.error("Spell {} failed", spell.id, e);
 			cast.failure = "The spell unravels. (An error was logged.)";

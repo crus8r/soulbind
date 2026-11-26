@@ -84,6 +84,7 @@ public final class Charms {
 		GEMS.put(Items.EMERALD, new Gem("Emerald", 14, 0.20, 0.02, List.of("fortune", "vigor", "fleetfoot")));
 		GEMS.put(Items.ECHO_SHARD, new Gem("Echo", 16, 0.30, 0.05, List.of("leech", "warding")));
 		GEMS.put(Items.DIAMOND, new Gem("Diamond", 18, 0.55, 0.15, List.of("warding", "stoneskin", "vigor")));
+		GEMS.put(Items.TOTEM_OF_UNDYING, new Gem("Totem", 20, 0.65, 0.25, List.of("vigor", "renewal", "warding")));
 		GEMS.put(Items.NETHERITE_INGOT, new Gem("Netherite", 22, 0.80, 0.40, List.of("potency", "stoneskin", "ember_ward")));
 	}
 

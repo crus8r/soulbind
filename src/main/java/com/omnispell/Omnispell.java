@@ -186,6 +186,7 @@ public class Omnispell implements ModInitializer {
 			PlayerStore.unload(player);
 			Casting.forget(player);
 			com.omnispell.player.AirWalk.forget(player);
+			com.omnispell.spell.Weapons.forget(player);
 			Modifiers.clear(player);
 		});
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {

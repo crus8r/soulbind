@@ -3,7 +3,7 @@
     "translate": "enchantment.omnispell.wellspring",
     "fallback": "Wellspring"
   },
-  "supported_items": "#minecraft:enchantable/armor",
+  "supported_items": "#omnispell:enchantable/mana_gear",
   "weight": 4,
   "max_level": 3,
   "min_cost": {

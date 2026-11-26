@@ -3,7 +3,7 @@
     "translate": "enchantment.omnispell.attunement",
     "fallback": "Attunement"
   },
-  "supported_items": "#minecraft:enchantable/armor",
+  "supported_items": "#omnispell:enchantable/mana_gear",
   "weight": 2,
   "max_level": 2,
   "min_cost": {

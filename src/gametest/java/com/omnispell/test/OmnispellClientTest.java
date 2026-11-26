@@ -650,6 +650,48 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(spun.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING), "a vortex takes hold of its target");
 				vortexed[0] = spun;
 
+				// Weapon words: a Sword attack spell makes the wand a melee weapon; Arrow looses an arrow.
+				check(!com.omnispell.data.WordBank.attributeFits("defense", com.omnispell.data.WordBank.word("attribute:Sword"))
+						&& com.omnispell.data.WordBank.attributeFits("attack", com.omnispell.data.WordBank.word("attribute:Sword"))
+						&& com.omnispell.data.WordBank.attributeFits("exploration", com.omnispell.data.WordBank.word("attribute:Tower")), "attribute words belong to their own kinds of spell");
+				com.omnispell.spell.Spell blade = new com.omnispell.spell.Spell();
+				blade.id = "test-blade";
+				blade.name = "Test Blade";
+				blade.type = "attack";
+				blade.tier = 2;
+				blade.words = new java.util.ArrayList<>(java.util.List.of("base:Fire", "attribute:Sword"));
+				blade.code.primaryValue = 20;
+				blade.code.element = "fire";
+				check(com.omnispell.spell.Weapons.cast(new com.omnispell.spell.Cast(p, wand, blade)) && com.omnispell.spell.Weapons.imbued(p), "a Sword attack spell makes the wand a weapon");
+				Zombie dummy = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				dummy.snapTo(b.getX() + 0.5, b.getY(), b.getZ() - 2.0, 0f, 0f);
+				dummy.setNoAi(true);
+				dummy.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(dummy);
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 10f, true);
+				p.setYRot(180f);
+				p.setXRot(10f);
+				com.omnispell.spell.Casting.primary(p, wand);
+				check(dummy.getHealth() < dummy.getMaxHealth(), "a left-click with the imbued wand strikes in melee (zombie health " + dummy.getHealth() + ")");
+				dummy.discard();
+				com.omnispell.spell.Weapons.forget(p);
+				blade.words.set(1, "attribute:Arrow");
+				int arrowsBefore = level.getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.Arrow.class, p.getBoundingBox().inflate(6)).size();
+				check(com.omnispell.spell.Weapons.cast(new com.omnispell.spell.Cast(p, wand, blade))
+						&& level.getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.Arrow.class, p.getBoundingBox().inflate(6)).size() > arrowsBefore, "an Arrow attack spell looses a magic arrow");
+				// The Wizard's Hat: holds 64 of anything, beds and totems too, and three stacks of sixteen are one pile.
+				ItemStack hat = new ItemStack(OmniItems.WIZARD_HAT);
+				ItemStack beds = new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("red_bed")), 1);
+				ItemStack totem = new ItemStack(Items.TOTEM_OF_UNDYING, 1);
+				ItemStack pearls = new ItemStack(Items.ENDER_PEARL, 16);
+				com.omnispell.item.WizardHatItem.insert(hat, beds);
+				com.omnispell.item.WizardHatItem.insert(hat, totem);
+				for (int k = 0; k < 3; k++) com.omnispell.item.WizardHatItem.insert(hat, new ItemStack(Items.ENDER_PEARL, 16));
+				check(com.omnispell.item.WizardHatItem.count(hat) == 50 && beds.isEmpty() && totem.isEmpty(), "the hat holds beds, totems and pearls (" + com.omnispell.item.WizardHatItem.count(hat) + " things)");
+				check(com.omnispell.item.WizardHatItem.insert(hat, new ItemStack(Items.DIRT, 64)) == 14, "and stops at 64");
+				check(com.omnispell.charm.Charms.slots(hat) == 1 && com.omnispell.charm.Charms.isGem(new ItemStack(Items.TOTEM_OF_UNDYING)), "the hat takes a charm, and a totem can be charmed");
+				check(com.omnispell.item.WandParts.CORES.containsKey("totem_of_undying"), "a totem can be a wand core");
+
 				// Nicknames and the archive.
 				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|Earth Tunnel");
@@ -1292,6 +1334,12 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				check(seeker[0].getVillagerData().profession().is(com.omnispell.world.Arcanist.PROFESSION), "an unemployed villager takes up the Arcane Well and becomes an Arcanist (is " + seeker[0].getVillagerData().profession().getRegisteredName() + ")");
 				player(s).teleportTo(player(s).level(), seeker[0].getX() + 3, seeker[0].getY(), seeker[0].getZ() + 3, java.util.Set.of(), 135f, 10f, true);
+			});
+			server.runOnServer(s -> {
+				ItemStack hat = new ItemStack(OmniItems.WIZARD_HAT);
+				hat.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x3A2A8C));
+				seeker[0].setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, hat);
+				player(s).getInventory().setItem(5, hat.copy());
 			});
 			context.waitTicks(20);
 			context.takeScreenshot("31-arcanist");
