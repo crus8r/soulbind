@@ -2,24 +2,7 @@
   "layers": {
     "humanoid": [
       {
-        "texture": "omnispell:wizard_robe",
-        "dyeable": {
-          "color_when_undyed": -4642566
-        }
-      },
-      {
-        "texture": "omnispell:wizard_robe_trim"
-      }
-    ],
-    "humanoid_leggings": [
-      {
-        "texture": "omnispell:wizard_robe",
-        "dyeable": {
-          "color_when_undyed": -4642566
-        }
-      },
-      {
-        "texture": "omnispell:wizard_robe_trim"
+        "texture": "omnispell:wizard_hat_none"
       }
     ]
   }

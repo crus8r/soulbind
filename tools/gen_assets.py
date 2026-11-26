@@ -388,12 +388,11 @@ def split_robe(src, base_out, trim_out):
         img.save(out)
 THIRD = os.path.join(os.path.dirname(__file__), 'third_party', 'zeroday')
 EQUIP = os.path.join(ASSETS, 'textures', 'entity', 'equipment')
-split_robe(os.path.join(THIRD, 'humanoid', 'arcane.png'), os.path.join(EQUIP, 'humanoid', 'wizard_robe.png'), os.path.join(EQUIP, 'humanoid', 'wizard_robe_trim.png'))
-split_robe(os.path.join(THIRD, 'humanoid_leggings', 'arcane.png'), os.path.join(EQUIP, 'humanoid_leggings', 'wizard_robe.png'), os.path.join(EQUIP, 'humanoid_leggings', 'wizard_robe_trim.png'))
-undyed = ROBE_UNDYED - (1 << 24) if False else -(0x1000000 - ROBE_UNDYED)
-write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {
-    'humanoid': [{'texture': 'omnispell:wizard_robe', 'dyeable': {'color_when_undyed': undyed}}, {'texture': 'omnispell:wizard_robe_trim'}],
-    'humanoid_leggings': [{'texture': 'omnispell:wizard_robe', 'dyeable': {'color_when_undyed': undyed}}, {'texture': 'omnispell:wizard_robe_trim'}]}})
+ENT = os.path.join(ASSETS, 'textures', 'entity')
+split_robe(os.path.join(THIRD, 'humanoid', 'arcane.png'), os.path.join(ENT, 'wizard_robe_upper.png'), os.path.join(ENT, 'wizard_robe_upper_trim.png'))
+split_robe(os.path.join(THIRD, 'humanoid_leggings', 'arcane.png'), os.path.join(ENT, 'wizard_robe_lower.png'), os.path.join(ENT, 'wizard_robe_lower_trim.png'))
+# The game's own armour drawing shows nothing for the robe and boots: WizardRobeLayer draws them, with their own shapes.
+write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {'humanoid': [{'texture': 'omnispell:wizard_hat_none'}]}})
 tex('wizard_hat_band', hat_band, 'item')
 # Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
 def box_uv(u, v, w, h, d):
