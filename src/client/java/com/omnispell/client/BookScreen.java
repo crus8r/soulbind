@@ -54,6 +54,8 @@ public class BookScreen extends Screen {
 	private int px, py, pw, ph;
 	private int listScroll, detailScroll;
 	private boolean addMenu;
+	/** The spell slot whose key is being chosen, or -1. */
+	private int capturing = -1;
 	private int mouseX, mouseY;
 	private List<Component> tooltip;
 
@@ -66,6 +68,10 @@ public class BookScreen extends Screen {
 	public static BookScreen onTab(int index) {
 		tab = Math.max(0, Math.min(TABS.length - 1, index));
 		return new BookScreen();
+	}
+
+	public static void showGuide(String section) {
+		guideSection = section;
 	}
 
 	/** Fills the Craft tab with a formula. Used by the automated tests and handy for "craft again". */
@@ -521,7 +527,7 @@ public class BookScreen extends Screen {
 
 	private void spellbook(GuiGraphicsExtractor g) {
 		List<Spell> spells = ClientState.spells;
-		int lx = px + 8, lw = 150, top = py + 32, bottom = py + ph - 60, rh = 13;
+		int lx = px + 8, lw = 150, top = py + 32, bottom = py + ph - 74, rh = 13;
 		g.fill(lx, top - 2, lx + lw, bottom, INSET);
 		int rows = (bottom - top) / rh;
 		listScroll = Math.max(0, Math.min(listScroll, Math.max(0, spells.size() - rows)));
@@ -569,28 +575,53 @@ public class BookScreen extends Screen {
 			});
 		}
 
-		// The held wand's five slots
-		int wy = py + ph - 54;
+		// The held wand's five slots, each with its key
+		int wy = py + ph - 68;
 		g.horizontalLine(px + 4, px + pw - 5, wy - 4, LINE);
+		ClientSettings settings = ClientSettings.get();
+		String tapLabel = "Double-tap to cast: " + (settings.doubleTap ? "on" : "off");
+		int tapW = font().width(tapLabel) + 10;
+		button(g, px + pw - 8 - tapW, wy - 2, tapW, 12, tapLabel, true, settings.doubleTap, () -> {
+			settings.doubleTap = !settings.doubleTap;
+			ClientSettings.save();
+		});
+		if (over(px + pw - 8 - tapW, wy - 2, tapW, 12)) {
+			tooltip = new ArrayList<>();
+			tooltip.add(Component.literal("On: the first press of a spell key shows the spell, the second casts it."));
+			tooltip.add(Component.literal("Off: one press casts.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		}
 		if (wand.isEmpty()) {
-			g.text(font(), "No wand in hand.", px + 8, wy + 6, DIM, false);
+			g.text(font(), "No wand in hand.", px + 8, wy + 1, DIM, false);
 			return;
 		}
-		g.text(font(), wand.getHoverName().getString(), px + 8, wy, ACCENT, false);
+		g.text(font(), wand.getHoverName().getString(), px + 8, wy + 1, ACCENT, false);
 		int sw = (pw - 16 - 4 * 3) / 5;
 		for (int s = 0; s < WandItem.SLOTS; s++) {
 			int slot = s;
 			Spell spell = WandItem.spell(wand, s);
 			int sx = px + 8 + s * (sw + 3);
 			boolean isSel = s == WandItem.selected(wand);
-			g.fill(sx, wy + 11, sx + sw, wy + 27, INSET);
-			g.outline(sx, wy + 11, sw, 16, isSel ? ACCENT : LINE);
-			g.text(font(), (s + 1) + " " + (spell == null ? "—" : fit(spell.name, sw - 14)), sx + 3, wy + 15, spell == null ? DIM : SpellLook.tierColor(spell.tier), false);
-			hit(sx, wy + 11, sw, 16, () -> send("select", String.valueOf(slot)), () -> send("equip", slot + ":"));
-			if (spell != null && over(sx, wy + 11, sw, 16)) {
+			g.fill(sx, wy + 13, sx + sw, wy + 41, INSET);
+			g.outline(sx, wy + 13, sw, 28, isSel ? ACCENT : LINE);
+			g.text(font(), spell == null ? "—" : fit(spell.name, sw - 6), sx + 3, wy + 16, spell == null ? DIM : SpellLook.tierColor(spell.tier), false);
+			hit(sx, wy + 13, sw, 14, () -> send("select", String.valueOf(slot)), () -> send("equip", slot + ":"));
+			if (spell != null && over(sx, wy + 13, sw, 14)) {
 				tooltip = new ArrayList<>();
 				tooltip.add(Component.literal(spell.name));
 				tooltip.add(Component.literal("Click to select · Right-click to clear").withStyle(net.minecraft.ChatFormatting.GRAY));
+			}
+			// The key for this slot: click, then press the key you want.
+			boolean waiting = capturing == s;
+			String keyText = waiting ? "press a key" : "Key: " + OmnispellClient.CAST[s].getTranslatedKeyMessage().getString();
+			int ky = wy + 28;
+			boolean hoverKey = over(sx + 1, ky, sw - 2, 12);
+			g.fill(sx + 1, ky, sx + sw - 1, ky + 12, waiting ? 0xFF3A2E10 : hoverKey ? 0xFF222C4A : 0xFF161B2A);
+			g.centeredText(font(), fit(keyText, sw - 6), sx + sw / 2, ky + 2, waiting ? GOLD : hoverKey ? 0xFFFFFFFF : DIM);
+			hit(sx + 1, ky, sw - 2, 12, () -> capturing = waiting ? -1 : slot);
+			if (hoverKey && !waiting) {
+				tooltip = new ArrayList<>();
+				tooltip.add(Component.literal("Click, then press the key for spell " + (slot + 1) + "."));
+				tooltip.add(Component.literal("Escape cancels. Delete clears the key.").withStyle(net.minecraft.ChatFormatting.GRAY));
 			}
 		}
 	}
@@ -654,6 +685,22 @@ public class BookScreen extends Screen {
 	}
 
 	// ------------------------------------------------------------------ input
+
+	@Override
+	public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+		if (capturing >= 0) {
+			net.minecraft.client.KeyMapping mapping = OmnispellClient.CAST[capturing];
+			if (!event.isEscape()) {
+				boolean clear = event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_DELETE;
+				mapping.setKey(clear ? com.mojang.blaze3d.platform.InputConstants.UNKNOWN : com.mojang.blaze3d.platform.InputConstants.getKey(event));
+				net.minecraft.client.KeyMapping.resetMapping();
+				minecraft.options.save();
+			}
+			capturing = -1;
+			return true;
+		}
+		return super.keyPressed(event);
+	}
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {

@@ -604,7 +604,11 @@ public final class ExploreEffects {
 				mana[pool.ordinal()] = Math.min(max, mana[pool.ordinal()] + max * 0.04);
 			}
 		}
-		if (ok) Fx.sound(level, p.position(), element, 0.8f);
+		if (ok) {
+			Fx.sound(level, p.position(), fxElement, tier);
+			// A flourish at the wand, in the element's own particles, bigger for stronger spells.
+			Fx.impact(level, hand, fxElement, Math.max(1, tier - 1));
+		}
 		return ok;
 	}
 
@@ -612,6 +616,7 @@ public final class ExploreEffects {
 		float damage = (float) (amount * c.damageBonus(element));
 		Modifiers.withSpellElement(element, () ->
 				target.hurtServer(c.level, c.level.damageSources().indirectMagic(c.player, c.player), damage));
+		Fx.impact(c.level, target.position(), element, c.spell.tier);
 		if ("fire".equals(element)) target.igniteForSeconds(3);
 		if ("ice".equals(element)) target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 0), c.player);
 	}

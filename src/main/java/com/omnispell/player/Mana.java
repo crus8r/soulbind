@@ -17,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 public final class Mana {
 	public static final String RESERVOIR = "omnispell:reservoir";
 	public static final String WELLSPRING = "omnispell:wellspring";
+	public static final String ALACRITY = "omnispell:alacrity";
 
 	private static final EquipmentSlot[] ARMOR = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
@@ -62,6 +63,17 @@ public final class Mana {
 			percent += 15 * SoulBind.enchantmentLevel(player.getItemBySlot(slot), WELLSPRING);
 		}
 		return 1.0 + percent / 100.0;
+	}
+
+	/** Percent taken off spell cooldowns by worn armor: Alacrity gives 4% per level per piece, and chainmail 3% per piece. */
+	public static double alacrityPercent(ServerPlayer player) {
+		double percent = 0;
+		for (EquipmentSlot slot : ARMOR) {
+			ItemStack piece = player.getItemBySlot(slot);
+			percent += 4 * SoulBind.enchantmentLevel(piece, ALACRITY);
+			if (!piece.isEmpty() && BuiltInRegistries.ITEM.getKey(piece.getItem()).getPath().startsWith("chainmail_")) percent += 3;
+		}
+		return percent;
 	}
 
 	/** Called once a second. */

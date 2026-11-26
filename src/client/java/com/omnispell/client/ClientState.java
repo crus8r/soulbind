@@ -31,7 +31,11 @@ public final class ClientState {
 	/** Client tick when the vitals last arrived, so cooldowns can count down smoothly between updates. */
 	public static long vitalsAtTick;
 
-	public static boolean hudVisible = true;
+	/** The spell slot whose name is being shown above the bar after a key press, and when it was pressed. */
+	public static int shownSlot = -1;
+	public static long shownAtTick = -1000;
+	public static long castAtTick = -1000;
+
 	public static String message = "";
 	public static boolean messageOk = true;
 	public static long messageAtTick;

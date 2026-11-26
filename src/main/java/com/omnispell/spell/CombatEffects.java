@@ -73,7 +73,7 @@ public final class CombatEffects {
 
 		// A spell of another type can still carry a secondary boost or a status.
 		if (did && !code.type.equals("buff") && !code.type.equals("utility")) applySecondary(cast, Math.max(2, durationTurns));
-		if (did) Fx.sound(cast.level, player.position(), code.element, 0.9f);
+		if (did) Fx.sound(cast.level, player.position(), code.element, cast.spell.visual.intensity);
 		return did;
 	}
 

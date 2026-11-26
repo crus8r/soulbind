@@ -10,10 +10,14 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * The on-screen display while a wand is held: the five mana reserves, arcane
- * essence, and the wand's five spells with their cooldowns.
+ * What shows while a wand is held: a bar of five squares above the health bar,
+ * one per spell, each showing its key; the spell's name when its key is pressed;
+ * a grey cover on a square that drains away as the spell's cooldown runs out;
+ * and (optionally) the five mana reserves.
  */
 public final class ManaHud {
+	public static final int SQUARE = 16, GAP = 2;
+
 	private ManaHud() {
 	}
 
@@ -22,12 +26,76 @@ public final class ManaHud {
 		if (client.player == null || client.gui.hud.isHidden()) return;
 		flash(g);
 		ItemStack wand = WandItem.heldWand(client.player);
-		if (wand.isEmpty() || !ClientState.hudVisible) return;
+		if (wand.isEmpty()) return;
 		Font font = client.font;
 		int w = g.guiWidth();
 		int h = g.guiHeight();
 
-		// ----- mana reserves, left side -----
+		spellBar(g, client, font, wand, w, h);
+		if (ClientSettings.get().showMana) mana(g, font, h);
+	}
+
+	/** Left edge and top of the spell bar: directly above the hearts (and the armor row, when there is one). */
+	public static int barX(int w) {
+		return w / 2 - 91;
+	}
+
+	public static int barY(Minecraft client, int h) {
+		int y = h - 39 - SQUARE - 3;
+		if (client.player.getArmorValue() > 0) y -= 10;
+		if (client.player.getAbsorptionAmount() > 0 || client.player.getMaxHealth() > 20) y -= 10;
+		if (client.player.getAbilities().instabuild) y = h - 22 - SQUARE - 4;
+		return y;
+	}
+
+	private static void spellBar(GuiGraphicsExtractor g, Minecraft client, Font font, ItemStack wand, int w, int h) {
+		int x0 = barX(w);
+		int y0 = barY(client, h);
+		int selected = WandItem.selected(wand);
+		for (int i = 0; i < WandItem.SLOTS; i++) {
+			int x = x0 + i * (SQUARE + GAP);
+			Spell spell = WandItem.spell(wand, i);
+			g.fill(x, y0, x + SQUARE, y0 + SQUARE, 0xC0101420);
+			if (spell != null) g.fill(x + 1, y0 + SQUARE - 3, x + SQUARE - 1, y0 + SQUARE - 1, 0xFF000000 | SpellLook.color(spell));
+			String key = keyLabel(i);
+			g.centeredText(font, key, x + SQUARE / 2, y0 + 3, spell == null ? 0xFF4A5268 : 0xFFE8ECF8);
+			if (spell != null) {
+				float cd = ClientState.cooldownFraction(i);
+				if (cd > 0) {
+					// The classic grey cover: full after a cast, draining away from the top.
+					int cover = Math.max(1, Math.round((SQUARE - 2) * cd));
+					g.fill(x + 1, y0 + SQUARE - 1 - cover, x + SQUARE - 1, y0 + SQUARE - 1, 0xB0707684);
+				}
+			}
+			g.outline(x, y0, SQUARE, SQUARE, i == selected && spell != null ? 0xFF7FB4FF : 0xFF2E3654);
+		}
+
+		// The name appears only after a key press, and fades.
+		long age = ClientState.clientTick - ClientState.shownAtTick;
+		int slot = ClientState.shownSlot;
+		if (slot >= 0 && slot < WandItem.SLOTS && age >= 0 && age < 50) {
+			Spell spell = WandItem.spell(wand, slot);
+			int alpha = age < 35 ? 255 : Math.max(16, 255 - (int) ((age - 35) * 16));
+			String text = spell == null ? "Empty" : spell.name;
+			int color = spell == null ? 0x8090B0 : (SpellLook.tierColor(spell.tier) & 0xFFFFFF);
+			int cx = x0 + (WandItem.SLOTS * (SQUARE + GAP) - GAP) / 2;
+			int tw = font.width(text);
+			int tx = Math.max(x0, cx - tw / 2);
+			g.fill(tx - 3, y0 - 13, tx + tw + 3, y0 - 2, (Math.min(alpha, 0x90) << 24) | 0x101420);
+			g.text(font, text, tx, y0 - 11, (alpha << 24) | color, false);
+		}
+	}
+
+	/** A short label for a spell key: "Z", "F4", "M4" for a mouse button, "·" when unbound. */
+	public static String keyLabel(int slot) {
+		if (OmnispellClient.CAST[slot].isUnbound()) return "·";
+		String name = OmnispellClient.CAST[slot].getTranslatedKeyMessage().getString();
+		if (name.length() <= 2) return name.toUpperCase();
+		String compact = name.replace("Button ", "M").replace("Keypad ", "K").replace("Left ", "L").replace("Right ", "R");
+		return compact.length() <= 3 ? compact : compact.substring(0, 2);
+	}
+
+	private static void mana(GuiGraphicsExtractor g, Font font, int h) {
 		int x = 6;
 		int y = h / 2 - 34;
 		g.fill(x - 3, y - 13, x + 106, y + 5 * 11 + 2, 0x90101420);
@@ -45,35 +113,6 @@ public final class ManaHud {
 		if (ClientState.corruption >= 1) {
 			g.text(font, "Corruption " + (int) ClientState.corruption + "%", x, y + 5 * 11 + 5, ClientState.corruption >= 50 ? 0xFFFF5555 : 0xFFC080FF, true);
 		}
-
-		// ----- spell slots, above the hotbar -----
-		int slot = 20;
-		int gap = 3;
-		int total = WandItem.SLOTS * slot + (WandItem.SLOTS - 1) * gap;
-		int sx = w / 2 - total / 2;
-		int sy = h - 62 - slot;
-		for (int i = 0; i < WandItem.SLOTS; i++) {
-			int bx = sx + i * (slot + gap);
-			Spell spell = WandItem.spell(wand, i);
-			boolean selected = i == WandItem.selected(wand);
-			g.fill(bx, sy, bx + slot, sy + slot, 0xB0101420);
-			if (spell != null) {
-				int c = 0xFF000000 | SpellLook.color(spell);
-				g.fill(bx + 3, sy + 3, bx + slot - 3, sy + slot - 3, c);
-				g.fill(bx + 5, sy + 5, bx + slot - 5, sy + slot - 5, 0xFF000000 | SpellLook.color2(spell));
-				g.centeredText(font, SpellLook.glyph(spell), bx + slot / 2, sy + 6, 0xFFFFFFFF);
-				float cd = ClientState.cooldownFraction(i);
-				if (cd > 0) {
-					int cover = Math.round((slot - 2) * cd);
-					g.fill(bx + 1, sy + 1, bx + slot - 1, sy + 1 + cover, 0xC0000000);
-				}
-			}
-			g.outline(bx, sy, slot, slot, selected ? 0xFF7FD4FF : 0xFF3A4260);
-			String key = OmnispellClient.CAST[i].getTranslatedKeyMessage().getString();
-			if (key.length() <= 2) g.text(font, key, bx + 2, sy - 9, 0xFF8090B0, true);
-		}
-		Spell current = WandItem.spell(wand, WandItem.selected(wand));
-		if (current != null) g.centeredText(font, current.name, w / 2, sy - 20, 0xFFB8C8FF);
 	}
 
 	/** A brief tint of the whole screen for spells whose visuals call for a flash, pulse or darkening. */

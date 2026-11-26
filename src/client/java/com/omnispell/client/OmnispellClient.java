@@ -52,9 +52,11 @@ public class OmnispellClient implements ClientModInitializer {
 	private static void tick(Minecraft client) {
 		ClientState.clientTick++;
 		if (client.player == null) return;
+		ClientSettings settings = ClientSettings.get();
 		while (HUD.consumeClick()) {
-			ClientState.hudVisible = !ClientState.hudVisible;
-			client.player.sendOverlayMessage(Component.literal(ClientState.hudVisible ? "Mana shown" : "Mana hidden"));
+			settings.showMana = !settings.showMana;
+			ClientSettings.save();
+			client.player.sendOverlayMessage(Component.literal(settings.showMana ? "Mana shown" : "Mana hidden"));
 		}
 		while (BOOK.consumeClick()) {
 			if (client.gui.screen() != null) continue;
@@ -67,11 +69,33 @@ public class OmnispellClient implements ClientModInitializer {
 		}
 		for (int i = 0; i < CAST.length; i++) {
 			while (CAST[i].consumeClick()) {
-				if (client.gui.screen() == null && !WandItem.heldWand(client.player).isEmpty()) {
-					ClientPlayNetworking.send(new OmniNet.CastSpell(i));
-					client.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);
-				}
+				if (client.gui.screen() != null) continue;
+				net.minecraft.world.item.ItemStack wand = WandItem.heldWand(client.player);
+				if (wand.isEmpty()) continue;
+				pressSpellKey(client, wand, i, settings);
 			}
+		}
+	}
+
+	/**
+	 * First press: show the spell's name above the bar and make it the selected spell.
+	 * Second press soon after (or the first, with double-tap switched off): cast it.
+	 */
+	private static void pressSpellKey(Minecraft client, net.minecraft.world.item.ItemStack wand, int slot, ClientSettings settings) {
+		long since = ClientState.clientTick - ClientState.shownAtTick;
+		// A held key repeats within the same tick or the next; that is not a second press.
+		boolean second = ClientState.shownSlot == slot && since >= 2 && since <= settings.doubleTapTicks;
+		ClientState.shownSlot = slot;
+		ClientState.shownAtTick = ClientState.clientTick;
+		if (WandItem.spell(wand, slot) == null) return;
+		if (!settings.doubleTap || second) {
+			ClientPlayNetworking.send(new OmniNet.CastSpell(slot));
+			client.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);
+			// After a cast the next press starts over: name first, then cast.
+			if (settings.doubleTap) ClientState.shownAtTick = ClientState.clientTick - settings.doubleTapTicks - 1 + 12;
+			ClientState.castAtTick = ClientState.clientTick;
+		} else {
+			ClientPlayNetworking.send(new OmniNet.BookAction("select", String.valueOf(slot)));
 		}
 	}
 

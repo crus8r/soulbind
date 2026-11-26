@@ -20,8 +20,10 @@ public final class Guide {
 				"Your Soul Bind bundle holds a starter wand, this book and a pair of waypoints. They stay with you when you die, as long as they are in the bundle or soul-bound.",
 				"1. Open the Craft tab and build a spell from the words you know.",
 				"2. Save it. It goes into the first free slot of the wand you are holding.",
-				"3. Hold the wand and press a spell key (Z X C V B by default) or right-click to cast the selected spell. Sneak + right-click steps to the next slot.",
-				"Change the keys under Options > Controls > Omnispell."));
+				"3. Hold the wand. A bar of five squares appears above your health, one per spell, each showing its key (Z X C V B at first).",
+				"Press a spell's key once to see its name. Press it again to cast. A grey cover on the square drains away as the spell becomes ready again; stronger spells take longer.",
+				"Right-click casts the spell you last selected. Sneak + right-click steps to the next slot.",
+				"Change the keys in the Spellbook tab: click the key under a slot, then press the key you want. Double-tap can be switched off there, so one press casts."));
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
 				"Word Scrolls teach one word you do not know yet, so a scroll is never wasted. Rarer scrolls hold rarer words.",
@@ -53,12 +55,31 @@ public final class Guide {
 		}
 		wands.add("Some cores come only from great foes. Those are not written here.");
 		s.put("Wands", wands);
+		s.put("Materials", List.of(
+				"Every material has a nature. The same nature shows wherever the material is used, so what you learn here applies to anything made from it.",
+				"Gold is the great vessel. Nothing holds or restores mana as readily, and nothing wears out as fast.",
+				"Leather is soft and holds magic well.",
+				"Copper conducts. Mana flows back through it quickly.",
+				"Iron steadies. Shields and healing hold stronger, though it stores little mana itself.",
+				"Chainmail is light and quick. Spells return sooner.",
+				"Diamond is precision: a spell may strike twice as hard. It is too hard to hold mana.",
+				"Netherite is overwhelming force. It holds no mana at all.",
+				"Amethyst resonates with the arcane. Quartz carries light. Echo shards carry shadow, and quicken it.",
+				"Emerald is life: healing and shields grow much stronger.",
+				"Blaze rods are raw power. Breeze rods are swiftness: spells are ready again sooner.",
+				"Ender pearls are instinct: sometimes a spell lands twice as hard.",
+				"Flint is only flint. It works.",
+				"WOODS",
+				"Oak guards and reflects. Spruce guards and mends. Jungle mends above all. Dark oak controls and reflects. Mangrove reflects. Cherry phases and controls. Pale oak controls life and death. Acacia and bamboo lift everything a little. Birch gives no mana, only force.",
+				"Crimson wood feeds fire. Warped wood feeds shadow.",
+				"ENCHANTMENTS",
+				"Reservoir enlarges every mana reserve. Wellspring refills them faster. Alacrity shortens the wait between casts. All three go on armor."));
 		s.put("Mana", List.of(
 				"You have five mana reserves. Each pays for one kind of magic and refills on its own.",
 				"Barrier pays for shields. Restoration pays for healing. Control pays for stuns, charms, fear and confusion. Mirror pays for reflected damage. Phase pays for dodging, teleporting and vanishing.",
-				"Attack spells cost no mana. They are limited by their cooldown: stronger spells take longer to be ready again.",
+				"Attack spells cost no mana. They are limited by their cooldown: stronger spells take longer to be ready again. Some wand cores and armor shorten it.",
 				"Your reserves grow with what you carry, not with a level. The wand's wood raises some of them. Gold and leather armor hold the most magic, chainmail and copper some, iron a little, diamond and netherite none.",
-				"The Reservoir enchantment (armor) enlarges every reserve. Wellspring (armor) refills them faster.",
+				"The Materials page says what each material is good for.",
 				"Press H to show or hide the mana display."));
 		s.put("Arcane essence", List.of(
 				"Essence is what a new spell is made from. You only spend it when crafting.",

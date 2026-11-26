@@ -254,6 +254,7 @@ lang = {
     'block.omnispell.waypoint': 'Waypoint',
     'enchantment.omnispell.reservoir': 'Reservoir',
     'enchantment.omnispell.wellspring': 'Wellspring',
+    'enchantment.omnispell.alacrity': 'Alacrity',
     'key.category.omnispell.omnispell': 'Omnispell',
     'key.omnispell.cast_1': 'Cast Spell 1',
     'key.omnispell.cast_2': 'Cast Spell 2',
@@ -315,10 +316,11 @@ def enchantment(name, fallback, weight, max_level):
         'anvil_cost': 2, 'slots': ['armor']})
 enchantment('reservoir', 'Reservoir', 4, 3)    # +10% to every mana reserve per level, per piece
 enchantment('wellspring', 'Wellspring', 4, 3)  # +15% mana refill speed per level, per piece
+enchantment('alacrity', 'Alacrity', 3, 3)      # -4% spell cooldown per level, per piece
 for tag in ('in_enchanting_table', 'non_treasure'):
     path = os.path.join(ROOT, 'data', 'minecraft', 'tags', 'enchantment', tag + '.json')
     current = json.load(open(path)) if os.path.exists(path) else {'replace': False, 'values': []}
-    for e in ('omnispell:reservoir', 'omnispell:wellspring'):
+    for e in ('omnispell:reservoir', 'omnispell:wellspring', 'omnispell:alacrity'):
         if e not in current['values']: current['values'].append(e)
     with open(path, 'w') as f: json.dump(current, f, indent='\t')
 

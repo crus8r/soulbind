@@ -99,7 +99,7 @@ public final class Casting {
 			turns -= Modifiers.value(player, "cooldown_reduction") + Modifiers.value(player, "mana_efficiency");
 			seconds = Math.max(0, turns) * Omnispell.CONFIG.turnSeconds;
 		}
-		seconds *= 1.0 - cast.core.haste / 100.0;
+		seconds *= 1.0 - Math.min(60.0, cast.core.haste + com.omnispell.player.Mana.alacrityPercent(player)) / 100.0;
 		seconds *= factor;
 		seconds = Math.max(Omnispell.CONFIG.minimumCooldownSeconds, seconds);
 		if (Modifiers.consume(player, "haste") != 0 && !spell.code.modifiers.toString().contains("haste")) {
