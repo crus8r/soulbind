@@ -1,0 +1,17 @@
+{
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 18
+  },
+  "gives": {
+    "id": "minecraft:amethyst_shard",
+    "components": {
+      "minecraft:enchantments": {
+        "omnispell:flow": 2
+      }
+    }
+  },
+  "max_uses": 2,
+  "xp": 15,
+  "reputation_discount": 0.05
+}

@@ -1,0 +1,19 @@
+{
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 52
+  },
+  "gives": {
+    "id": "omnispell:word_scroll",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_word": "charge:Sparsus (Area of effect)"
+      },
+      "minecraft:item_name": "Scroll of Sparsus",
+      "minecraft:rarity": "epic"
+    }
+  },
+  "max_uses": 1,
+  "xp": 25,
+  "reputation_discount": 0.05
+}

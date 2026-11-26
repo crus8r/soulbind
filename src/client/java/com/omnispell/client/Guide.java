@@ -33,7 +33,8 @@ public final class Guide {
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
 				"Word Scrolls teach one word you do not know yet, so a scroll is never wasted. Rarer scrolls hold rarer words.",
-				"Librarians sell word scrolls for emeralds, a rarer kind at each level of their trade, and clerics and wandering traders sometimes do too.",
+				"Set an Arcane Well beside a villager with no trade and they become an Arcanist. An Arcanist buys amethyst, paper, lapis and fae dust and sells word scrolls, a rarer kind at each level, with an Arcane Focus and charmed gems along the way. A master Arcanist may offer a Forbidden scroll, the Treatise on Conjuration or the Scroll of Sparsus.",
+				"Librarians sell word scrolls for emeralds too, and clerics and wandering traders sometimes do.",
 				"Scrolls are found in the chests of generated structures and, rarely, on hostile creatures. Strongholds, bastions, ancient cities and End cities hold the rarest.",
 				"The more words you know, the less often a new scroll appears.",
 				"There are four kinds of spell: Attack, Defense, Environment and Conjuration. You begin with the first three. A treatise in the rarer vaults, or your first boss, teaches Conjuration.",

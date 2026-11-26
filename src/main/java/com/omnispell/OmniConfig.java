@@ -29,6 +29,8 @@ public final class OmniConfig {
 
 	public int essenceCap = 100;
 	public int startingEssence = 40;
+	/** Whether players can hurt each other. Off by default. */
+	public boolean friendlyFire = false;
 	public int essencePerWellPull = 10;
 	public int essencePerPotion = 50;
 	public int wellPullsPerPotion = 3;

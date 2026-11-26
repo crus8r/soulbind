@@ -1,0 +1,26 @@
+{
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 56
+  },
+  "gives": {
+    "id": "omnispell:word_scroll",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_rarity": 5
+      },
+      "minecraft:item_name": "Forbidden Word Scroll",
+      "minecraft:rarity": "epic",
+      "minecraft:lore": [
+        {
+          "text": "Read it to learn a word of power.",
+          "color": "gray",
+          "italic": true
+        }
+      ]
+    }
+  },
+  "max_uses": 1,
+  "xp": 25,
+  "reputation_discount": 0.05
+}

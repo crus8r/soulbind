@@ -25,6 +25,10 @@ public final class ManaHud {
 		Minecraft client = Minecraft.getInstance();
 		if (client.player == null || client.gui.hud.isHidden()) return;
 		flash(g);
+		if (ClientSettings.get().showCoords && !client.debugEntries.isOverlayVisible()) {
+			String at = client.player.getBlockX() + "  " + client.player.getBlockY() + "  " + client.player.getBlockZ();
+			g.text(client.font, at, 4, 4, 0xC0E8ECF8, true);
+		}
 		ItemStack wand = WandItem.heldWand(client.player);
 		if (wand.isEmpty()) return;
 		Font font = client.font;

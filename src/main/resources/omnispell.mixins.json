@@ -9,6 +9,9 @@
 		"LivingEntityDamageMixin",
 		"MobGoalsAccessor"
 	],
+	"client": [
+		"DarkSightMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

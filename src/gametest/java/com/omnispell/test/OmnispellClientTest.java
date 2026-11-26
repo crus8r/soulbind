@@ -689,6 +689,24 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				var librarianOne = trades.get(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.VILLAGER_TRADE, net.minecraft.resources.Identifier.withDefaultNamespace("librarian/level_1")));
 				check(librarianOne.isPresent() && librarianOne.get().stream().anyMatch(h -> h.getRegisteredName().equals("omnispell:librarian/1/scroll_common")), "a novice librarian can offer a common scroll");
 
+				// The Arcanist: a profession of its own, with scroll trades at every level.
+				var professions = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.VILLAGER_PROFESSION);
+				var arcanist = professions.get(com.omnispell.world.Arcanist.PROFESSION);
+				check(arcanist.isPresent(), "the Arcanist profession exists");
+				var tradeSets = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.TRADE_SET);
+				boolean allLevels = true;
+				for (int lv = 1; lv <= 5; lv++) allLevels &= tradeSets.get(arcanist.get().value().getTrades(lv)).isPresent();
+				check(allLevels, "the Arcanist has trades for all five levels");
+				var keeper = EntityTypes.VILLAGER.create(level, EntitySpawnReason.COMMAND);
+				keeper.snapTo(b.getX() + 4.5, b.getY(), b.getZ() - 6.5, 0f, 0f);
+				keeper.setNoAi(true);
+				level.addFreshEntity(keeper);
+				keeper.setVillagerData(keeper.getVillagerData().withProfession(arcanist.get()));
+				int offers = keeper.getOffers().size();
+				boolean sellsScroll = keeper.getOffers().stream().anyMatch(o -> o.getResult().is(OmniItems.WORD_SCROLL) || o.getResult().is(OmniItems.ARCANE_POTION) || o.getResult().is(Items.EMERALD));
+				check(offers >= 2 && sellsScroll, "a villager made an Arcanist has offers (" + offers + ")");
+				keeper.discard();
+
 				// The forest's ruin and nest build, and their chests hold what they should.
 				BlockPos ruinAt = b.offset(0, 0, 30);
 				for (BlockPos pos : BlockPos.betweenClosed(ruinAt.offset(-8, -1, -8), ruinAt.offset(24, -1, 8))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState());
@@ -1164,6 +1182,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(30);
 			context.takeScreenshot("29-familiar-kinds");
+			server.runCommand("time set midnight");
+			context.waitTicks(40);
+			context.takeScreenshot("29b-dark-sight-and-coords");
+			server.runCommand("time set noon");
+			context.waitTicks(10);
 			server.runOnServer(s -> parade.forEach(net.minecraft.world.entity.Entity::discard));
 
 			context.runOnClient(c -> c.gui.setScreen(BookScreen.onTab(4)));

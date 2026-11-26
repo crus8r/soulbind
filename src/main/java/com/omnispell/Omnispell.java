@@ -60,6 +60,7 @@ public class Omnispell implements ModInitializer {
 		com.omnispell.boss.Lairs.register();
 		com.omnispell.world.Cauldrons.register();
 		com.omnispell.world.ForestFeatures.register();
+		com.omnispell.world.Arcanist.register();
 		PlayerStore.register();
 		com.omnispell.waypoint.Waypoints.register();
 		OmniNet.register();
@@ -190,6 +191,9 @@ public class Omnispell implements ModInitializer {
 		});
 		ServerPlayerEvents.ALLOW_DEATH.register((player, source, amount) -> Modifiers.allowDeath(player));
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register(Modifiers::allowDamage);
+		// Friends do not hurt friends: no player's spell, bolt or blade harms another player unless the server's settings allow it.
+		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
+				CONFIG.friendlyFire || !(entity instanceof ServerPlayer victim) || !(source.getEntity() instanceof ServerPlayer attacker) || attacker == victim);
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
 			Modifiers.afterDamage(entity, source, damageTaken);
 			com.omnispell.boss.Bosses.afterDamage(entity, source, damageTaken);

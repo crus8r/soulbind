@@ -89,6 +89,16 @@ replaces it.
 The book's Guide and Lore tabs explain all of this in the game, including every custom
 enchantment and the gate to each realm.
 
+## Small comforts
+
+A small x y z readout sits in the top-left corner; dark sight lets you make out caves and
+nights without the Night Vision effect. Both are switched in the book's Spellbook tab.
+Players cannot hurt each other unless `friendlyFire` is set to true in
+`config/omnispell.json`. Spells can be nicknamed and archived in the Spellbook tab.
+
+An **Arcanist** is a villager whose workstation is an Arcane Well: they sell word
+scrolls of rising rarity, an Arcane Focus and charmed gems.
+
 ## Playing together
 
 Everyone needs the same mods (the pack file is the easy way). The pack includes e4mc:

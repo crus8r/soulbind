@@ -783,6 +783,56 @@ TRADES = {  # tag -> [(trade name, emeralds, what it gives, uses)]
     'wandering_trader/uncommon': [('wandering_trader/scroll_rare', 20, scroll(3), 1), ('wandering_trader/scroll_ancient', 36, scroll(4), 1)],
     'wandering_trader/common': [('wandering_trader/scroll_uncommon', 10, scroll(2), 2)],
 }
+def charmed(gem, charm, level):
+    return {'id': gem, 'components': {'minecraft:enchantments': {f'omnispell:{charm}': level}}}
+def named_scroll(key, value, name):
+    return {'id': 'omnispell:word_scroll', 'components': {'minecraft:custom_data': {key: value}, 'minecraft:item_name': name, 'minecraft:rarity': 'epic'}}
+# The Arcanist (workstation: an Arcane Well). ('buy', item, count) trades pay one emerald for goods.
+ARCANIST = {
+    1: [('buy', 'minecraft:amethyst_shard', 8), ('buy', 'minecraft:paper', 20), ('sell', 5, scroll(1), 6), ('sell', 3, {'id': 'omnispell:arcane_potion'}, 8)],
+    2: [('buy', 'minecraft:lapis_lazuli', 10), ('buy', 'minecraft:glass_bottle', 9), ('sell', 10, scroll(2), 5), ('sell', 6, {'id': 'minecraft:amethyst_shard', 'count': 4}, 8)],
+    3: [('buy', 'omnispell:fae_dust', 4), ('sell', 20, scroll(3), 4), ('sell', 16, {'id': 'omnispell:arcane_focus'}, 2),
+        ('sell', 18, charmed('minecraft:emerald', 'fortune', 1), 2), ('sell', 18, charmed('minecraft:amethyst_shard', 'flow', 2), 2)],
+    4: [('buy', 'minecraft:ender_pearl', 2), ('sell', 34, scroll(4), 3), ('sell', 30, charmed('minecraft:diamond', 'warding', 2), 2),
+        ('sell', 30, charmed('minecraft:echo_shard', 'leech', 2), 2), ('sell', 28, charmed('minecraft:quartz', 'potency', 2), 2)],
+    5: [('sell', 56, scroll(5), 1), ('sell', 48, named_scroll('omni_type', 'conjuration', 'Treatise on Conjuration'), 1),
+        ('sell', 52, named_scroll('omni_word', 'charge:Sparsus (Area of effect)', 'Scroll of Sparsus'), 1),
+        ('sell', 44, charmed('minecraft:diamond', 'vigor', 3), 1)],
+}
+for level, offers in ARCANIST.items():
+    names = []
+    for n, offer in enumerate(offers):
+        name = f'arcanist/{level}/{n}'
+        names.append('omnispell:' + name)
+        if offer[0] == 'buy':
+            body = {'wants': {'id': offer[1], 'count': offer[2]}, 'gives': {'id': 'minecraft:emerald'}, 'max_uses': 16, 'xp': 2 * level}
+        else:
+            body = {'wants': {'id': 'minecraft:emerald', 'count': offer[1]}, 'gives': offer[2], 'max_uses': offer[3], 'xp': 5 * level}
+        body['reputation_discount'] = 0.05
+        write(os.path.join(DATA, 'villager_trade', name + '.json'), body)
+    write(os.path.join(DATA, 'tags', 'villager_trade', 'arcanist', f'level_{level}.json'), {'replace': False, 'values': names})
+    write(os.path.join(DATA, 'trade_set', 'arcanist', f'level_{level}.json'),
+          {'amount': 2 if level < 5 else 3, 'random_sequence': f'omnispell:trade_set/arcanist/level_{level}', 'trades': f'#omnispell:arcanist/level_{level}'})
+write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'point_of_interest_type', 'acquirable_job_site.json'), {'replace': False, 'values': ['omnispell:arcanist']})
+# The Arcanist's robe: violet with a gold hem, over the ordinary villager.
+def robe(x, y):
+    if 38 <= y < 64 and x < 28:          # the long outer robe
+        if y >= 60: return (214, 170, 60, 255)
+        return mix((70, 44, 130), (104, 70, 170), noise(x, y, 53))
+    if 20 <= y < 38 and 16 <= x < 44:    # chest
+        if x in (29, 30) and y > 26: return (214, 170, 60, 255)
+        return mix((84, 54, 150), (116, 82, 184), noise(x, y, 59))
+    if y < 8 and x < 32 and (y < 3 or x % 8 in (0, 7)): return mix((70, 44, 130), (104, 70, 170), noise(x, y, 61))  # a hood's rim
+    return (0, 0, 0, 0)
+for folder in ('villager', 'zombie_villager'):
+    img = Image.new('RGBA', (64, 64))
+    for y in range(64):
+        for x in range(64):
+            img.putpixel((x, y), robe(x, y))
+    path = os.path.join(ASSETS, 'textures', 'entity', folder, 'profession', 'arcanist.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+
 for tag, trades in TRADES.items():
     for name, cost, gives, uses in trades:
         write(os.path.join(DATA, 'villager_trade', name + '.json'), {

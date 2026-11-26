@@ -13,6 +13,10 @@ public final class ClientSettings {
 	/** How long after the first press a second press still counts, in ticks. */
 	public int doubleTapTicks = 30;
 	public boolean showMana = true;
+	/** Small x y z readout in the corner of the screen. */
+	public boolean showCoords = true;
+	/** Dark sight: how much of the Night Vision look you always have, 0 (off) to 1 (full). */
+	public float darkSight = 0.3f;
 
 	private static ClientSettings instance;
 

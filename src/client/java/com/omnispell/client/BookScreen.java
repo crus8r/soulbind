@@ -622,6 +622,18 @@ public class BookScreen extends Screen {
 			settings.doubleTap = !settings.doubleTap;
 			ClientSettings.save();
 		});
+		String coordLabel = "Coords: " + (settings.showCoords ? "on" : "off");
+		int coordW = font().width(coordLabel) + 10;
+		button(g, px + pw - 8 - tapW - coordW - 3, wy - 2, coordW, 12, coordLabel, true, settings.showCoords, () -> {
+			settings.showCoords = !settings.showCoords;
+			ClientSettings.save();
+		});
+		String sightLabel = "Dark sight: " + (settings.darkSight <= 0 ? "off" : settings.darkSight < 0.45f ? "low" : "high");
+		int sightW = font().width(sightLabel) + 10;
+		button(g, px + pw - 8 - tapW - coordW - sightW - 6, wy - 2, sightW, 12, sightLabel, true, settings.darkSight > 0, () -> {
+			settings.darkSight = settings.darkSight <= 0 ? 0.3f : settings.darkSight < 0.45f ? 0.6f : 0f;
+			ClientSettings.save();
+		});
 		if (over(px + pw - 8 - tapW, wy - 2, tapW, 12)) {
 			tooltip = new ArrayList<>();
 			tooltip.add(Component.literal("On: the first press of a spell key shows the spell, the second casts it."));

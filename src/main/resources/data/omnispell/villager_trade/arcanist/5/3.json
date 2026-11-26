@@ -1,0 +1,17 @@
+{
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 44
+  },
+  "gives": {
+    "id": "minecraft:diamond",
+    "components": {
+      "minecraft:enchantments": {
+        "omnispell:vigor": 3
+      }
+    }
+  },
+  "max_uses": 1,
+  "xp": 25,
+  "reputation_discount": 0.05
+}
