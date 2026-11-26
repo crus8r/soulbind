@@ -154,6 +154,11 @@
     {
       "id": "#c:primary_wood_type/bamboo",
       "required": false
-    }
+    },
+    "omnispell:faewood_grove",
+    "omnispell:gloamwood",
+    "omnispell:glowcap_glade",
+    "omnispell:palewood",
+    "omnispell:ancient_spires"
   ]
 }

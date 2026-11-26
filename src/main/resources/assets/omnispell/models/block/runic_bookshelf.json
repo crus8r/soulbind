@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "omnispell:block/faewood_planks",
+    "side": "omnispell:block/runic_bookshelf"
+  }
+}

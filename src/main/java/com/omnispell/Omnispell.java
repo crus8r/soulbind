@@ -175,11 +175,13 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.boss.Bosses.afterDamage(entity, source, damageTaken);
 		});
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.boss.Bosses::onDeath);
+		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.realm.Realms::onDeath);
 
 		// A conjured creature left behind by a crash or restart is removed when its chunk loads.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
 			if (Summons.isStray(entity)) Tasks.later(1, entity::discard);
 			com.omnispell.boss.Bosses.onEntityLoad(entity);
+			com.omnispell.realm.Realms.onEntityLoad(entity, level);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved

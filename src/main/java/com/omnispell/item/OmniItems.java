@@ -41,6 +41,24 @@ public final class OmniItems {
 	public static final Item ALCHEMY_CAULDRON_ITEM = register("alchemy_cauldron", p -> new BlockItem(ALCHEMY_CAULDRON, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Item BREW = register("brew", com.omnispell.alchemy.BrewItem::new, new Item.Properties().stacksTo(16));
 
+	// ----- the Enchanted Forest
+	public static final Block FAEWOOD_LOG = registerBlock("faewood_log", net.minecraft.world.level.block.RotatedPillarBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(2.0f).sound(SoundType.CHERRY_WOOD).lightLevel(state -> 3).ignitedByLava());
+	public static final Item FAEWOOD_LOG_ITEM = register("faewood_log", p -> new BlockItem(FAEWOOD_LOG, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Block FAEWOOD_LEAVES = registerBlock("faewood_leaves", Block::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_MAGENTA).strength(0.2f).sound(SoundType.CHERRY_LEAVES).lightLevel(state -> 8).ignitedByLava());
+	public static final Item FAEWOOD_LEAVES_ITEM = register("faewood_leaves", p -> new BlockItem(FAEWOOD_LEAVES, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Block FAEWOOD_PLANKS = registerBlock("faewood_planks", Block::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(2.0f, 3.0f).sound(SoundType.CHERRY_WOOD).ignitedByLava());
+	public static final Item FAEWOOD_PLANKS_ITEM = register("faewood_planks", p -> new BlockItem(FAEWOOD_PLANKS, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Block RUNIC_BOOKSHELF = registerBlock("runic_bookshelf", Block::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(1.5f).sound(SoundType.CHISELED_BOOKSHELF).lightLevel(state -> 6).ignitedByLava());
+	public static final Item RUNIC_BOOKSHELF_ITEM = register("runic_bookshelf", p -> new BlockItem(RUNIC_BOOKSHELF, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Block FOREST_GATE = registerBlock("forest_gate", com.omnispell.realm.ForestGateBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(3.0f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 12));
+	public static final Item FOREST_GATE_ITEM = register("forest_gate", p -> new BlockItem(FOREST_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Item FAE_DUST = register("fae_dust", Item::new, new Item.Properties());
+
 	private OmniItems() {
 	}
 
@@ -71,6 +89,12 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(ALCHEMY_CAULDRON_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
 					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(FOREST_GATE_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_LOG_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_PLANKS_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_LEAVES_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(RUNIC_BOOKSHELF_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(FAE_DUST));
 					for (int rarity = 1; rarity <= 5; rarity++) output.accept(WordScrollItem.ofRarity(rarity));
 					for (com.omnispell.data.WordBank.SpellType type : com.omnispell.data.WordBank.spellTypes()) {
 						if (!type.id.equals("attack") && !type.id.equals("defense") && !type.id.equals("exploration")) output.accept(WordScrollItem.ofSpellType(type.id));

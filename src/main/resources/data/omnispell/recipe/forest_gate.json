@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "M": "minecraft:moss_block",
+    "E": "minecraft:emerald",
+    "A": "minecraft:amethyst_shard",
+    "P": "minecraft:ender_pearl",
+    "G": "minecraft:glow_berries"
+  },
+  "pattern": [
+    "MEM",
+    "APA",
+    "MGM"
+  ],
+  "result": {
+    "id": "omnispell:forest_gate"
+  }
+}

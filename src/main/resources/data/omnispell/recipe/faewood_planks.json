@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "omnispell:faewood_log"
+  ],
+  "result": {
+    "id": "omnispell:faewood_planks",
+    "count": 4
+  }
+}

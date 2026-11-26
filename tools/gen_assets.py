@@ -260,6 +260,38 @@ image('brew_liquid', [
     '....bbbbbbbb....',
     '................', '................', '................'], {'a': (255, 255, 255, 255), 'b': (205, 205, 205, 255), 'c': (255, 255, 255, 255)})
 
+# ----- the Enchanted Forest: faewood and the gate
+def tex(name, fn, folder='block'):
+    img = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            img.putpixel((x, y), fn(x, y))
+    path = os.path.join(ASSETS, 'textures', folder, name + '.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+def noise(x, y, k=1):
+    return ((x * 73856093) ^ (y * 19349663) ^ (k * 83492791)) % 97 / 96.0
+def mix(a, b, t):
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3)) + (255,)
+tex('faewood_log', lambda x, y: mix((58, 44, 92), (92, 70, 140), noise(x // 2, y, 3)) if (x + noise(0, y, 5) * 2) % 5 > 1 else (40, 30, 66, 255))
+tex('faewood_log_top', lambda x, y: (40, 30, 66, 255) if x in (0, 15) or y in (0, 15) else mix((150, 120, 200), (196, 170, 236), ((max(abs(x - 7.5), abs(y - 7.5)) * 1.3) % 3) / 3))
+tex('faewood_leaves', lambda x, y: mix((150, 70, 190), (240, 150, 230), noise(x, y, 7)) if noise(x, y, 11) > 0.18 else (96, 44, 140, 255))
+tex('faewood_planks', lambda x, y: (70, 52, 108, 255) if y % 4 == 3 or (x == (5 if (y // 4) % 2 else 11)) else mix((128, 100, 176), (160, 132, 208), noise(x, y // 4, 13)))
+def shelf(x, y):
+    if y in (0, 7, 8, 15) or x in (0, 15): return (70, 52, 108, 255)
+    spine = (x - 1) // 2
+    cols = [(180, 90, 220), (90, 200, 220), (230, 190, 90), (120, 220, 160), (220, 110, 150), (140, 130, 240), (240, 240, 250)]
+    c = cols[(spine + (0 if y < 8 else 3)) % len(cols)]
+    return (c[0] // 2, c[1] // 2, c[2] // 2, 255) if x % 2 == 0 else c + (255,)
+tex('runic_bookshelf', shelf)
+def gate_side(x, y):
+    d = abs(x - 7.5) + abs(y - 7.5)
+    if d < 3: return (236, 210, 255, 255)
+    if d < 5.5: return mix((150, 90, 230), (90, 220, 200), noise(x, y, 17))
+    return mix((66, 96, 70), (108, 140, 100), noise(x // 2, y // 2, 19)) if noise(x, y, 23) > 0.2 else (48, 70, 52, 255)
+tex('forest_gate', gate_side)
+tex('fae_dust', lambda x, y: ((250, 220, 255, 255) if noise(x, y, 29) > 0.6 else (190, 120, 240, 255)) if (abs(x - 7.5) + abs(y - 9) < 5.5 and noise(x, y, 31) > 0.25) else (0, 0, 0, 0), 'item')
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -321,6 +353,109 @@ for n, tex in CONTENT.items():
 write(os.path.join(ASSETS, 'blockstates', 'alchemy_cauldron.json'), {'variants': cauldron_variants})
 write(os.path.join(ASSETS, 'items', 'alchemy_cauldron.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/alchemy_cauldron_5'}})
 
+for name in ('faewood_leaves', 'faewood_planks', 'forest_gate'):
+    write(os.path.join(ASSETS, 'models', 'block', name + '.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': f'omnispell:block/{name}'}})
+    write(os.path.join(ASSETS, 'blockstates', name + '.json'), {'variants': {'': {'model': f'omnispell:block/{name}'}}})
+    write(os.path.join(ASSETS, 'items', name + '.json'), {'model': {'type': 'minecraft:model', 'model': f'omnispell:block/{name}'}})
+write(os.path.join(ASSETS, 'models', 'block', 'faewood_log.json'), {'parent': 'minecraft:block/cube_column',
+      'textures': {'end': 'omnispell:block/faewood_log_top', 'side': 'omnispell:block/faewood_log'}})
+write(os.path.join(ASSETS, 'models', 'block', 'faewood_log_horizontal.json'), {'parent': 'minecraft:block/cube_column_horizontal',
+      'textures': {'end': 'omnispell:block/faewood_log_top', 'side': 'omnispell:block/faewood_log'}})
+write(os.path.join(ASSETS, 'blockstates', 'faewood_log.json'), {'variants': {
+    'axis=y': {'model': 'omnispell:block/faewood_log'},
+    'axis=z': {'model': 'omnispell:block/faewood_log_horizontal', 'x': 90},
+    'axis=x': {'model': 'omnispell:block/faewood_log_horizontal', 'x': 90, 'y': 90}}})
+write(os.path.join(ASSETS, 'items', 'faewood_log.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/faewood_log'}})
+write(os.path.join(ASSETS, 'models', 'block', 'runic_bookshelf.json'), {'parent': 'minecraft:block/cube_column',
+      'textures': {'end': 'omnispell:block/faewood_planks', 'side': 'omnispell:block/runic_bookshelf'}})
+write(os.path.join(ASSETS, 'blockstates', 'runic_bookshelf.json'), {'variants': {'': {'model': 'omnispell:block/runic_bookshelf'}}})
+write(os.path.join(ASSETS, 'items', 'runic_bookshelf.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/runic_bookshelf'}})
+flat_item('fae_dust', ['fae_dust'])
+write(os.path.join(ASSETS, 'items', 'fae_dust.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:item/fae_dust'}})
+
+# ---------------------------------------------------------------- the Enchanted Forest realm
+# Biomes and trees are built from the game's own definitions (read from the game jar), then changed.
+import zipfile, glob
+GAME = sorted(glob.glob(os.path.expanduser('~/.gradle/caches/fabric-loom/*/minecraft-merged.jar')))[-1]
+def vanilla(path):
+    with zipfile.ZipFile(GAME) as z:
+        return json.loads(z.read('data/minecraft/' + path))
+WG = os.path.join(DATA, 'worldgen')
+
+tree = vanilla('worldgen/feature/cherry.json')
+def swap_blocks(node):
+    if isinstance(node, dict):
+        if node.get('id') == 'minecraft:cherry_log':
+            return dict(node, id='omnispell:faewood_log')
+        if node.get('id') == 'minecraft:cherry_leaves':
+            return {'id': 'omnispell:faewood_leaves'}
+        return {k: swap_blocks(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [swap_blocks(v) for v in node]
+    return node
+tree = swap_blocks(tree)
+tree['decorators'] = []
+write(os.path.join(WG, 'feature', 'faewood.json'), tree)
+def placed_trees(name, count):
+    placed = vanilla('worldgen/placed_feature/trees_cherry.json')
+    placed['feature'] = 'omnispell:faewood'
+    for step in placed['placement']:
+        if step['type'] == 'minecraft:count':
+            step['count'] = count
+    write(os.path.join(WG, 'placed_feature', name + '.json'), placed)
+placed_trees('trees_faewood', 7)
+placed_trees('trees_faewood_sparse', 2)
+
+MONSTERS = [('minecraft:witch', 1, 40), ('minecraft:cave_spider', 3, 60), ('minecraft:enderman', 2, 40), ('minecraft:bogged', 3, 70),
+            ('minecraft:stray', 3, 50), ('minecraft:spider', 3, 60), ('minecraft:skeleton', 3, 50), ('minecraft:creeper', 2, 40),
+            ('minecraft:phantom', 1, 15), ('minecraft:vindicator', 1, 15)]
+CREATURES = [('minecraft:fox', 2, 8), ('minecraft:rabbit', 3, 8), ('minecraft:wolf', 3, 5), ('minecraft:frog', 3, 6), ('minecraft:parrot', 2, 6)]
+def forest_biome(name, source, swaps, grass, foliage, water, sky, fog, add=()):
+    b = vanilla(f'worldgen/biome/{source}.json')
+    veg = [swaps.get(f, f) for f in b['features'][9]] + list(add)
+    b['features'][9] = [f for f in veg if f]
+    b['effects'] = {'grass_color': grass, 'foliage_color': foliage, 'water_color': water}
+    attrs = {k: v for k, v in b['attributes'].items() if k.startswith('minecraft:audio/')}
+    attrs['minecraft:visual/sky_color'] = sky
+    attrs['minecraft:visual/fog_color'] = fog
+    attrs['minecraft:gameplay/natural_mob_spawns'] = {'modifier': 'overlay', 'argument': {'spawn_costs': {}, 'spawns_by_category': {
+        'ambient': [{'type': 'minecraft:bat', 'count': 8, 'weight': 10}],
+        'creature': [{'type': t, 'count': c, 'weight': w} for t, c, w in CREATURES],
+        'monster': [{'type': t, 'count': c, 'weight': w} for t, c, w in MONSTERS]}}}
+    b['attributes'] = attrs
+    write(os.path.join(WG, 'biome', name + '.json'), b)
+forest_biome('faewood_grove', 'cherry_grove', {'minecraft:trees_cherry': 'omnispell:trees_faewood'},
+             '#5fd6a8', '#c79bff', '#8f6cff', '#5b3fb0', '#b9a0ff')
+forest_biome('gloamwood', 'dark_forest', {}, '#2f7f6a', '#3f6f8f', '#3a4fd0', '#241a52', '#5a4a9a', add=['omnispell:trees_faewood_sparse'])
+# The game needs every biome of a realm to list shared plants in the same order, so the borrowed
+# lists are left as they are and faewood is only ever added at the very end.
+forest_biome('glowcap_glade', 'mushroom_fields', {}, '#7fd0c0', '#9fe0d0', '#50e0d0', '#3a5fb0', '#9ad0e8',
+             add=['omnispell:trees_faewood_sparse'])
+forest_biome('palewood', 'pale_garden', {}, '#a8b8c8', '#c8c0e0', '#8a8fd0', '#4a4a78', '#a0a0c8', add=['omnispell:trees_faewood_sparse'])
+forest_biome('ancient_spires', 'old_growth_spruce_taiga', {}, '#4fb090', '#6f90d0', '#6a6cff', '#3a2f80', '#8f86d8', add=['omnispell:trees_faewood_sparse'])
+
+dim_type = vanilla('dimension_type/overworld.json')
+dim_type['ambient_light'] = 0.08
+dim_type['attributes']['minecraft:visual/sky_color'] = '#4a33a0'
+dim_type['attributes']['minecraft:visual/fog_color'] = '#a590f0'
+dim_type['attributes']['minecraft:visual/cloud_color'] = '#ccd8b0ff'
+dim_type['attributes']['minecraft:visual/ambient_light_color'] = '#1a1030'
+write(os.path.join(DATA, 'dimension_type', 'enchanted_forest.json'), dim_type)
+def point(biome, temperature, humidity):
+    return {'biome': f'omnispell:{biome}', 'parameters': {'temperature': temperature, 'humidity': humidity, 'continentalness': [-1.0, 1.0],
+            'erosion': [-1.0, 1.0], 'weirdness': [-1.0, 1.0], 'depth': 0.0, 'offset': 0.0}}
+write(os.path.join(DATA, 'dimension', 'enchanted_forest.json'), {
+    'type': 'omnispell:enchanted_forest',
+    'generator': {'type': 'minecraft:noise', 'settings': 'minecraft:overworld', 'biome_source': {'type': 'minecraft:multi_noise', 'biomes': [
+        point('faewood_grove', [-0.2, 0.4], [-0.3, 0.4]),
+        point('gloamwood', [-0.2, 0.4], [0.4, 1.0]),
+        point('glowcap_glade', [0.4, 1.0], [-0.2, 1.0]),
+        point('palewood', [-1.0, -0.2], [-1.0, 0.2]),
+        point('ancient_spires', [-1.0, -0.2], [0.2, 1.0]),
+        point('faewood_grove', [0.4, 1.0], [-1.0, -0.2]),
+        point('gloamwood', [-0.2, 0.4], [-1.0, -0.3])]}}})
+FOREST_BIOMES = ['omnispell:faewood_grove', 'omnispell:gloamwood', 'omnispell:glowcap_glade', 'omnispell:palewood', 'omnispell:ancient_spires']
+
 # ---------------------------------------------------------------- worldgen
 # Biomes where surface structures may stand: land biomes, vanilla and (optionally) other mods' by convention tags.
 LAND = ['#minecraft:is_forest', '#minecraft:is_taiga', '#minecraft:is_savanna', '#minecraft:is_hill', '#minecraft:is_mountain',
@@ -335,6 +470,7 @@ SHARED = ['is_plains', 'is_forest', 'is_desert', 'is_snowy_plains', 'is_magical'
           'primary_wood_type/cherry', 'primary_wood_type/dark_oak', 'primary_wood_type/jungle', 'primary_wood_type/pale_oak',
           'primary_wood_type/poplar', 'primary_wood_type/bamboo']
 LAND += [{'id': '#c:' + t, 'required': False} for t in SHARED]
+LAND += FOREST_BIOMES
 write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_structure', 'surface.json'), {'replace': False, 'values': LAND})
 
 def structure(name, weight_unused=None):
@@ -388,6 +524,17 @@ lang = {
     'block.omnispell.waypoint': 'Waypoint',
     'block.omnispell.boss_altar': 'Boss Seal',
     'block.omnispell.alchemy_cauldron': 'Alchemy Cauldron',
+    'block.omnispell.faewood_log': 'Faewood Log',
+    'block.omnispell.faewood_leaves': 'Faewood Blossom',
+    'block.omnispell.faewood_planks': 'Faewood Planks',
+    'block.omnispell.runic_bookshelf': 'Runic Bookshelf',
+    'block.omnispell.forest_gate': 'Forest Gate',
+    'item.omnispell.fae_dust': 'Fae Dust',
+    'biome.omnispell.faewood_grove': 'Faewood Grove',
+    'biome.omnispell.gloamwood': 'Gloamwood',
+    'biome.omnispell.glowcap_glade': 'Glowcap Glade',
+    'biome.omnispell.palewood': 'Palewood',
+    'biome.omnispell.ancient_spires': 'Ancient Spires',
     'item.omnispell.brew': 'Potion',
     'enchantment.omnispell.reservoir': 'Reservoir',
     'enchantment.omnispell.wellspring': 'Wellspring',
@@ -438,6 +585,35 @@ write(os.path.join(DATA, 'loot_table', 'blocks', 'alchemy_cauldron.json'), {
     'type': 'minecraft:block',
     'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
                'entries': [{'type': 'minecraft:item', 'name': 'omnispell:alchemy_cauldron'}]}]})
+# The Enchanted Forest: the gate, and what its wood makes.
+write(os.path.join(recipe_dir, 'forest_gate.json'), {
+    'type': 'minecraft:crafting_shaped', 'category': 'misc',
+    'key': {'M': 'minecraft:moss_block', 'E': 'minecraft:emerald', 'A': 'minecraft:amethyst_shard', 'P': 'minecraft:ender_pearl', 'G': 'minecraft:glow_berries'},
+    'pattern': ['MEM', 'APA', 'MGM'],
+    'result': {'id': 'omnispell:forest_gate'}})
+write(os.path.join(recipe_dir, 'faewood_planks.json'), {
+    'type': 'minecraft:crafting_shapeless', 'category': 'building',
+    'ingredients': ['omnispell:faewood_log'], 'result': {'id': 'omnispell:faewood_planks', 'count': 4}})
+write(os.path.join(recipe_dir, 'runic_bookshelf.json'), {
+    'type': 'minecraft:crafting_shaped', 'category': 'building',
+    'key': {'W': 'omnispell:faewood_planks', 'B': 'minecraft:book'},
+    'pattern': ['WWW', 'BBB', 'WWW'], 'result': {'id': 'omnispell:runic_bookshelf'}})
+for wood_block in ('faewood_log', 'faewood_planks', 'runic_bookshelf', 'forest_gate'):
+    write(os.path.join(DATA, 'loot_table', 'blocks', wood_block + '.json'), {
+        'type': 'minecraft:block',
+        'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
+                   'entries': [{'type': 'minecraft:item', 'name': f'omnispell:{wood_block}'}]}]})
+# Faewood blossom sometimes comes away whole; otherwise it scatters.
+write(os.path.join(DATA, 'loot_table', 'blocks', 'faewood_leaves.json'), {
+    'type': 'minecraft:block',
+    'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:random_chance', 'chance': 0.25}],
+               'entries': [{'type': 'minecraft:item', 'name': 'omnispell:faewood_leaves'}]}]})
+for tag, values in {'block/mineable/axe': ['omnispell:faewood_log', 'omnispell:faewood_planks', 'omnispell:runic_bookshelf'],
+                    'block/mineable/hoe': ['omnispell:faewood_leaves'],
+                    'block/logs': ['omnispell:faewood_log'], 'item/logs': ['omnispell:faewood_log'],
+                    'block/planks': ['omnispell:faewood_planks'], 'item/planks': ['omnispell:faewood_planks'],
+                    'block/enchantment_power_provider': ['omnispell:runic_bookshelf']}.items():
+    write(os.path.join(ROOT, 'data', 'minecraft', 'tags', tag + '.json'), {'replace': False, 'values': values})
 # Until arcane wells generate in structures, one can be built.
 write(os.path.join(recipe_dir, 'arcane_well.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'misc',
@@ -449,7 +625,7 @@ write(os.path.join(DATA, 'loot_table', 'blocks', 'arcane_well.json'), {
     'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
                'entries': [{'type': 'minecraft:item', 'name': 'omnispell:arcane_well'}]}]})
 write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'block', 'mineable', 'pickaxe.json'),
-      {'replace': False, 'values': ['omnispell:arcane_well', 'omnispell:waypoint', 'omnispell:alchemy_cauldron']})
+      {'replace': False, 'values': ['omnispell:arcane_well', 'omnispell:waypoint', 'omnispell:alchemy_cauldron', 'omnispell:forest_gate']})
 
 # ---------------------------------------------------------------- enchantments
 def enchantment(name, fallback, weight, max_level):

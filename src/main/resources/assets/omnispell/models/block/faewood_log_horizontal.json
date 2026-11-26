@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column_horizontal",
+  "textures": {
+    "end": "omnispell:block/faewood_log_top",
+    "side": "omnispell:block/faewood_log"
+  }
+}

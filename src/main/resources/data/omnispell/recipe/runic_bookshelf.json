@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "W": "omnispell:faewood_planks",
+    "B": "minecraft:book"
+  },
+  "pattern": [
+    "WWW",
+    "BBB",
+    "WWW"
+  ],
+  "result": {
+    "id": "omnispell:runic_bookshelf"
+  }
+}

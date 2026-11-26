@@ -44,6 +44,89 @@ public class WorldgenTest implements FabricClientGameTest {
 		return level.findNearestMapStructure(HolderSet.direct(holder), from, 100, false);
 	}
 
+	/** Crafts nothing, but walks through the Forest Gate both ways and looks at what is on the other side. */
+	private static void forest(ClientGameTestContext context, TestServerContext server) {
+		BlockPos[] gate = new BlockPos[1];
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ServerLevel level = p.level();
+			check(s.getLevel(com.omnispell.realm.Realms.FOREST) != null, "the Enchanted Forest exists as a realm");
+			gate[0] = p.blockPosition().offset(2, 0, 0);
+			level.setBlockAndUpdate(gate[0], OmniItems.FOREST_GATE.defaultBlockState());
+			net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(gate[0]), net.minecraft.core.Direction.UP, gate[0], false);
+			level.getBlockState(gate[0]).useWithoutItem(level, p, hit);
+		});
+		context.waitTicks(120);
+		java.util.Set<String> biomes = new java.util.TreeSet<>();
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ServerLevel level = p.level();
+			check(com.omnispell.realm.Realms.isForest(level), "using the gate carries the player into the forest");
+			check(level.getBlockState(p.blockPosition().below()).is(OmniItems.FOREST_GATE), "a return gate stands where the player arrives");
+			int logs = 0;
+			for (int x = -160; x <= 160; x += 16) {
+				for (int z = -160; z <= 160; z += 16) biomes.add(level.getBiome(p.blockPosition().offset(x, 0, z)).getRegisteredName());
+			}
+			for (BlockPos pos : BlockPos.betweenClosed(p.blockPosition().offset(-40, -10, -40), p.blockPosition().offset(40, 40, 40))) {
+				if (level.getBlockState(pos).is(OmniItems.FAEWOOD_LOG)) logs++;
+			}
+			System.out.println("[omnispell-test] forest biomes near arrival: " + biomes + ", faewood logs within 40 blocks: " + logs);
+			p.teleportTo(level, p.getX(), p.getY() + 18, p.getZ(), java.util.Set.of(), 0f, 25f, true);
+		});
+		server.runCommand("gamemode spectator @a");
+		context.waitTicks(80);
+		context.takeScreenshot("50-forest-arrival");
+		// Look around from four more places to see the biomes.
+		int[][] hops = {{300, 0}, {0, 300}, {-300, 0}, {600, 600}};
+		int n = 1;
+		for (int[] hop : hops) {
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				int x = gate[0].getX() + hop[0], z = gate[0].getZ() + hop[1];
+				level.getChunk(x >> 4, z >> 4);
+				int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+				biomes.add(level.getBiome(new BlockPos(x, y, z)).getRegisteredName());
+				p.teleportTo(level, x + 0.5, y + 14, z + 0.5, java.util.Set.of(), 0f, 25f, true);
+			});
+			context.waitTicks(90);
+			context.takeScreenshot("51-forest-view-" + (n++));
+		}
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ServerLevel level = p.level();
+			System.out.println("[omnispell-test] forest biomes seen: " + biomes);
+			check(biomes.stream().allMatch(b -> b.startsWith("omnispell:")), "the forest is made only of its own biomes");
+			check(biomes.size() >= 2, "more than one forest biome was found (" + biomes.size() + ")");
+			int boosted = 0, hostile = 0;
+			for (Entity e : level.getAllEntities()) {
+				if (e instanceof net.minecraft.world.entity.monster.Enemy) {
+					hostile++;
+					if (e.entityTags().contains("omnispell_forest_empowered")) boosted++;
+				}
+			}
+			System.out.println("[omnispell-test] forest monsters loaded: " + hostile + ", empowered: " + boosted);
+			check(hostile == boosted, "every hostile creature in the forest is empowered");
+		});
+		// And back again through the arrival gate.
+		server.runCommand("gamemode creative @a");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ServerLevel level = p.level();
+			BlockPos back = null;
+			level.getChunk(gate[0].getX() >> 4, gate[0].getZ() >> 4);
+			for (BlockPos pos : BlockPos.betweenClosed(gate[0].getX() - 3, level.getMinY(), gate[0].getZ() - 3, gate[0].getX() + 3, level.getMaxY() - 1, gate[0].getZ() + 3)) {
+				if (level.getBlockState(pos).is(OmniItems.FOREST_GATE)) back = pos.immutable();
+			}
+			check(back != null, "the arrival gate is still there");
+			net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(back), net.minecraft.core.Direction.UP, back, false);
+			level.getBlockState(back).useWithoutItem(level, p, hit);
+		});
+		context.waitTicks(60);
+		server.runOnServer(s -> check(player(s).level().dimension() == net.minecraft.world.level.Level.OVERWORLD
+				&& player(s).blockPosition().closerThan(gate[0], 4), "using a gate in the forest returns to the overworld gate"));
+	}
+
 	/** Visits several generated shrines and lairs and reports how each one sits in the terrain. */
 	private static void survey(ClientGameTestContext context, TestServerContext server) {
 		int[][] origins = {{0, 0}, {900, 0}, {0, 900}, {-900, 0}, {0, -900}, {900, 900}, {-900, -900}, {1800, 0}};
@@ -117,6 +200,10 @@ public class WorldgenTest implements FabricClientGameTest {
 			server.runCommand("weather clear");
 			context.waitTicks(40);
 
+			if ("forest".equals(System.getenv("OMNISPELL_WORLDGEN"))) {
+				forest(context, server);
+				return;
+			}
 			if ("survey".equals(System.getenv("OMNISPELL_WORLDGEN"))) {
 				survey(context, server);
 				return;

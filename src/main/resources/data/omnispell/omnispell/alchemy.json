@@ -897,6 +897,22 @@
    "temperature": "room",
    "role": "temperature_negator",
    "manifestation": null
+  },
+  "omnispell:fae_dust": {
+   "name": "Fae Dust",
+   "category": "arcana",
+   "potency": 4,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "omnispell:faewood_leaves": {
+   "name": "Faewood Blossom",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "eyes"
   }
  }
 }

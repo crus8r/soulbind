@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=y": {
+      "model": "omnispell:block/faewood_log"
+    },
+    "axis=z": {
+      "model": "omnispell:block/faewood_log_horizontal",
+      "x": 90
+    },
+    "axis=x": {
+      "model": "omnispell:block/faewood_log_horizontal",
+      "x": 90,
+      "y": 90
+    }
+  }
+}

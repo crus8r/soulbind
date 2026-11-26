@@ -38,6 +38,9 @@ public final class OmniLoot {
 			double chance = Omnispell.CONFIG.scrollChestChance * bias(opener);
 			RandomSource random = context.getRandom();
 			int[] range = chestRarity(path);
+			// Chests in the Nether, the End, the Enchanted Forest and other mods' realms hold rarer words.
+			int bonus = com.omnispell.realm.Realms.rarityBonus(context.getLevel());
+			range = new int[]{Math.min(5, range[0] + bonus), Math.min(5, range[1] + bonus)};
 			if (random.nextDouble() < chance) {
 				drops.add(WordScrollItem.ofRarity(range[0] + random.nextInt(range[1] - range[0] + 1)));
 			}
@@ -58,9 +61,7 @@ public final class OmniLoot {
 				default -> {
 					if (!(entity instanceof Monster)) return;
 					if (entity.getRandom().nextDouble() >= Omnispell.CONFIG.scrollMobChance * bias(killer)) return;
-					int rarity = 1 + entity.getRandom().nextInt(2);
-					if (entity.level().dimension() == Level.NETHER) rarity += 1;
-					if (entity.level().dimension() == Level.END) rarity += 2;
+					int rarity = 1 + entity.getRandom().nextInt(2) + com.omnispell.realm.Realms.rarityBonus(entity.level());
 					drop(entity, WordScrollItem.ofRarity(rarity));
 				}
 			}
