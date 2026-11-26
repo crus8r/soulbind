@@ -112,6 +112,7 @@ public final class CombatEffects {
 		if (!code.status.equals("none") && !code.status.equals("null") && target.isAlive()) {
 			status(cast, target, code.status, Math.max(1, code.duration));
 		}
+		if (target.isAlive()) Terraform.maybeVortex(cast, target);
 		if (cast.spell.hasCharge("Sparsus")) spread(cast, target, target.position(), base);
 		return true;
 	}

@@ -22,6 +22,7 @@ Explorations | 26.3-1.6.5-Fabric | CC-BY-NC-ND-4.0 | explorations
 Explorer's Compass | 26.3-2.5.2-fabric | CC-BY-NC-SA-4.0 | explorers-compass
 Explorify | v1.6.6 | LicenseRef-All-Rights-Reserved | explorify
 Fabric API | 0.166.2+26.3 | Apache-2.0 | fabric-api
+Fast Noise | 1.1.3+26.3 | MPL-2.0 | zfastnoise
 FerriteCore | 9.0.0-fabric | MIT | ferrite-core
 Forge Config API Port | 26.3.1 | MPL-2.0 | forge-config-api-port
 Friends&Foes (Fabric/Quilt) | fabric-5.0.5+mc26.3 | CC-BY-NC-ND-4.0 | friends-and-foes
@@ -67,3 +68,4 @@ VillagersTradingPlus | 1.1.0+mc26.3-fabric | GPL-3.0-only | villagerstradingplus
 Villages&Pillages | fabric-2.0.0+mc26.3 | LicenseRef-CC-BY-NC-ND-4.0 | villages-and-pillages
 Wilder Wild | 4.3.3-mc26.3-fabric | LicenseRef-FrozenBlock-Modding-Oasis-License | wilder-wild
 YetAnotherConfigLib (YACL) | 3.9.7+26.3-fabric | LGPL-3.0-or-later | yacl
+ZConfig | 1.0.0+26.x | MPL-2.0 | zconfig

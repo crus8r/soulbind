@@ -64,6 +64,7 @@ entityculling              # skips drawing creatures and chests you cannot see
 moreculling
 immediatelyfast            # faster HUD and text
 structure-layout-optimizer # faster generation of large structures
+zfastnoise                 # faster terrain noise
 badoptimizations
 dynamic-fps                # eases off when the window is in the background
 alternate-current          # faster redstone
@@ -80,6 +81,5 @@ e4mc                       # Open to LAN gives a public address friends can join
 # formations (+ overworld, nether)   marked for 26.3 but built against old class names; crashes on start
 # antarchy (+ antos, anthology, integrated-api, sizeable-foliage, geckolib)   removed at the owner's request: its AntOS library puts phones and computers in chests, and the mod has portal guns and other modern tech
 # c2me-fabric   alpha build for 26.3; crashes at start next to Lithium and Krypton in testing
-# krypton   removed as a precaution: it rewrites networking and is the likeliest of the performance mods to upset joining through e4mc (not confirmed)
+# krypton   removed: the owner confirmed it (with Ksyxis) caused "Failed to connect" on world load
 # ksyxis   removed: it opens the world before the spawn area is generated; with this much terrain to build the client can give up waiting ("Failed to connect to the server / Disconnected")
-# zfastnoise   removed with it: it replaces terrain noise maths, which the terrain mods also change

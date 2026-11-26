@@ -154,6 +154,23 @@ public final class SpellCrafting {
 		if (spell.hasCharge("Minima")) spell.tier = Math.max(1, spell.tier - 1);
 		if (spell.hasCharge("Sparsus")) spell.tier = Math.min(5, spell.tier + 1); // wider: an environment spell's reach is its tier
 		spell.school = "Exploration";
+		if (command == null && base != null) {
+			// A base word by itself: a cantrip. Quick, cheap, and useful every day.
+			String cantrip = Terraform.cantripFor(base);
+			spell.toggle = cantrip;
+			spell.tier = 1;
+			spell.name = spell.name + "se";
+			spell.effect = Terraform.effectName(cantrip);
+			spell.description = Terraform.describe(cantrip, spell);
+			WordBank.Flavor cantripFlavor = WordBank.flavor(base);
+			if (cantripFlavor != null) {
+				spell.visual.color1 = cantripFlavor.color;
+				spell.visual.color2 = cantripFlavor.color2;
+				spell.visual.particles = cantripFlavor.particle;
+				spell.code.element = cantripFlavor.element;
+			}
+			return;
+		}
 		if (intention == null && command != null && Terraform.effectFor(command, "wild") != null) {
 			// No intention: the command let loose, for its own sake.
 			String wild = Terraform.effectFor(command, "wild");

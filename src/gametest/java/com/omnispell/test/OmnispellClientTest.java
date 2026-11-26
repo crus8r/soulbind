@@ -479,6 +479,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (BlockPos pos : BlockPos.betweenClosed(origin[0].offset(-5, -6, 3), origin[0].offset(5, 4, 3))) if (level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.TransparentBlock) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			});
 
+			Zombie[] vortexed = new Zombie[1];
 			// ---- land shaping: carve a tunnel, mend water into grass, raise a lasting wall; then the wand's plain bolt
 			BlockPos[] site = new BlockPos[1];
 			server.runOnServer(s -> player(s).getInventory().setItem(4, WandItem.create("oak", "nether_star")));
@@ -609,6 +610,45 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.Spell blueWall = PlayerStore.get(p).pending;
 				check(blueWall != null && "raise_wall".equals(blueWall.toggle) && com.omnispell.spell.Terraform.magicBlock(blueWall) == net.minecraft.world.level.block.Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.BLUE), "a Blue attribute makes a fire wall of blue magic");
 				PlayerStore.get(p).pending = null;
+
+				// Cantrips: a base word alone.
+				for (var pool : com.omnispell.player.ManaPool.values()) PlayerStore.get(p).mana[pool.ordinal()] = pool.baseMax;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Fire"));
+				com.omnispell.spell.Spell kindle = PlayerStore.get(p).pending;
+				check(kindle != null && "kindle".equals(kindle.toggle) && kindle.name.endsWith("se"), "Fire alone is the Kindle cantrip, named " + (kindle == null ? "nothing" : kindle.name));
+				PlayerStore.get(p).pending = null;
+				var rawBeefItem = new net.minecraft.world.entity.item.ItemEntity(level, b.getX() + 0.5, b.getY() + 0.2, b.getZ() - 2.5, new ItemStack(Items.BEEF, 3));
+				rawBeefItem.setDeltaMovement(0, 0, 0);
+				level.addFreshEntity(rawBeefItem);
+				p.setXRot(32f);
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, kindle)) && rawBeefItem.getItem().is(Items.COOKED_BEEF), "Kindle cooks loose food where it lands (now " + rawBeefItem.getItem() + ")");
+				rawBeefItem.discard();
+				check(com.omnispell.spell.Terraform.heated(Items.RAW_IRON) == Items.IRON_INGOT, "and it smelts raw ore");
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Earth"));
+				com.omnispell.spell.Spell clod = PlayerStore.get(p).pending;
+				PlayerStore.get(p).pending = null;
+				p.setXRot(89f);
+				double clodY = p.getY();
+				check(clod != null && "clod".equals(clod.toggle) && com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, clod)) && p.getY() > clodY + 0.9
+						&& level.getBlockState(b).is(net.minecraft.world.level.block.Blocks.DIRT), "Earth alone sets a dirt block underfoot and lifts the caster (rose " + (p.getY() - clodY) + ")");
+				level.setBlockAndUpdate(b, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Air"));
+				com.omnispell.spell.Spell gust = PlayerStore.get(p).pending;
+				PlayerStore.get(p).pending = null;
+				check(gust != null && "gust".equals(gust.toggle) && com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, gust)) && p.getDeltaMovement().y > 0.6, "Air alone is a gust: a jump on demand");
+				p.setDeltaMovement(0, 0, 0);
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Water"));
+				check(PlayerStore.get(p).pending != null && "nourish".equals(PlayerStore.get(p).pending.toggle), "Water alone is Nourish");
+				PlayerStore.get(p).pending = null;
+				// A vortex takes hold of a creature.
+				Zombie spun = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				spun.snapTo(b.getX() + 3.5, b.getY(), b.getZ() - 3.5, 0f, 0f);
+				spun.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(spun);
+				com.omnispell.spell.Terraform.vortex(level, p, spun, 3);
+				check(spun.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING), "a vortex takes hold of its target");
+				vortexed[0] = spun;
 
 				// Nicknames and the archive.
 				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);
@@ -750,6 +790,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-3, 0, -3), b.offset(-3, 4, 3))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			});
 
+			context.waitTicks(16);
+			server.runOnServer(s -> {
+				check(vortexed[0].getY() > site[0].getY() + 1.0, "the vortex lifts it off the ground (" + (vortexed[0].getY() - site[0].getY()) + " blocks up)");
+				vortexed[0].discard();
+			});
 			// Sneak + right-click passes the wand to the other hand; a bolt with no mana left does nothing.
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);

@@ -77,7 +77,8 @@ public final class WordBank {
 			if (type.id.equals("exploration")) {
 				type.name = "Environment Spells";
 				// The intention may be left out: the spell then does what its command does when simply let loose.
-				for (Slot slot : type.wordSlots) if (slot.type.equals("intention")) slot.required = false;
+				// A base word alone is allowed too: a cantrip, the element's simplest handy trick.
+				for (Slot slot : type.wordSlots) if (slot.type.equals("intention") || slot.type.equals("command")) slot.required = false;
 				type.description = "Spells that shape the land and help you cross it: carve, raise, mend, bridge, travel and reveal.";
 				type.rules = List.of("Base + Action + Intent decide the effect. The same three always do the same thing.",
 						"The base word is also the material: Earth builds with dirt, Ice with packed ice, Wood with planks.",

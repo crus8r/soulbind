@@ -46,6 +46,112 @@ public final class Terraform {
 			/* grow    */ {"clear", "growth", "waymark", "thicket", "tree", "leap", "growth"},
 	};
 
+	/** The cantrip a base word gives when it is crafted alone. */
+	public static String cantripFor(String flavor) {
+		return switch (flavor == null ? "" : flavor) {
+			case "fire" -> "kindle";
+			case "water" -> "nourish";
+			case "wind" -> "gust";
+			case "ice" -> "chill";
+			case "light" -> "glimmer";
+			case "void" -> "blink";
+			case "shadow" -> "shade";
+			case "blood" -> "salve";
+			default -> "clod";
+		};
+	}
+
+	/** What fire makes of a loose item: cooked food, smelted ore, glass from sand. Null if fire does nothing to it. */
+	public static net.minecraft.world.item.Item heated(net.minecraft.world.item.Item raw) {
+		net.minecraft.world.item.Item cooked = com.omnispell.OmniLoot.cooked(raw);
+		if (cooked != null) return cooked;
+		String path = BuiltInRegistries.ITEM.getKey(raw).getPath();
+		String to = switch (path) {
+			case "raw_iron", "iron_ore", "deepslate_iron_ore" -> "iron_ingot";
+			case "raw_gold", "gold_ore", "deepslate_gold_ore", "nether_gold_ore" -> "gold_ingot";
+			case "raw_copper", "copper_ore", "deepslate_copper_ore" -> "copper_ingot";
+			case "sand", "red_sand" -> "glass";
+			case "cobblestone" -> "stone";
+			case "clay_ball" -> "brick";
+			case "wet_sponge" -> "sponge";
+			case "kelp" -> "dried_kelp";
+			case "cactus" -> "green_dye";
+			case "ancient_debris" -> "netherite_scrap";
+			default -> null;
+		};
+		return to == null ? null : BuiltInRegistries.ITEM.getOptional(net.minecraft.resources.Identifier.withDefaultNamespace(to)).orElse(null);
+	}
+
+	private static boolean airWord(Spell spell) {
+		for (String id : spell.words) {
+			if (id.equals("base:Air") || id.equals("base:Gale") || id.equals("base:Thunder") || id.equals("base:Lightning")) return true;
+		}
+		return "wind".equals(spell.element) || "air".equalsIgnoreCase(spell.code.element) || "wind".equalsIgnoreCase(spell.code.element);
+	}
+
+	private static boolean enveloping(Spell spell) {
+		for (String id : spell.words) {
+			Word word = WordBank.word(id);
+			if (word != null && word.type.equals("command") && "envelop".equals(word.explore)) return true;
+		}
+		return false;
+	}
+
+	/** Air attacks sometimes catch their target in a vortex, and always do when the command is an enveloping one. */
+	public static void maybeVortex(Cast cast, net.minecraft.world.entity.LivingEntity target) {
+		if (!airWord(cast.spell)) return;
+		if (!enveloping(cast.spell) && cast.level.getRandom().nextFloat() >= 0.3f) return;
+		vortex(cast.level, cast.player, target, Math.max(1, Math.min(5, cast.spell.tier)));
+	}
+
+	/**
+	 * A vortex: the creature is lifted and held spinning in the air. A dust devil at
+	 * tier 1 holds it a second and a half; a tornado at tier 4 and 5 holds it for
+	 * four or five and drags in whatever stands nearby.
+	 */
+	public static void vortex(ServerLevel level, ServerPlayer caster, net.minecraft.world.entity.LivingEntity target, int tier) {
+		if (MobControl.immune(target) || com.omnispell.familiar.Familiars.isFamiliar(target)) return;
+		int ticks = 20 + 16 * tier;
+		java.util.List<net.minecraft.world.entity.LivingEntity> caught = new java.util.ArrayList<>(java.util.List.of(target));
+		if (tier >= 3) {
+			for (net.minecraft.world.entity.LivingEntity other : Targeting.around(caster, target.position(), 1.5 + tier, false)) {
+				if (other != target && !MobControl.immune(other) && !com.omnispell.familiar.Familiars.isFamiliar(other) && caught.size() < 2 + tier) caught.add(other);
+			}
+		}
+		Vec3 eye = target.position();
+		double height = 1.5 + 0.6 * tier;
+		for (net.minecraft.world.entity.LivingEntity e : caught) {
+			e.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOW_FALLING, ticks + 40, 0, false, false));
+			if (e instanceof net.minecraft.world.entity.Mob mob) mob.setTarget(null);
+		}
+		for (int n = 0; n < ticks; n += 2) {
+			int beat = n;
+			Tasks.later(n, () -> {
+				double angle = beat * 0.5;
+				for (int k = 0; k < caught.size(); k++) {
+					net.minecraft.world.entity.LivingEntity e = caught.get(k);
+					if (!e.isAlive() || e.level() != level) continue;
+					double a = angle + k * (Math.PI * 2 / caught.size());
+					double radius = caught.size() == 1 ? 0.0 : 1.2;
+					Vec3 want = eye.add(Math.cos(a) * radius, height, Math.sin(a) * radius);
+					Vec3 pull = want.subtract(e.position()).scale(0.25);
+					e.setDeltaMovement(pull.x, Math.max(-0.2, Math.min(0.5, pull.y)), pull.z);
+					e.setYRot(e.getYRot() + 40);
+					e.fallDistance = 0;
+					e.syncVelocity = true;
+				}
+				for (int ring = 0; ring < 3 + tier; ring++) {
+					double y = ring * (height + 1.5) / (3 + tier);
+					double rr = 0.4 + y * (0.25 + 0.06 * tier);
+					double a = angle * 1.7 + ring;
+					level.sendParticles(net.minecraft.core.particles.ParticleTypes.CLOUD, eye.x + Math.cos(a) * rr, eye.y + y, eye.z + Math.sin(a) * rr, 1, 0, 0, 0, 0);
+					level.sendParticles(net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK, eye.x - Math.cos(a) * rr, eye.y + y, eye.z - Math.sin(a) * rr, 0, 0, 0, 0, 0);
+				}
+			});
+		}
+		level.playSound(null, BlockPos.containing(eye), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0f, 0.6f + 0.1f * tier);
+	}
+
 	/** The effect of an environment spell: the command's kind and the intention's kind decide it. */
 	public static String effectFor(String command, String intention) {
 		for (int c = 0; c < COMMANDS.length; c++) {
@@ -59,7 +165,7 @@ public final class Terraform {
 		return switch (toggle == null ? "" : toggle) {
 			case "carve", "drill", "crater", "pit", "moat", "flatten", "dry", "clear", "raise_wall", "ring", "dome", "platform", "mend_land",
 					"calm", "attune", "growth", "illuminate", "prospect", "thicket", "solidify", "weather", "gather", "conjure", "path", "tree",
-					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull", "bound" -> true;
+					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull", "bound", "kindle", "nourish", "gust", "clod", "chill", "glimmer", "blink", "shade", "salve" -> true;
 			default -> false;
 		};
 	}
@@ -106,6 +212,15 @@ public final class Terraform {
 			case "stairs" -> "Builds a stair of " + stuff + " climbing " + (carveLength(t) + 2) + " blocks the way you face.";
 			case "strike" -> "Calls " + bolt(spell) + " down where you look. It strikes everything within " + (2 + t) + " blocks and leaves its element's mark on the ground.";
 			case "field" -> "Lays a field of " + (spell.element == null ? "magic" : spell.element) + " where you look, " + ((2 + t) * 2 + 1) + " blocks across, for " + (6 + 3 * t) + " seconds: " + fieldEffect(spell.element) + ".";
+			case "kindle" -> "A small fireball. It lights what it strikes like a fire charge, burns creatures a little, and cooks or smelts loose items lying where it lands. Costs 4 Force.";
+			case "nourish" -> "Waters what you look at: crops and saplings grow as with bone meal, dry farmland is wetted, a flame is put out. Costs 5 Restoration.";
+			case "gust" -> "A gust under your feet: cast it in the air for a second jump. Costs half a point of Phase.";
+			case "clod" -> "Sets one block of " + stuff + " where you look. Look at the ground under you and it lifts you up on it, so you can tower without carrying blocks. Costs 2 Force.";
+			case "chill" -> "Freezes the water you look at and dusts the ground with snow. Costs 2 Force.";
+			case "glimmer" -> "Hangs one lasting light where you look.";
+			case "blink" -> "Steps you a few blocks the way you face. Costs 1 Phase.";
+			case "shade" -> "Hides you from sight for five seconds. Costs 1 Phase.";
+			case "salve" -> "Closes a small wound: two hearts. Costs 10 Restoration.";
 			case "bound" -> "A wild bound: flings you far and high the way you face, never quite the same way twice, and scatters whatever stood near you.";
 			case "launch" -> "Throws you " + (8 + 6 * t) + " blocks straight up, and sets you down gently.";
 			case "survey" -> "Points the way to the nearest village and tells you how far it is.";
@@ -229,6 +344,8 @@ public final class Terraform {
 	public static double cooldownSeconds(String toggle) {
 		return switch (toggle) {
 			case "carve", "drill", "platform", "pillar", "gather", "path", "stairs", "launch", "augury", "waymark", "bound" -> 6;
+			case "kindle", "nourish", "gust", "clod", "chill", "glimmer", "blink" -> 1.5;
+			case "shade", "salve" -> 8;
 			case "attune", "weather", "calm", "dome", "ring", "thicket" -> 20;
 			default -> 10;
 		};
@@ -480,6 +597,155 @@ public final class Terraform {
 						}
 					});
 				}
+				job.changed++;
+			}
+			case "kindle" -> {
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.FORCE, 4) < 4) return c.fail("Not enough Force mana.");
+				Vec3 from = Targeting.hand(p);
+				net.minecraft.world.entity.LivingEntity foe = Targeting.entity(p, 20);
+				BlockHitResult hit = Targeting.block(p, 20);
+				Vec3 to = foe != null ? foe.position().add(0, foe.getBbHeight() * 0.5, 0) : hit.getLocation();
+				Fx.line(level, from, to, 0xFF6633, net.minecraft.core.particles.ParticleTypes.FLAME, 2);
+				level.playSound(null, p.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8f, 1.2f);
+				if (foe != null) {
+					foe.hurtServer(level, level.damageSources().indirectMagic(p, p), 3f);
+					foe.igniteForSeconds(4);
+				}
+				int heatedStacks = 0;
+				for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(to, to).inflate(2.0))) {
+					net.minecraft.world.item.Item made = heated(item.getItem().getItem());
+					if (made == null || heatedStacks >= 2) continue;
+					int count = Math.min(8, item.getItem().getCount());
+					net.minecraft.world.item.ItemStack rest = item.getItem().copy();
+					rest.shrink(count);
+					item.setItem(new net.minecraft.world.item.ItemStack(made, count));
+					if (!rest.isEmpty()) level.addFreshEntity(new net.minecraft.world.entity.item.ItemEntity(level, item.getX(), item.getY(), item.getZ(), rest));
+					level.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, item.getX(), item.getY() + 0.2, item.getZ(), 8, 0.2, 0.2, 0.2, 0.01);
+					heatedStacks++;
+				}
+				if (foe == null && heatedStacks == 0 && hit.getType() != HitResult.Type.MISS) {
+					BlockPos struck = hit.getBlockPos();
+					BlockState state = level.getBlockState(struck);
+					if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT) && !state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT)
+							&& (state.getBlock() instanceof net.minecraft.world.level.block.CampfireBlock || state.getBlock() instanceof net.minecraft.world.level.block.AbstractCandleBlock)) {
+						level.setBlockAndUpdate(struck, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT, true));
+					} else if (state.is(Blocks.TNT)) {
+						level.removeBlock(struck, false);
+						net.minecraft.world.entity.item.PrimedTnt tnt = new net.minecraft.world.entity.item.PrimedTnt(level, struck.getX() + 0.5, struck.getY(), struck.getZ() + 0.5, p);
+						level.addFreshEntity(tnt);
+					} else {
+						BlockPos at = struck.relative(hit.getDirection());
+						if (level.getBlockState(at).canBeReplaced() && job.guard.tierNeeded(at) == 0) flame(level, at, 1);
+					}
+				}
+				job.changed++;
+			}
+			case "nourish" -> {
+				BlockHitResult hit = Targeting.block(p, 6);
+				if (hit.getType() == HitResult.Type.MISS) return c.fail("There is nothing within reach to water.");
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.RESTORATION, 5) < 5) return c.fail("Not enough Restoration mana.");
+				BlockPos pos = hit.getBlockPos();
+				for (BlockPos at : new BlockPos[]{pos, pos.above()}) {
+					BlockState state = level.getBlockState(at);
+					if (state.is(net.minecraft.tags.BlockTags.FIRE)) {
+						level.removeBlock(at, false);
+						job.changed++;
+					} else if (state.is(Blocks.FARMLAND)) {
+						level.setBlockAndUpdate(at, state.setValue(net.minecraft.world.level.block.FarmlandBlock.MOISTURE, 7));
+						job.changed++;
+					} else if (state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock plant
+							&& plant.isValidBonemealTarget(level, at, state, net.minecraft.world.level.block.BonemealSource.INTERACTION)) {
+						if (plant.isBonemealSuccess(level, level.getRandom(), at, state, net.minecraft.world.level.block.BonemealSource.INTERACTION)) {
+							plant.performBonemeal(level, level.getRandom(), at, state, net.minecraft.world.level.block.BonemealSource.INTERACTION);
+						}
+						job.changed++;
+						break;
+					}
+				}
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.SPLASH, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 14, 0.3, 0.1, 0.3, 0.02);
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 6, 0.3, 0.2, 0.3, 0.0);
+				level.playSound(null, pos, SoundEvents.BONE_MEAL_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
+				job.changed++;
+			}
+			case "gust" -> {
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.PHASE, 0.5) < 0.5) return c.fail("Not enough Phase mana.");
+				Vec3 look = p.getLookAngle();
+				p.setDeltaMovement(p.getDeltaMovement().x + look.x * 0.25, p.onGround() ? 0.85 : 0.7, p.getDeltaMovement().z + look.z * 0.25);
+				p.fallDistance = 0;
+				p.syncVelocity = true;
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.CLOUD, p.getX(), p.getY(), p.getZ(), 10, 0.3, 0.05, 0.3, 0.02);
+				level.playSound(null, p.blockPosition(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 0.6f, 1.5f);
+				job.changed++;
+			}
+			case "clod" -> {
+				BlockHitResult hit = Targeting.block(p, 5);
+				if (hit.getType() == HitResult.Type.MISS) return c.fail("There is nothing within reach to build on.");
+				BlockPos at = hit.getBlockPos().relative(hit.getDirection());
+				if (!level.getBlockState(at).canBeReplaced()) return c.fail("There is no room there.");
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.FORCE, 2) < 2) return c.fail("Not enough Force mana.");
+				boolean underMe = p.getBoundingBox().intersects(new net.minecraft.world.phys.AABB(at));
+				if (underMe) {
+					if (!level.getBlockState(p.blockPosition().above(2)).getCollisionShape(level, p.blockPosition().above(2)).isEmpty()) return c.fail("There is no room above you.");
+					p.teleportTo(p.getX(), at.getY() + 1.02, p.getZ());
+					p.fallDistance = 0;
+				}
+				job.placeUnder(at, block == null && "stone".equals(c.spell.element) ? Blocks.DIRT : block);
+				level.playSound(null, at, SoundEvents.GRAVEL_PLACE, SoundSource.PLAYERS, 1.0f, 0.9f);
+			}
+			case "chill" -> {
+				BlockHitResult hit = p.level().clip(new net.minecraft.world.level.ClipContext(p.getEyePosition(), p.getEyePosition().add(p.getLookAngle().scale(8)),
+						net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.SOURCE_ONLY, p));
+				if (hit.getType() == HitResult.Type.MISS) return c.fail("There is nothing within reach to chill.");
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.FORCE, 2) < 2) return c.fail("Not enough Force mana.");
+				BlockPos pos = hit.getBlockPos();
+				for (BlockPos at : BlockPos.betweenClosed(pos.offset(-1, 0, -1), pos.offset(1, 1, 1))) {
+					BlockState state = level.getBlockState(at);
+					if (state.is(Blocks.WATER) && state.getFluidState().isSource()) level.setBlockAndUpdate(at, Blocks.ICE.defaultBlockState());
+					else if (state.is(net.minecraft.tags.BlockTags.FIRE)) level.removeBlock(at, false);
+					else if (state.isAir() && level.getBlockState(at.below()).isCollisionShapeFullBlock(level, at.below()) && !level.getBlockState(at.below()).is(Blocks.ICE)) level.setBlockAndUpdate(at, Blocks.SNOW.defaultBlockState());
+				}
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.SNOWFLAKE, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 16, 0.6, 0.3, 0.6, 0.02);
+				job.changed++;
+			}
+			case "glimmer" -> {
+				BlockHitResult hit = Targeting.block(p, 16);
+				BlockPos at = hit.getType() == HitResult.Type.MISS ? BlockPos.containing(p.getEyePosition().add(p.getLookAngle().scale(4))) : hit.getBlockPos().relative(hit.getDirection());
+				if (!level.getBlockState(at).isAir()) return c.fail("There is no room for a light there.");
+				level.setBlockAndUpdate(at, Blocks.LIGHT.defaultBlockState());
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, 8, 0.2, 0.2, 0.2, 0.01);
+				job.changed++;
+			}
+			case "blink" -> {
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.PHASE, 1) < 1) return c.fail("Not enough Phase mana.");
+				Vec3 look = p.getLookAngle();
+				Vec3 best = null;
+				for (double d = 6; d >= 1; d -= 0.5) {
+					Vec3 spot = p.position().add(look.x * d, Math.max(-1, look.y * d), look.z * d);
+					BlockPos feet = BlockPos.containing(spot);
+					if (level.getBlockState(feet).getCollisionShape(level, feet).isEmpty() && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()
+							&& Targeting.block(p, d).getType() == HitResult.Type.MISS) {
+						best = spot;
+						break;
+					}
+				}
+				if (best == null) return c.fail("There is nowhere to step to.");
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
+				p.teleportTo(best.x, best.y, best.z);
+				p.fallDistance = 0;
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
+				job.changed++;
+			}
+			case "shade" -> {
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.PHASE, 1) < 1) return c.fail("Not enough Phase mana.");
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY, 100, 0, false, false));
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.SMOKE, p.getX(), p.getY() + 1, p.getZ(), 20, 0.3, 0.6, 0.3, 0.01);
+				job.changed++;
+			}
+			case "salve" -> {
+				if (p.getHealth() >= p.getMaxHealth()) return c.fail("You are not hurt.");
+				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.RESTORATION, 10) < 10) return c.fail("Not enough Restoration mana.");
+				p.heal(4f);
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.HEART, p.getX(), p.getY() + 1.6, p.getZ(), 3, 0.3, 0.2, 0.3, 0.0);
 				job.changed++;
 			}
 			case "bound" -> {
@@ -1060,6 +1326,10 @@ public final class Terraform {
 					if (!field && away.lengthSqr() > 0.01) e.push(away.normalize().x * 0.6, 0.2, away.normalize().z * 0.6);
 				}
 				case "wind" -> {
+					if (!field && level.getRandom().nextFloat() < 0.35f) {
+						vortex(level, caster, e, tier);
+						return; // the vortex gathers the others up itself
+					}
 					if (field) e.push(0, 0.45, 0);
 					else if (away.lengthSqr() > 0.01) e.push(away.normalize().x * (0.8 + 0.2 * tier), 0.5, away.normalize().z * (0.8 + 0.2 * tier));
 				}
