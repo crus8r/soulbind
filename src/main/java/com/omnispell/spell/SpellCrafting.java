@@ -166,11 +166,15 @@ public final class SpellCrafting {
 		spell.visual.shape = entry.shape;
 		spell.visual.motion = entry.motion;
 		spell.visual.intensity = Math.max(1, Math.min(5, entry.intensity));
-		String land = Terraform.remap(entry.toggle);
-		if (land != null) {
-			spell.toggle = land;
-			spell.effect = Terraform.effectName(land);
-			spell.description = Terraform.describe(land, spell);
+		String effect = Terraform.effectFor(command, intention);
+		if (effect != null && !effect.equals(entry.toggle)) {
+			spell.toggle = effect;
+			spell.fizzle = false;
+			spell.siphon = false;
+			spell.effect = Terraform.effectName(effect);
+			spell.description = Terraform.describe(effect, spell);
+		} else if (effect != null && Terraform.handles(effect)) {
+			spell.description = Terraform.describe(effect, spell);
 		}
 		WordBank.Flavor flavor = WordBank.flavor(base);
 		if (flavor != null) {

@@ -247,7 +247,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 				check(waypoints, "bundle holds a bonded pair of waypoints");
 				PlayerData data = PlayerStore.get(p);
-				check(data.words.size() == 9, "nine starting words (have " + data.words.size() + ")");
+				check(data.words.size() == 11, "eleven starting words, Maxima and Minima among them (have " + data.words.size() + ")");
 				check(data.spellTypes.contains("attack") && data.spellTypes.contains("exploration"), "starting spell types");
 			});
 
@@ -255,10 +255,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runCommand("gamemode creative @a");
 			context.waitTicks(30);
 			check(context.computeOnClient(c -> ClientState.words.size()) > 200, "creative mode shows every word");
-			check(server.computeOnServer(s -> PlayerStore.get(player(s)).words.size()) == 9, "creative mode does not change the words actually known");
+			check(server.computeOnServer(s -> PlayerStore.get(player(s)).words.size()) == 11, "creative mode does not change the words actually known");
 			server.runCommand("gamemode survival @a");
 			context.waitTicks(30);
-			check(context.computeOnClient(c -> ClientState.words.size()) == 9, "back in survival only the earned words show");
+			check(context.computeOnClient(c -> ClientState.words.size()) == 11, "back in survival only the earned words show");
 
 			// ---- set up: wand in hand, every word, plenty of essence
 			server.runOnServer(s -> {
@@ -420,11 +420,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.getInput().pressKey(options -> options.keyHotbarSlots[3]);
 			context.waitTicks(5);
 			craftAndSave(context, server, "exploration", "base:Fire,command:Fortify,intention:Warding");
-			craftAndSave(context, server, "exploration", "base:Fire,command:Transmute,intention:Transportation");
+			craftAndSave(context, server, "exploration", "base:Fire,command:Scatter,intention:Transportation");
 			server.runOnServer(s -> {
 				ItemStack wand = player(s).getMainHandItem();
 				check("raise_wall".equals(WandItem.spell(wand, 0).toggle), "Fire + Fortify + Warding is a wall (got " + WandItem.spell(wand, 0).toggle + ")");
-				check("teleport".equals(WandItem.spell(wand, 1).toggle), "Fire + Transmute + Transportation is a teleport (got " + WandItem.spell(wand, 1).toggle + ")");
+				check("teleport".equals(WandItem.spell(wand, 1).toggle), "Fire + Scatter + Transportation is a teleport (got " + WandItem.spell(wand, 1).toggle + ")");
 			});
 			cast(context, 0);
 			context.waitTicks(10);
@@ -539,6 +539,41 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.Casting.primary(p, wand);
 				check(z.getHealth() < z.getMaxHealth(), "left-click with an empty slot throws an arcane bolt (zombie health " + z.getHealth() + ")");
 				z.discard();
+
+				// A coloured strike: Void + Summon + Malice calls purple lightning on what you look at.
+				PlayerStore.get(p).essence = 500;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Void", "command:Summon", "intention:Malice"));
+				com.omnispell.spell.Spell strike = PlayerStore.get(p).pending;
+				check(strike != null && "strike".equals(strike.toggle) && strike.description.contains("purple lightning"), "Void + Summon + Malice is a strike of purple lightning: " + (strike == null ? "nothing" : strike.description));
+				Zombie z2 = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				z2.snapTo(b.getX() + 0.5, b.getY(), b.getZ() - 6.5, 0f, 0f);
+				z2.setNoAi(true);
+				z2.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(z2);
+				p.setXRot(25f);
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, strike)) && z2.getHealth() < z2.getMaxHealth(), "the strike hit what stood there (zombie health " + z2.getHealth() + ")");
+				z2.discard();
+
+				// Pillar: Earth + Ascend + Transportation lifts the caster.
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Earth", "command:Ascend", "intention:Transportation"));
+				com.omnispell.spell.Spell pillar = PlayerStore.get(p).pending;
+				double yBefore = p.getY();
+				check(pillar != null && "pillar".equals(pillar.toggle) && com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, pillar)), "Earth + Ascend + Transportation is a pillar");
+				check(p.getY() >= yBefore + 4.9 && level.getBlockState(b).is(net.minecraft.world.level.block.Blocks.DIRT), "the pillar lifted the caster five blocks on dirt (rose " + (p.getY() - yBefore) + ")");
+				for (int h = 0; h < 6; h++) level.setBlockAndUpdate(b.above(h), net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
+				PlayerStore.get(p).pending = null;
+
+				// The wand's ward: holding right-click turns 70% of a hit aside for Barrier mana.
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 50;
+				p.startUsingItem(net.minecraft.world.InteractionHand.MAIN_HAND);
+				check(WandItem.warding(p), "holding the wand up raises its ward");
+				float warded = com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().generic(), 10f);
+				check(Math.abs(warded - 3f) < 0.01f, "the ward turns 70% of a hit aside (10 became " + warded + ")");
+				com.omnispell.player.Mana.wandUpkeep(p);
+				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < 50 - 10.4, "the ward costs Barrier mana to hold");
+				p.stopUsingItem();
 
 				// Arcane Focus: 40% of a hit is paid in Barrier mana.
 				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 50;

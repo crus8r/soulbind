@@ -16,7 +16,8 @@ import net.minecraft.world.level.material.MapColor;
 import java.util.function.Function;
 
 public final class OmniItems {
-	public static final Item WAND = register("wand", WandItem::new, new Item.Properties().stacksTo(1));
+	public static final Item WAND = register("wand", WandItem::new, new Item.Properties().stacksTo(1)
+			.component(net.minecraft.core.component.DataComponents.USE_EFFECTS, new net.minecraft.world.item.component.UseEffects(true, false, 1.0f)));
 	public static final Item GRIMOIRE = register("grimoire", GrimoireItem::new, new Item.Properties().stacksTo(1));
 	public static final Item WORD_SCROLL = register("word_scroll", WordScrollItem::new, new Item.Properties().stacksTo(16));
 	public static final Item ARCANE_POTION = register("arcane_potion", ArcanePotionItem::new, new Item.Properties().stacksTo(16));

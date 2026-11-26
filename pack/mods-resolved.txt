@@ -13,6 +13,7 @@ Collective | 26.3.0-8.88-fabric+forge+neo | LicenseRef-All-Rights-Reserved | col
 Cristel Lib | fabric-26.3-3.1.13 | CC-BY-NC-ND-4.0 | cristel-lib
 DeCubed Dungeons (Formerly Dungeons+) | 1.13.1+mod | CC-BY-NC-SA-4.0 | decubed-dungeons
 Dungeons and Taverns | 6.2.0+mod | LicenseRef-All-Rights-Reserved | dungeons-and-taverns
+e4mc | 6.2.3-fabric-modern | MIT | e4mc
 Ecologics | 2.7.3-NeoFab | LicenseRef-Multiple | ecologics
 Explorations | 26.3-1.6.5-Fabric | CC-BY-NC-ND-4.0 | explorations
 Explorer's Compass | 26.3-2.5.2-fabric | CC-BY-NC-SA-4.0 | explorers-compass

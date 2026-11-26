@@ -160,12 +160,40 @@ public class WandItem extends Item {
 				com.omnispell.familiar.Familiars.describe(serverPlayer, other.getHoverName().getString(), com.omnispell.familiar.Familiars.pocketStats(other), 0, 0);
 				return InteractionResult.SUCCESS;
 			}
-			// Right-click passes the wand to the other hand, the way armor is put on. Casting is left-click and the spell keys.
+			if (!player.isShiftKeyDown()) {
+				// Held right-click: the wand's ward. It costs Barrier mana for as long as it is up.
+				if (com.omnispell.player.Mana.available(serverPlayer, com.omnispell.player.ManaPool.BARRIER) < 1) {
+					serverPlayer.sendOverlayMessage(Component.literal("No Barrier mana left to raise a ward."));
+					return InteractionResult.FAIL;
+				}
+				player.startUsingItem(hand);
+				return InteractionResult.CONSUME;
+			}
+			// Sneak + right-click passes the wand to the other hand. Casting is left-click and the spell keys.
 			InteractionHand otherHand = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
 			player.setItemInHand(hand, other);
 			player.setItemInHand(otherHand, stack);
 			level.playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_GENERIC.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.4f);
 		}
+		if (level.isClientSide() && !player.isShiftKeyDown()) {
+			player.startUsingItem(hand);
+			return InteractionResult.CONSUME;
+		}
 		return InteractionResult.SUCCESS;
+	}
+
+	@Override
+	public int getUseDuration(ItemStack stack, net.minecraft.world.entity.LivingEntity entity) {
+		return 72000;
+	}
+
+	@Override
+	public net.minecraft.world.item.ItemUseAnimation getUseAnimation(ItemStack stack) {
+		return net.minecraft.world.item.ItemUseAnimation.NONE;
+	}
+
+	/** True while the player is holding the wand's ward up. */
+	public static boolean warding(Player player) {
+		return player.isUsingItem() && isWand(player.getUseItem());
 	}
 }

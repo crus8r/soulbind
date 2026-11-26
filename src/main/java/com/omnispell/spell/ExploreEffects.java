@@ -51,8 +51,7 @@ public final class ExploreEffects {
 
 	/** Seconds before the same spell can be cast again, by toggle. */
 	public static double cooldownSeconds(String toggle) {
-		String land = Terraform.handles(toggle) ? toggle : Terraform.remap(toggle);
-		if (land != null) return Terraform.cooldownSeconds(land);
+		if (Terraform.handles(toggle)) return Terraform.cooldownSeconds(toggle);
 		return switch (toggle) {
 			case "projectile", "push", "shrapnel" -> 3;
 			case "beam", "area_damage", "eruption", "dash", "leap", "deflect", "disintegrate" -> 5;
@@ -89,8 +88,7 @@ public final class ExploreEffects {
 		}
 
 		// Spells saved before the land-shaping effects existed are read the new way too.
-		String land = Terraform.handles(spell.toggle) ? spell.toggle : Terraform.remap(spell.toggle);
-		if (land != null) return Terraform.cast(c, land);
+		if (Terraform.handles(spell.toggle)) return Terraform.cast(c, spell.toggle);
 
 		boolean ok = switch (spell.toggle == null ? "" : spell.toggle) {
 			// ----- destruction -----

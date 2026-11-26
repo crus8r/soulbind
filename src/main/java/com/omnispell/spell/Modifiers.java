@@ -212,6 +212,18 @@ public final class Modifiers {
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
 		amount = com.omnispell.charm.Charms.incoming(player, source, amount);
+		// The wand's ward (held right-click): most of a hit is turned aside, paid for in Barrier mana, and the ward flashes into view.
+		if (amount > 0 && com.omnispell.item.WandItem.warding(player) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+			double paid = Mana.spend(player, ManaPool.BARRIER, amount * 0.7 * 1.5) / 1.5;
+			if (paid > 0) {
+				amount -= (float) paid;
+				net.minecraft.server.level.ServerLevel wardLevel = player.level();
+				Fx.ring(wardLevel, player.position().add(0, 0.4, 0), 1.1, 0x66CCFF, null);
+				Fx.ring(wardLevel, player.position().add(0, 1.1, 0), 1.3, 0x99DDFF, net.minecraft.core.particles.ParticleTypes.ENCHANTED_HIT);
+				Fx.ring(wardLevel, player.position().add(0, 1.8, 0), 1.1, 0x66CCFF, null);
+				wardLevel.playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_RESONATE, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.5f);
+			}
+		}
 		// An Arcane Focus in the off hand is the wizard's shield: it turns part of every hit into spent Barrier mana.
 		if (amount > 0 && player.getOffhandItem().is(com.omnispell.item.OmniItems.ARCANE_FOCUS) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
 			double wanted = amount * 0.4;

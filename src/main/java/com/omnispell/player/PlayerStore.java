@@ -59,6 +59,8 @@ public final class PlayerStore {
 			data.initialized = true;
 			for (Word word : WordBank.words()) {
 				if (word.rarity == 0 && !word.excluded) data.words.add(word.id);
+				// Maxima and Minima are known from the start, so even first spells can be pushed harder or reined in.
+				if (word.type.equals("charge") && (word.english.startsWith("Maxima") || word.english.startsWith("Minima"))) data.words.add(word.id);
 			}
 			data.spellTypes.add("attack");
 			data.spellTypes.add("defense");

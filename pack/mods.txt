@@ -59,6 +59,9 @@ ecologics                  # creatures
 natures-compass
 explorers-compass
 
+# --- playing together
+e4mc                       # Open to LAN gives a public address friends can join: no port forwarding, no server to run
+
 # --- tried and left out (2026-11-26)
 # the-graveyard-fabric   crashes on start with Minecraft 26.3 ("overrides final method Mob.isSunBurnTick")
 # adventurez              crashes the server when its deer spawns ("Can't find attribute minecraft:tempt_range")

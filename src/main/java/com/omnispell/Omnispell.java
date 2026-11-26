@@ -213,6 +213,7 @@ public class Omnispell implements ModInitializer {
 				MobControl.tick();
 				com.omnispell.boss.Bosses.tick();
 				com.omnispell.familiar.Familiars.tick(server);
+				for (ServerPlayer player : server.getPlayerList().getPlayers()) Mana.wandUpkeep(player);
 			}
 			if (tick % 20 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) {

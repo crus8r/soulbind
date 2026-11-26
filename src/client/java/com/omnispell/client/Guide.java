@@ -23,7 +23,10 @@ public final class Guide {
 				"3. Hold the wand. A bar of five squares appears above your health, one per spell, each showing its key (Z X C V B at first).",
 				"Press a spell's key once to see its name. Press it again to cast. A grey cover on the square drains away as the spell becomes ready again; stronger spells take longer.",
 				"Left-click with the wand casts the spell you last selected. Sneak + left-click steps to the next slot. If that spell is still cooling, or the slot is empty, the wand throws a plain arcane bolt instead, so you always have something to hit with.",
-				"Right-click passes the wand to your other hand and back.",
+				"Hold right-click to raise the wand's ward. It cannot be seen until something strikes it; then it flashes and turns most of the blow aside. It drains Barrier mana while it is up and more with each hit.",
+				"Sprint with a wand in hand and you run a third faster, spending Phase mana as you go.",
+				"Sneak + right-click passes the wand to your other hand and back.",
+				"You know Maxima and Minima from the start. Add one with + when crafting: Maxima raises a spell's tier and power, Minima lowers its tier for a smaller, more exact effect.",
 				"Change the keys in the Spellbook tab: click the key under a slot, then press the key you want. Double-tap can be switched off there, so one press casts."));
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
@@ -40,9 +43,18 @@ public final class Guide {
 				"Attack, Defense and Conjuration spells are interpreted by the Oracle. The same words always give the same spell, for everyone.",
 				"Environment spells follow fixed laws: Base + Command + Intention decide the effect. Light + Envelop + Concealment is invisibility. Experiment.",
 				"ENVIRONMENT SPELLS",
-				"Many of them shape the land. With a harsh intention (Malice, Banishment, Weakening): striking and forming commands such as Sever, Breach, Pierce, Throw or Fortify carve a tunnel where you look; enveloping, binding, summoning and bursting ones such as Envelop, Bind, Summon, Agitate or Grow blast a crater. With a guarding intention (Warding, Fortitude, Restoration): Fortify, Solidify, Seal, Grow or Scatter raise a wall; Repel and Agitate close a dome around you; Envelop, Shield, Cover, Guide or Move mend the land, filling water, lava and hollows and putting out fires. Other pairings bridge gaps, carry you, or reveal what is hidden. A few elements bend these rules; the spell's description always says what it will do.",
-				"The base word is the material. Earth builds with dirt and leaves grass behind; Sand, Mud, Ice, Wood, Vine and Lava build with their own stuff, and stone-like words with cobblestone. These stay. Stranger words conjure hardened magic that fades after a minute or so.",
-				"The base word's tier is the spell's reach: a tier 1 tunnel is 5 blocks long, a tier 5 tunnel 22. Maxima adds a tier. Carving leaves ores standing and drops nothing; harder rock needs a higher tier, and obsidian only yields to tier 5.",
+				"The command and the intention together choose the effect; the base word colours it. There are ten kinds of command and six kinds of intention, so sixty pairings. The spell's description always says what it will do.",
+				"Harsh intentions (Malice, Banishment, Weakening, Nullification) break things: carve a tunnel, drill a shaft, blast a crater, open a pit, dig a moat, flatten the land, drive off water and snow, wither plants away, transmute blocks, or call a strike from the sky.",
+				"Guarding intentions (Warding, Fortitude, Restoration, Preservation, Soothing) build and tend: wall, ring wall, dome, platform under your feet, mend the land, quicken growth, calm the weather, or attune yourself to your element (water breathing for Water, fire immunity for Fire, slow falling for Air, and so on).",
+				"Shaping intentions (Binding, Transformation, Empowerment, Creation) work the world: harden water to ice, change the weather, gather loose items, conjure a spring or a mound, lay a path, raise a tree, shape a golem, or lay a field of your element on the ground.",
+				"Travelling intentions (Liberation, Transportation) move you: bridge, stairs, pillar, teleport, grapple, dash, leap, phase through a wall, a steed.",
+				"Insight shows things: living creatures, ores underground, a trail, lasting lights. Concealment hides you or fools others: invisibility, smoke, decoys, a thicket of leaves.",
+				"THE ELEMENT'S MARK",
+				"Whatever the spell does, the base word's element leaves its mark on the ground and on any creature caught in it. Fire scorches, leaves flames and fuses sand to glass. Ice freezes water and settles snow. Water floods pits and moats. Wind throws things outward. Light leaves lasting lights. Shadow puts out torches and blinds. Void drags things inward. Blood withers and heals you. Stone slows.",
+				"A strike takes the element's shape too: true lightning for Lightning and Thunder, purple lightning for Void, a pillar of flame for Fire, a lance of frost for Ice.",
+				"MATERIAL AND REACH",
+				"The base word is also what you build with. Earth builds with dirt and leaves grass behind; Sand, Mud, Ice, Wood, Vine and Lava build with their own stuff, and stone-like words with cobblestone. These stay. Stranger words conjure hardened magic in their own colour that fades after a minute or so.",
+				"The base word's tier is the spell's reach: a tier 1 tunnel is 5 blocks long, a tier 5 tunnel 22. Maxima adds a tier, Minima takes one away. Breaking spells leave ores standing and drop nothing; harder rock needs a higher tier, and obsidian only yields to tier 5.",
 				"How many words a spell may hold depends on the best wand core you carry."));
 		List<String> wands = new ArrayList<>();
 		wands.add("Recipe: one plank, a core, and another plank of the same wood, in a vertical line in a crafting grid.");

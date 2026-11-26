@@ -78,6 +78,29 @@ public final class Mana {
 		return percent;
 	}
 
+	private static final net.minecraft.resources.Identifier SPRINT = Omnispell.id("wand_sprint");
+
+	/**
+	 * Called every half second. Holding the wand's ward up costs Barrier mana, and
+	 * sprinting with a wand in hand spends Phase mana to run a third faster.
+	 */
+	public static void wandUpkeep(ServerPlayer player) {
+		if (WandItem.warding(player)) {
+			if (spend(player, ManaPool.BARRIER, 2.0) < 2.0) player.stopUsingItem();
+			else if (player.tickCount % 40 < 10) player.level().sendParticles(net.minecraft.core.particles.ParticleTypes.ENCHANT, player.getX(), player.getY() + 1, player.getZ(), 3, 0.4, 0.5, 0.4, 0.0);
+		}
+		var speed = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);
+		if (speed == null) return;
+		boolean fleet = player.isSprinting() && !WandItem.heldWand(player).isEmpty() && !player.getAbilities().flying
+				&& spend(player, ManaPool.PHASE, 0.125) >= 0.125;
+		if (fleet) {
+			if (!speed.hasModifier(SPRINT)) speed.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(SPRINT, 0.3, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+			player.level().sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD, player.getX(), player.getY() + 0.1, player.getZ(), 1, 0.1, 0.0, 0.1, 0.0);
+		} else if (speed.hasModifier(SPRINT)) {
+			speed.removeModifier(SPRINT);
+		}
+	}
+
 	/** Called once a second. */
 	public static void regenerate(ServerPlayer player) {
 		PlayerData data = PlayerStore.get(player);

@@ -28,16 +28,20 @@ replaces it.
   book's Spellbook tab, where double-tap can also be switched off.
 - **Left-click** with the wand casts the selected spell; sneak + left-click steps to the
   next slot. If the spell is cooling or the slot is empty, the wand throws a plain arcane
-  bolt instead. **Right-click** passes the wand to the other hand. `H` shows or hides mana.
+  bolt instead. **Hold right-click** to raise the wand's ward: unseen until struck, it
+  turns 70% of a hit aside and drains Barrier mana. **Sneak + right-click** passes the
+  wand to the other hand. Sprinting with a wand out is a third faster and spends Phase
+  mana. `H` shows or hides mana. Maxima and Minima are known from the start.
 - There are four kinds of spell: Attack, Defense, Environment and Conjuration.
 - **Combat spells** (attack, defense, conjuration) are
   written by the Omnispell website's spell generator, unchanged. The same words always
   give the same spell. Each new combination is requested once and then remembered.
-- **Environment spells** come from Omnispell's fixed table: base + command + intention
-  decide the effect. Many shape the land: carve a tunnel, blast a crater, raise a wall or
-  a dome, mend the ground (fills water, lava and hollows). The base word is the material
-  (Earth is dirt and leaves grass) and its tier is the reach. Others bridge, teleport,
-  reveal or conceal.
+- **Environment spells** follow fixed laws: the command and the intention choose one of
+  about forty effects (tunnels, craters, pits, moats, walls, domes, pillars, stairs,
+  paths, mending, growth, trees, weather, lights, ore-finding, strikes from the sky,
+  elemental fields, water breathing and other attunements, teleports, bridges...). The
+  base word's element leaves its mark on everything the spell touches (fire scorches,
+  ice freezes, water floods, void drags inward) and its tier sets the reach.
 - **Words** come from Word Scrolls in structure chests and, rarely, from hostile mobs.
   A scroll always teaches a word you do not know. The Wither, the Warden and the Ender
   Dragon each drop a scroll of their own.
@@ -79,6 +83,13 @@ replaces it.
 
 The book's Guide and Lore tabs explain all of this in the game, including every custom
 enchantment and the gate to each realm.
+
+## Playing together
+
+Everyone needs the same mods (the pack file is the easy way). The pack includes e4mc:
+open your world with *Open to LAN* and it prints a public address your friends can join,
+with no port forwarding and no server to run. Omnispell also runs on a dedicated Fabric
+server.
 
 ## The content pack
 
