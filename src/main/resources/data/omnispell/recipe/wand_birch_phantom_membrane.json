@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:birch_planks",
+    "C": "minecraft:phantom_membrane"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "birch",
+        "omni_core": "phantom_membrane"
+      },
+      "minecraft:item_name": "Birch Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          14142349,
+          10332614
+        ]
+      }
+    }
+  }
+}

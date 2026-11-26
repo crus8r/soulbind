@@ -8,6 +8,7 @@
 		"CharmEnchantMixin",
 		"LivingEntityDamageMixin",
 		"ShroudSightMixin",
+		"PiglinCoreMixin",
 		"MobGoalsAccessor"
 	],
 	"client": [

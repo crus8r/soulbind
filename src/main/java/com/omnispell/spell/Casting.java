@@ -116,12 +116,15 @@ public final class Casting {
 		Modifiers.noteCast(player);
 		if ("fire".equals(spell.code.element) || "fire".equals(spell.element)) FIRE_UNTIL.put(player.getUUID(), now + (spell.isExploration() ? 500 : 100));
 		boolean done;
+		if (infinity(spell)) com.omnispell.player.Mana.DISCOUNT.set(com.omnispell.player.Mana.INFINITY_DISCOUNT);
 		try {
 			done = spell.isExploration() ? ExploreEffects.cast(cast) : Weapons.cast(cast) || CombatEffects.cast(cast);
 		} catch (Exception e) {
 			Omnispell.LOG.error("Spell {} failed", spell.id, e);
 			cast.failure = "The spell unravels. (An error was logged.)";
 			done = false;
+		} finally {
+			com.omnispell.player.Mana.DISCOUNT.set(1.0);
 		}
 		if (!done) {
 			player.sendOverlayMessage(Component.literal(cast.failure == null ? "Nothing happens." : cast.failure).withStyle(ChatFormatting.RED));
@@ -146,7 +149,7 @@ public final class Casting {
 			return switch (spell.toggle == null ? "" : spell.toggle) {
 				case "invisibility", "fade", "camouflage", "silent_step", "teleport", "phase" -> com.omnispell.player.ManaPool.PHASE;
 				case "stun", "trap", "golem", "guardian" -> com.omnispell.player.ManaPool.SPIRIT;
-				default -> null;
+				default -> explorePool(spell.toggle);
 			};
 		}
 		// Attacks of the body's elements (fire, ice, storm, stone, nature) draw on Force; attacks of the unseen ones (shadow, light, void, blood, arcane) draw on Spirit.
@@ -157,6 +160,18 @@ public final class Casting {
 			case "debuff", "status" -> com.omnispell.player.ManaPool.SPIRIT;
 			case "damage" -> com.omnispell.player.ManaPool.FORCE;
 			default -> null;
+		};
+	}
+
+	/** Every exploration spell and cantrip shows the reserve it mostly leans on, even when it pays as it goes. */
+	private static com.omnispell.player.ManaPool explorePool(String toggle) {
+		if (toggle == null || toggle.isEmpty()) return null; // a fizzle draws on nothing
+		return switch (toggle) {
+			case "force_field", "barrier_wall", "armor", "deflect", "anchor", "ward_element", "ring", "dome", "raise_wall", "solidify" -> com.omnispell.player.ManaPool.BARRIER;
+			case "heal", "nourish", "salve", "growth", "mend_land", "thicket", "clear", "calm" -> com.omnispell.player.ManaPool.RESTORATION;
+			case "dash", "leap", "grapple", "tether", "current", "mount", "gust", "blink", "shade", "decoy", "mirage", "phantom", "smoke_screen", "blackout", "bridge", "platform" -> com.omnispell.player.ManaPool.PHASE;
+			case "reveal", "scout", "true_sight", "track", "charm", "restraint", "entangle", "polymorph", "transmute", "prospect", "glimmer", "illuminate", "weather", "attune" -> com.omnispell.player.ManaPool.SPIRIT;
+			default -> com.omnispell.player.ManaPool.FORCE;
 		};
 	}
 
@@ -172,7 +187,13 @@ public final class Casting {
 		if (spell == null || !"attack".equals(spell.type)) return 0;
 		double cost = 4 + 3 * Math.max(1, Math.min(5, spell.tier));
 		if (spell.hasCharge("Minima")) cost *= 0.6;
+		if (infinity(spell)) cost *= com.omnispell.player.Mana.INFINITY_DISCOUNT;
 		return cost;
+	}
+
+	/** Infinity is the moderators' word: its spells cost almost nothing and come back almost at once. */
+	public static boolean infinity(Spell spell) {
+		return spell != null && spell.words != null && spell.words.contains("base:Infinity");
 	}
 
 	static double cooldownTurns(Spell spell) {
@@ -202,6 +223,7 @@ public final class Casting {
 		}
 		seconds *= 1.0 - Math.min(60.0, cast.core.haste + com.omnispell.player.Mana.alacrityPercent(player)) / 100.0;
 		seconds *= factor;
+		if (infinity(spell)) seconds *= 0.15;
 		seconds = Math.max(Omnispell.CONFIG.minimumCooldownSeconds, seconds);
 		if (Modifiers.consume(player, "haste") != 0 && !spell.code.modifiers.toString().contains("haste")) {
 			seconds = 0.25; // Haste: the next spell comes at once

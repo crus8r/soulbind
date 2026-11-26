@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:dark_oak_planks",
+    "C": "minecraft:phantom_membrane"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "dark_oak",
+        "omni_core": "phantom_membrane"
+      },
+      "minecraft:item_name": "Dark Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          5190168,
+          10332614
+        ]
+      }
+    }
+  }
+}

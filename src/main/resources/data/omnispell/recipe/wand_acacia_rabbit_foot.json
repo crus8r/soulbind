@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:acacia_planks",
+    "C": "minecraft:rabbit_foot"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "acacia",
+        "omni_core": "rabbit_foot"
+      },
+      "minecraft:item_name": "Acacia Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12215095,
+          13148282
+        ]
+      }
+    }
+  }
+}

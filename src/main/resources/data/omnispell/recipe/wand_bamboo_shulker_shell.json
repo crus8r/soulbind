@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:bamboo_planks",
+    "C": "minecraft:shulker_shell"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "bamboo",
+        "omni_core": "shulker_shell"
+      },
+      "minecraft:item_name": "Bamboo Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          13876570,
+          9922967
+        ]
+      }
+    }
+  }
+}

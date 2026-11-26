@@ -46,6 +46,8 @@ public final class Mana {
 		if (!wand.isEmpty()) {
 			Integer bonus = WandParts.wood(WandItem.wood(wand)).mana.get(pool);
 			if (bonus != null) percent += bonus;
+			Integer coreBonus = WandParts.core(WandItem.core(wand)).mana.get(pool);
+			if (coreBonus != null) percent += coreBonus;
 		}
 		for (EquipmentSlot slot : ARMOR) {
 			ItemStack piece = player.getItemBySlot(slot);
@@ -129,8 +131,13 @@ public final class Mana {
 	 */
 	public static double spend(ServerPlayer player, ManaPool pool, double amount) {
 		PlayerData data = PlayerStore.get(player);
-		double used = Math.max(0, Math.min(amount, data.mana[pool.ordinal()]));
+		double discount = DISCOUNT.get();
+		double used = Math.max(0, Math.min(amount * discount, data.mana[pool.ordinal()]));
 		data.mana[pool.ordinal()] -= used;
-		return used;
+		return Math.min(amount, used / discount);
 	}
+
+	/** While an Infinity spell is being cast, everything it spends costs a tenth, but works as if paid in full. */
+	public static final ThreadLocal<Double> DISCOUNT = ThreadLocal.withInitial(() -> 1.0);
+	public static final double INFINITY_DISCOUNT = 0.1;
 }

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:bamboo_planks",
+    "C": "minecraft:creeper_head"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "bamboo",
+        "omni_core": "creeper_head"
+      },
+      "minecraft:item_name": "Bamboo Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          13876570,
+          6142538
+        ]
+      }
+    }
+  }
+}

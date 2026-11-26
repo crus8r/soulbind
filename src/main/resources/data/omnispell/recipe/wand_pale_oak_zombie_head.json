@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:pale_oak_planks",
+    "C": "minecraft:zombie_head"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "pale_oak",
+        "omni_core": "zombie_head"
+      },
+      "minecraft:item_name": "Pale Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          15064025,
+          5143098
+        ]
+      }
+    }
+  }
+}

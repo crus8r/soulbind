@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:mangrove_planks",
+    "C": "minecraft:ghast_tear"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "mangrove",
+        "omni_core": "ghast_tear"
+      },
+      "minecraft:item_name": "Mangrove Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          8074806,
+          13625062
+        ]
+      }
+    }
+  }
+}

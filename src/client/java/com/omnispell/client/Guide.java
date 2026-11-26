@@ -88,6 +88,8 @@ public final class Guide {
 		List<String> wands = new ArrayList<>();
 		wands.add("Recipe: one plank, a core, and another plank of the same wood, in a vertical line in a crafting grid.");
 		wands.add("A wand holds five spells. The spells stay on the wand, so a second wand is a second loadout. Your mana does not reset when you switch.");
+		wands.add("Five slots not enough? Carry more wands. Keep one for fighting, one for building, one for getting around, each with the wood and core that suit its spells: a Heavy Core wand for brawls, a Phantom Membrane wand for climbing, an Enchanted Apple wand for the Nether. Swap with the hotbar keys.");
+		wands.add("Name a wand on an anvil, like any other item, so you can tell your loadouts apart. The name shows in the Spellbook tab.");
 		wands.add("WOODS");
 		for (WandParts.Wood wood : WandParts.WOODS.values()) {
 			StringBuilder sb = new StringBuilder(wood.label + ": " + wood.blurb);
@@ -98,7 +100,9 @@ public final class Guide {
 		wands.add("CORES");
 		for (WandParts.Core core : WandParts.CORES.values()) {
 			if (core.id.equals("nether_star")) continue; // boss cores are for you to discover
-			wands.add(core.label + " (" + core.words + " words): " + core.blurb);
+			StringBuilder sb = new StringBuilder(core.label + " (" + core.words + " words): " + core.blurb);
+			for (Map.Entry<ManaPool, Integer> e : core.mana.entrySet()) sb.append(" +").append(e.getValue()).append("% ").append(e.getKey().label).append('.');
+			wands.add(sb.toString());
 		}
 		wands.add("Some cores come only from great foes. Those are not written here.");
 		s.put("Wands", wands);

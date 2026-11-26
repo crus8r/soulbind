@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:oak_planks",
+    "C": "minecraft:enchanted_golden_apple"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "oak",
+        "omni_core": "enchanted_golden_apple"
+      },
+      "minecraft:item_name": "Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12096607,
+          16245339
+        ]
+      }
+    }
+  }
+}

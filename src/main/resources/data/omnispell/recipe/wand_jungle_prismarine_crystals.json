@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:jungle_planks",
+    "C": "minecraft:prismarine_crystals"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "jungle",
+        "omni_core": "prismarine_crystals"
+      },
+      "minecraft:item_name": "Jungle Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12093284,
+          11132107
+        ]
+      }
+    }
+  }
+}

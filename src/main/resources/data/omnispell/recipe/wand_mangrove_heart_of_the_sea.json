@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:mangrove_planks",
+    "C": "minecraft:heart_of_the_sea"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "mangrove",
+        "omni_core": "heart_of_the_sea"
+      },
+      "minecraft:item_name": "Mangrove Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          8074806,
+          4171992
+        ]
+      }
+    }
+  }
+}

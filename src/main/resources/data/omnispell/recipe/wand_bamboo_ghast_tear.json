@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:bamboo_planks",
+    "C": "minecraft:ghast_tear"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "bamboo",
+        "omni_core": "ghast_tear"
+      },
+      "minecraft:item_name": "Bamboo Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          13876570,
+          13625062
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:pale_oak_planks",
+    "C": "minecraft:ghast_tear"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "pale_oak",
+        "omni_core": "ghast_tear"
+      },
+      "minecraft:item_name": "Pale Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          15064025,
+          13625062
+        ]
+      }
+    }
+  }
+}

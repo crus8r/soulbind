@@ -208,6 +208,9 @@ public class Omnispell implements ModInitializer {
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.boss.Bosses::onDeath);
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.realm.Realms::onDeath);
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.familiar.Familiars::onDeath);
+		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+			if (source.getEntity() instanceof ServerPlayer killer && killer != entity) com.omnispell.item.CoreAbilities.onKill(killer);
+		});
 
 		// A conjured creature left behind by a crash or restart is removed when its chunk loads.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
@@ -231,6 +234,7 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.player.AirWalk.tick(server);
 			com.omnispell.item.Attire.tick(server);
 			int tick = server.getTickCount();
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) com.omnispell.item.CoreAbilities.tick(player);
 			if (tick % 10 == 0) {
 				MobControl.tick();
 				com.omnispell.boss.Bosses.tick();
@@ -244,6 +248,7 @@ public class Omnispell implements ModInitializer {
 					Modifiers.everySecond(player);
 					com.omnispell.charm.Charms.everySecond(player);
 					Modifiers.totemCheck(player);
+					com.omnispell.item.CoreAbilities.everySecond(player);
 				}
 				com.omnispell.spell.Shroud.everySecond(server);
 			}

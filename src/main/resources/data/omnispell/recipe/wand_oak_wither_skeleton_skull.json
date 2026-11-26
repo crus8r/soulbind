@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:oak_planks",
+    "C": "minecraft:wither_skeleton_skull"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "oak",
+        "omni_core": "wither_skeleton_skull"
+      },
+      "minecraft:item_name": "Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12096607,
+          1842204
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:birch_planks",
+    "C": "minecraft:shulker_shell"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "birch",
+        "omni_core": "shulker_shell"
+      },
+      "minecraft:item_name": "Birch Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          14142349,
+          9922967
+        ]
+      }
+    }
+  }
+}

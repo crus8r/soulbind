@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:cherry_planks",
+    "C": "minecraft:enchanted_golden_apple"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "cherry",
+        "omni_core": "enchanted_golden_apple"
+      },
+      "minecraft:item_name": "Cherry Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          15188667,
+          16245339
+        ]
+      }
+    }
+  }
+}

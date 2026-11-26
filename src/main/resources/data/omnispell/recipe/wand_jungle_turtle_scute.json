@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:jungle_planks",
+    "C": "minecraft:turtle_scute"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "jungle",
+        "omni_core": "turtle_scute"
+      },
+      "minecraft:item_name": "Jungle Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12093284,
+          4702026
+        ]
+      }
+    }
+  }
+}

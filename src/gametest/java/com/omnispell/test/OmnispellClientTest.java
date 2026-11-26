@@ -735,6 +735,21 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Infinity", "command:Sever", "intention:Malice"));
 				com.omnispell.spell.Spell endless = PlayerStore.get(p).pending;
 				check(endless != null && endless.tier == 5, "a spell of Infinity can be crafted, and reaches as far as any can (tier " + (endless == null ? 0 : endless.tier) + ")");
+				check(com.omnispell.spell.Casting.infinity(endless), "the spell is known to be one of Infinity");
+				{
+					double[] pools = PlayerStore.get(p).mana;
+					int phase = com.omnispell.player.ManaPool.FORCE.ordinal();
+					pools[phase] = 50;
+					com.omnispell.player.Mana.DISCOUNT.set(com.omnispell.player.Mana.INFINITY_DISCOUNT);
+					double got = com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.FORCE, 10);
+					com.omnispell.player.Mana.DISCOUNT.set(1.0);
+					check(Math.abs(got - 10) < 0.01 && Math.abs(pools[phase] - 49) < 0.01, "while an Infinity spell is cast, what it spends costs a tenth but works in full (" + pools[phase] + " left)");
+					com.omnispell.spell.Spell infiniteAttack = new com.omnispell.spell.Spell();
+					infiniteAttack.type = "attack";
+					infiniteAttack.tier = 5;
+					infiniteAttack.words.add("base:Infinity");
+					check(com.omnispell.spell.Casting.manaCost(infiniteAttack) < 2, "an Infinity attack costs almost no mana (" + com.omnispell.spell.Casting.manaCost(infiniteAttack) + ")");
+				}
 				PlayerStore.get(p).pending = null;
 				PlayerStore.get(p).words.remove("base:Infinity");
 
@@ -819,6 +834,63 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.player.Mana.wandUpkeep(p);
 				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < 41, "the ward costs Barrier mana to hold");
 				p.stopUsingItem();
+
+				// Every exploration spell and cantrip shows its mana pool on the spell bar.
+				{
+					int pipless = 0;
+					String example = "";
+					for (com.omnispell.spell.Spell known : PlayerStore.get(p).spells) {
+						if (known.isExploration() && !known.fizzle && com.omnispell.spell.Casting.poolOf(known) == null) {
+							pipless++;
+							example = known.toggle;
+						}
+					}
+					check(pipless == 0, "every exploration spell has a mana pool pip (" + pipless + " without, e.g. " + example + ")");
+				}
+
+				// New wand cores.
+				{
+					var cores = com.omnispell.item.WandParts.CORES;
+					check(cores.size() >= 35 && cores.containsKey("enchanted_golden_apple") && cores.containsKey("wither_skeleton_skull") && cores.containsKey("beacon")
+							&& cores.containsKey("heart_of_the_sea") && cores.containsKey("wither_rose"), "there are " + cores.size() + " wand cores, the apple, wither skull, beacon, heart of the sea and wither rose among them");
+					check(level.getServer().getRecipeManager().byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, com.omnispell.Omnispell.id("wand_oak_enchanted_golden_apple"))).isPresent(), "an apple-core wand has a recipe");
+					ItemStack mainBefore = p.getMainHandItem().copy();
+					int barrierSlot = com.omnispell.player.ManaPool.BARRIER.ordinal();
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), WandItem.create("oak", "enchanted_golden_apple"));
+					PlayerStore.get(p).mana[barrierSlot] = 80;
+					p.setHealth(6f);
+					float lava = com.omnispell.item.CoreAbilities.incoming(p, level.damageSources().lava(), 30f);
+					check(lava <= 5f && PlayerStore.get(p).mana[barrierSlot] < 80, "with an apple-core wand, lava that would kill leaves you alive (" + lava + " of 30 taken at 6 health) and costs Barrier mana");
+					PlayerStore.get(p).mana[barrierSlot] = 0;
+					float unguarded = com.omnispell.item.CoreAbilities.incoming(p, level.damageSources().lava(), 30f);
+					check(unguarded == 30f, "with no Barrier mana left, the apple no longer saves you");
+					p.setHealth(p.getMaxHealth());
+					PlayerStore.get(p).mana[barrierSlot] = 80;
+					check(com.omnispell.player.Mana.max(p, com.omnispell.player.ManaPool.BARRIER) > com.omnispell.player.ManaPool.BARRIER.baseMax, "a core can deepen a mana pool");
+
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), WandItem.create("oak", "wither_skeleton_skull"));
+					var witherCow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+					witherCow.snapTo(b.getX() + 0.5, b.getY(), b.getZ() + 3.5, 0f, 0f);
+					witherCow.setNoAi(true);
+					level.addFreshEntity(witherCow);
+					com.omnispell.item.CoreAbilities.onStrike(p, witherCow, 2f, false, true);
+					check(witherCow.hasEffect(net.minecraft.world.effect.MobEffects.WITHER), "a wither-skull core withers what its spells strike");
+					witherCow.discard();
+
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), WandItem.create("oak", "beacon"));
+					com.omnispell.item.CoreAbilities.everySecond(p);
+					check(p.hasEffect(net.minecraft.world.effect.MobEffects.HASTE) && p.hasEffect(net.minecraft.world.effect.MobEffects.SPEED), "a beacon core gives Haste and Speed while held");
+					p.removeAllEffects();
+
+					// A wand can be named on an anvil.
+					var anvil = new net.minecraft.world.inventory.AnvilMenu(77, p.getInventory(), net.minecraft.world.inventory.ContainerLevelAccess.create(level, b));
+					anvil.getSlot(0).set(WandItem.create("oak", "flint"));
+					anvil.setItemName("Brawler");
+					ItemStack named = anvil.getSlot(2).getItem();
+					check(WandItem.isWand(named) && "Brawler".equals(named.getHoverName().getString()), "an anvil names a wand (" + named.getHoverName().getString() + ")");
+					anvil.getSlot(0).set(ItemStack.EMPTY);
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), mainBefore);
+				}
 
 				// Attack spells are paid for in Force mana.
 				com.omnispell.spell.Spell attack = null;

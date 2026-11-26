@@ -152,6 +152,7 @@ public final class CombatEffects {
 		if (crit) cast.level.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY() + target.getBbHeight() * 0.6, target.getZ(), 12, 0.3, 0.3, 0.3, 0.3);
 
 		elementRider(cast, target, element);
+		com.omnispell.item.CoreAbilities.onStrike(player, target, dealt, crit, mayRepeat);
 
 		double siphon = Modifiers.value(player, "life_siphon");
 		if (siphon > 0 && dealt > 0) {

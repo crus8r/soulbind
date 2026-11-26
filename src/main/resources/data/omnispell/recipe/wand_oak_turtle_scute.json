@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:oak_planks",
+    "C": "minecraft:turtle_scute"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "oak",
+        "omni_core": "turtle_scute"
+      },
+      "minecraft:item_name": "Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          12096607,
+          4702026
+        ]
+      }
+    }
+  }
+}
