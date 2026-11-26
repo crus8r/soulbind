@@ -7,12 +7,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegist
 import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
-import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
-import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.geom.builders.MeshDefinition;
-import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
@@ -23,43 +19,34 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
 
 /**
- * The Wizard's Robe and Boots as worn. The shapes and textures are the "Arcane"
- * armour of the Zero Day mod (MIT licence; see ROBE_TEXTURE_CREDITS.txt): an
- * ordinary armour body with bell sleeves, and below it a skirt and leg cuffs.
- * The textures are split so the dye colours the cloth and the gold stays gold.
- * The robe draws its skirt whenever the leg slot is empty, so it hangs to the boots.
+ * The Wizard's Robe as worn: the robe of "Spells and whatnot" by Qsenja (MIT
+ * licence; see ROBE_TEXTURE_CREDITS.txt), its body and sleeves over the body and
+ * arms and its long skirt down the legs to the boots. The textures are split so
+ * the dye colours the cloth while the gem, belt and fringe keep their colours.
+ * The skirt is drawn whenever the leg slot is empty.
  */
 public final class WizardRobeLayer extends RenderLayer<HumanoidRenderState, HumanoidModel<HumanoidRenderState>> {
 	private static final Identifier UPPER = Omnispell.id("textures/entity/wizard_robe_upper.png");
 	private static final Identifier UPPER_TRIM = Omnispell.id("textures/entity/wizard_robe_upper_trim.png");
 	private static final Identifier LOWER = Omnispell.id("textures/entity/wizard_robe_lower.png");
 	private static final Identifier LOWER_TRIM = Omnispell.id("textures/entity/wizard_robe_lower_trim.png");
-	private static final int UNDYED = 0xFFB928FA;
+	private static final int UNDYED = 0xFF9FC997;
 	private static final ModelLayerLocation OUTER = new ModelLayerLocation(Omnispell.id("wizard_robe"), "outer");
 	private static final ModelLayerLocation INNER = new ModelLayerLocation(Omnispell.id("wizard_robe"), "inner");
-	private static HumanoidModel<HumanoidRenderState> robe, skirt, boots;
+	private static HumanoidModel<HumanoidRenderState> robe, skirt;
 
 	public WizardRobeLayer(RenderLayerParent<HumanoidRenderState, HumanoidModel<HumanoidRenderState>> parent) {
 		super(parent);
 	}
 
-	/** The upper robe and the boots: an armour body with a bell sleeve on each arm. */
+	/** The upper robe: an armour body and sleeves. */
 	static LayerDefinition outer() {
-		MeshDefinition mesh = HumanoidModel.createMesh(new CubeDeformation(1.0f), 0f);
-		PartDefinition root = mesh.getRoot();
-		root.getChild("right_arm").addOrReplaceChild("wizard_sleeve_right", CubeListBuilder.create().texOffs(0, 57).addBox(-3.5f, 5f, -2.5f, 5, 3, 5, new CubeDeformation(0.3f)), PartPose.ZERO);
-		root.getChild("left_arm").addOrReplaceChild("wizard_sleeve_left", CubeListBuilder.create().texOffs(0, 57).addBox(-1.5f, 5f, -2.5f, 5, 3, 5, new CubeDeformation(0.3f)), PartPose.ZERO);
-		return LayerDefinition.create(mesh, 64, 64);
+		return LayerDefinition.create(HumanoidModel.createMesh(new CubeDeformation(1.0f), 0f), 64, 64);
 	}
 
-	/** The lower robe: a skirt at the waist and a cuff on each leg. */
+	/** The lower robe: a long skirt piece over each leg. */
 	static LayerDefinition inner() {
-		MeshDefinition mesh = HumanoidModel.createMesh(new CubeDeformation(0.5f), 0f);
-		PartDefinition root = mesh.getRoot();
-		root.getChild("body").addOrReplaceChild("wizard_skirt", CubeListBuilder.create().texOffs(20, 51).addBox(-4.5f, 10f, -2.5f, 9, 6, 5, new CubeDeformation(0.2f)), PartPose.ZERO);
-		root.getChild("right_leg").addOrReplaceChild("wizard_cuff_right", CubeListBuilder.create().texOffs(48, 45).addBox(-2.5f, 5f, -2.5f, 4, 3, 4, new CubeDeformation(0.15f)), PartPose.ZERO);
-		root.getChild("left_leg").addOrReplaceChild("wizard_cuff_left", CubeListBuilder.create().texOffs(48, 45).addBox(-1.5f, 5f, -2.5f, 4, 3, 4, new CubeDeformation(0.15f)), PartPose.ZERO);
-		return LayerDefinition.create(mesh, 64, 64);
+		return LayerDefinition.create(HumanoidModel.createMesh(new CubeDeformation(0.55f), 0f), 64, 64);
 	}
 
 	private static HumanoidModel<HumanoidRenderState> only(HumanoidModel<HumanoidRenderState> model, boolean body, boolean arms, boolean legs) {
@@ -79,8 +66,7 @@ public final class WizardRobeLayer extends RenderLayer<HumanoidRenderState, Huma
 		LivingEntityRenderLayerRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
 			if (robe == null) {
 				robe = only(new HumanoidModel<>(context.bakeLayer(OUTER)), true, true, false);
-				skirt = only(new HumanoidModel<>(context.bakeLayer(INNER)), true, false, true);
-				boots = only(new HumanoidModel<>(context.bakeLayer(OUTER)), false, false, true);
+				skirt = only(new HumanoidModel<>(context.bakeLayer(INNER)), false, false, true);
 			}
 			if (renderer.getModel() instanceof HumanoidModel<?>) {
 				@SuppressWarnings({"unchecked", "rawtypes"})

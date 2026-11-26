@@ -372,29 +372,48 @@ def robe_worn(x, y, trim):
     if arms and (x % 4 == 2): shade *= 0.86
     v = int((200 + 45 * noise(x, y, 91)) * shade)
     return (v, v, v, 255)
-# The robe as worn: the "Arcane" armour textures from the Zero Day mod (MIT licence, see
-# tools/third_party/zeroday/LICENSE), split so the dye can colour the cloth while the gold stays gold.
-ROBE_UNDYED = 0xB928FA
-def split_robe(src, base_out, trim_out):
-    im = Image.open(src).convert('RGBA')
-    base = Image.new('RGBA', im.size)
-    trim = Image.new('RGBA', im.size)
-    for yy in range(im.height):
-        for xx in range(im.width):
-            r, g, b, a = im.getpixel((xx, yy))
-            if a == 0: continue
-            if g > 120 and b < 90: trim.putpixel((xx, yy), (r, g, b, a))     # gold: kept as it is
-            else:
-                v = min(255, int(max(r, g, b) * 255 / 250))                    # cloth: its brightness, for the dye to colour
-                base.putpixel((xx, yy), (v, v, v, a))
-    for img, out in ((base, base_out), (trim, trim_out)):
-        os.makedirs(os.path.dirname(out), exist_ok=True)
-        img.save(out)
-THIRD = os.path.join(os.path.dirname(__file__), 'third_party', 'zeroday')
+# The robe as worn: "Spells and whatnot" by Qsenja (MIT licence, see tools/third_party/spells_and_whatnot/LICENSE).
+# Its greens become a grey that the dye colours (keeping light and dark), while the red gem, the belt and the
+# fringe keep their own colours. Its sheet is laid out like a skin's outer layer; WizardRobeLayer's models use
+# the ordinary layout, so the body, arm and leg pieces are moved into place.
+import colorsys
+ROBE_UNDYED = 0x9FC997
+THIRD = os.path.join(os.path.dirname(__file__), 'third_party', 'spells_and_whatnot')
 EQUIP = os.path.join(ASSETS, 'textures', 'entity', 'equipment')
 ENT = os.path.join(ASSETS, 'textures', 'entity')
-split_robe(os.path.join(THIRD, 'humanoid', 'arcane.png'), os.path.join(ENT, 'wizard_robe_upper.png'), os.path.join(ENT, 'wizard_robe_upper_trim.png'))
-split_robe(os.path.join(THIRD, 'humanoid_leggings', 'arcane.png'), os.path.join(ENT, 'wizard_robe_lower.png'), os.path.join(ENT, 'wizard_robe_lower_trim.png'))
+def is_cloth(r, g, b):
+    h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+    return 0.30 <= h <= 0.6 and sat > 0.08
+def split_robe(img):
+    base = Image.new('RGBA', img.size)
+    trim = Image.new('RGBA', img.size)
+    vmax = max(colorsys.rgb_to_hsv(*(c / 255 for c in img.getpixel((x, y))[:3]))[2] for y in range(img.height) for x in range(img.width) if img.getpixel((x, y))[3] > 127)
+    for yy in range(img.height):
+        for xx in range(img.width):
+            r, g, b, a = img.getpixel((xx, yy))
+            if a < 128: continue
+            if is_cloth(r, g, b):
+                v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2]
+                grey = int(255 * (0.2 + 0.8 * v / vmax))
+                base.putpixel((xx, yy), (grey, grey, grey, 255))
+            else:
+                trim.putpixel((xx, yy), (r, g, b, 255))
+    return base, trim
+src = Image.open(os.path.join(THIRD, 'robe_armor.png')).convert('RGBA')
+for img, suffix in zip(split_robe(src), ('', '_trim')):
+    upper = Image.new('RGBA', (64, 64))
+    upper.paste(img.crop((16, 32, 40, 48)), (16, 16))   # body
+    upper.paste(img.crop((40, 32, 56, 36)), (40, 16))   # the sleeve's top and cuff faces
+    # Its sleeves stop above the elbow (7 rows); carry the cloth down to the wrist and keep the fringe at the cuff.
+    sides = [img.crop((40, 36 + r, 56, 37 + r)) for r in range(7)]
+    for out_row, src_row in enumerate([0, 1, 2, 1, 2, 1, 2, 1, 3, 4, 5, 6]):   # plain cloth rows repeated, the whole fringe at the cuff
+        upper.paste(sides[src_row], (40, 20 + out_row))
+    upper.save(os.path.join(ENT, 'wizard_robe_upper' + suffix + '.png'))
+    lower = Image.new('RGBA', (64, 64))
+    leg = img.crop((0, 32, 16, 46))                      # a 10-high leg piece with its fringe; the last rows are left to the boots
+    lower.paste(leg, (0, 16))
+    lower.save(os.path.join(ENT, 'wizard_robe_lower' + suffix + '.png'))
+ICON = split_robe(Image.open(os.path.join(THIRD, 'robe_item.png')).convert('RGBA'))   # saved over the pixel-art icon below
 # ----- The Wizard's Boots: the netherite boots, recoloured. The dark metal becomes a grey base the dye colours;
 # the brightest edges turn gold and the lowest row becomes a dark sole.
 import colorsys
@@ -430,7 +449,7 @@ icon = Image.open(io.BytesIO(game_file('assets/minecraft/textures/item/netherite
 lowest = max(y for y in range(16) for x in range(16) if icon.getpixel((x, y))[3] > 127)
 BOOTS_ICON = recolour_boots(icon, lambda x, y: y == lowest)   # saved after the older pixel-art icons are written below
 write(os.path.join(ASSETS, 'equipment', 'wizard_boots.json'), {'layers': {'humanoid': [
-    {'texture': 'omnispell:wizard_boots', 'dyeable': {'color_when_undyed': -4642566}},
+    {'texture': 'omnispell:wizard_boots', 'dyeable': {'color_when_undyed': 0x5E8F74 - 0x1000000}},
     {'texture': 'omnispell:wizard_boots_trim'}]}})
 # The game's own armour drawing shows nothing for the robe: WizardRobeLayer draws it, with its own shape.
 write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {'humanoid': [{'texture': 'omnispell:wizard_hat_none'}]}})
@@ -563,16 +582,18 @@ write(os.path.join(ASSETS, 'items', 'familiar.json'), {'model': {
               {'type': 'minecraft:constant', 'value': -1}]}})
 flat_item('arcane_focus', ['arcane_focus'])
 flat_item('wizard_hat', ['wizard_hat', 'wizard_hat_band'])
+ICON[0].save(os.path.join(ASSETS, 'textures', 'item', 'wizard_robe.png'))
+ICON[1].save(os.path.join(ASSETS, 'textures', 'item', 'wizard_robe_trim.png'))
 BOOTS_ICON[0].save(os.path.join(ASSETS, 'textures', 'item', 'wizard_boots.png'))
 BOOTS_ICON[1].save(os.path.join(ASSETS, 'textures', 'item', 'wizard_boots_trim.png'))
-for piece in ('wizard_robe', 'wizard_boots'):
+for piece, undyed in (('wizard_robe', ROBE_UNDYED), ('wizard_boots', 0x5E8F74)):
     flat_item(piece, [piece, piece + '_trim'])
     write(os.path.join(ASSETS, 'items', piece + '.json'), {'model': {
         'type': 'minecraft:model', 'model': f'omnispell:item/{piece}',
-        'tints': [{'type': 'minecraft:dye', 'default': -4642566}, {'type': 'minecraft:constant', 'value': -1}]}})
+        'tints': [{'type': 'minecraft:dye', 'default': undyed - 0x1000000}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'wizard_hat.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/wizard_hat',
-    'tints': [{'type': 'minecraft:dye', 'default': -4642566}, {'type': 'minecraft:constant', 'value': -1}]}})
+    'tints': [{'type': 'minecraft:dye', 'default': 0x5E8F74 - 0x1000000}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'arcane_focus.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:item/arcane_focus'}})
 flat_item('brew', ['brew_bottle', 'brew_liquid'])
 write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {
