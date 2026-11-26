@@ -633,7 +633,7 @@ public class BookScreen extends Screen {
 		int lx = px + 8, top = py + 32, lw = 104;
 		int i = 0;
 		for (String name : sections.keySet()) {
-			button(g, lx, top + i * 16, lw, 14, name, true, name.equals(guideSection), () -> {
+			button(g, lx, top + i * 14, lw, 13, name, true, name.equals(guideSection), () -> {
 				guideSection = name;
 				detailScroll = 0;
 			});

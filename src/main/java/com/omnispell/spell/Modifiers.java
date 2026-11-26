@@ -169,7 +169,7 @@ public final class Modifiers {
 
 	// ----- being hit -----
 
-	static void withSpellElement(String element, Runnable action) {
+	public static void withSpellElement(String element, Runnable action) {
 		String before = currentSpellElement;
 		currentSpellElement = element;
 		try {

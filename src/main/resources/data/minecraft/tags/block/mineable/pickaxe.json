@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "omnispell:arcane_well",
-    "omnispell:waypoint"
+    "omnispell:waypoint",
+    "omnispell:alchemy_cauldron"
   ]
 }

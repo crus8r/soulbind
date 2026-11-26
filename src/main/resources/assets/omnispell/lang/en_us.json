@@ -6,6 +6,8 @@
   "block.omnispell.arcane_well": "Arcane Well",
   "block.omnispell.waypoint": "Waypoint",
   "block.omnispell.boss_altar": "Boss Seal",
+  "block.omnispell.alchemy_cauldron": "Alchemy Cauldron",
+  "item.omnispell.brew": "Potion",
   "enchantment.omnispell.reservoir": "Reservoir",
   "enchantment.omnispell.wellspring": "Wellspring",
   "enchantment.omnispell.alacrity": "Alacrity",

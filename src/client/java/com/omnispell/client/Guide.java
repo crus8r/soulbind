@@ -94,6 +94,17 @@ public final class Guide {
 				"Travel costs Phase mana: 1 within 500 blocks, 2 within 2,000, 3 within 8,000, 4 beyond. With no Phase mana left, an ender pearl pays instead.",
 				"Crossing between worlds always takes an ender pearl.",
 				"Breaking a waypoint returns it, still bonded to its partner. A lone waypoint from an odd stack has no partner and cannot be placed."));
+		s.put("Potions", List.of(
+				"Brewing needs an Alchemy Cauldron: a cauldron, a blaze rod and an amethyst shard. Like all brewing, it waits for the Nether.",
+				"1. Charge it with blaze powder. Each powder is good for four brews.",
+				"2. Pour in a liquid. Water is versatile. Honey heals. Milk soothes and cleanses. Lava destroys. Dragon's breath is the strongest and strangest.",
+				"3. Add up to three ingredients. Almost anything gathered can be brewed: flowers, crops and fungi; bones, eyes, scales and tears; pearls, shards and rods; metals and gems.",
+				"4. Add up to two catalysts if you wish. Lapis draws out an ingredient's nature. Honeycomb lets flora and fauna mix. Redstone makes it last. Fermented spider eye turns a brew into a weapon. Sugar makes a harsh brew safe to drink. Prismarine crystals cancel the heat.",
+				"5. Heat matters. Fire, a campfire, lava or magma underneath is high heat. Soul fire, a soul campfire or ice is low heat. Anything else is room heat. Ingredients brewed at the wrong heat make an unstable potion.",
+				"6. Use a glass bottle on the cauldron. Each brew fills three bottles.",
+				"The same recipe at the same heat always makes the same potion. Gunpowder makes a potion for throwing. Glowstone dust makes potions that restore or drain mana.",
+				"Use a potion to drink it. Harmful potions are thrown where you look instead. Potions stack to 16 and there is no limit on how many you carry.",
+				"Empty hand on the cauldron shows what is inside. Sneak + empty hand tips it out."));
 		s.put("Shrines and lairs", List.of(
 				"Arcane shrines stand in the open across the world: a stone platform, four amethyst-crowned pillars, and an arcane well at the centre. Draw your essence there.",
 				"Boss lairs are white domes of snow and ice, like great igloos, with a single sealed door.",

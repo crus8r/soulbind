@@ -231,6 +231,35 @@ SEAL = [
 image('boss_altar', SEAL, {'s': (20, 18, 28, 255), 'd': (44, 40, 56, 255), 'l': (66, 60, 82, 255), 'r': (200, 60, 60, 255), 'p': (255, 150, 90, 255)}, 'block')
 image('boss_altar_spent', SEAL, {'s': (20, 18, 28, 255), 'd': (44, 40, 56, 255), 'l': (66, 60, 82, 255), 'r': (58, 52, 70, 255), 'p': (74, 68, 88, 255)}, 'block')
 
+# Brewed potions: a bottle with a liquid layer tinted by what the potion does.
+image('brew_bottle', [
+    '................',
+    '......kkkk......',
+    '......kcck......',
+    '......gkkg......',
+    '.....g....g.....',
+    '....g..ww..g....',
+    '...g........g...',
+    '..g..........g..',
+    '..g...w......g..',
+    '..g..........g..',
+    '..g..........g..',
+    '..g..........g..',
+    '...g........g...',
+    '....gggggggg....',
+    '................',
+    '................'], {'k': (120, 86, 52, 255), 'c': (160, 120, 78, 255), 'g': (190, 220, 235, 255), 'w': (255, 255, 255, 255)})
+image('brew_liquid', [
+    '................', '................', '................', '................', '................', '................',
+    '....aaaaaaaa....',
+    '...abbbbbbbba...',
+    '...bbb.bbbbbb...',
+    '...bbbbbbbbbb...',
+    '...bbbbbbcbbb...',
+    '...bbbbbbbbbb...',
+    '....bbbbbbbb....',
+    '................', '................', '................'], {'a': (255, 255, 255, 255), 'b': (205, 205, 205, 255), 'c': (255, 255, 255, 255)})
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -272,6 +301,24 @@ for spent in ('false', 'true'):
     altar_variants[f'spent={spent}'] = {'model': f'omnispell:block/{model}'}
 write(os.path.join(ASSETS, 'blockstates', 'boss_altar.json'), {'variants': altar_variants})
 write(os.path.join(ASSETS, 'items', 'boss_altar.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/boss_altar'}})
+
+flat_item('brew', ['brew_bottle', 'brew_liquid'])
+write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {
+    'type': 'minecraft:model', 'model': 'omnispell:item/brew',
+    'tints': [{'type': 'minecraft:constant', 'value': -1},
+              {'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xB06FF2}]}})
+# The alchemy cauldron reuses the vanilla cauldron shapes, with a different liquid for each base.
+CAULDRON_TEX = {'bottom': 'minecraft:block/cauldron_bottom', 'inside': 'minecraft:block/cauldron_inner',
+                'particle': 'minecraft:block/cauldron_side', 'side': 'minecraft:block/cauldron_side', 'top': 'minecraft:block/cauldron_top'}
+CONTENT = {1: 'minecraft:block/light_blue_stained_glass', 2: 'minecraft:block/honey_block_top', 3: 'minecraft:block/white_concrete_powder',
+           4: 'minecraft:block/lava_still', 5: 'minecraft:block/purple_concrete_powder'}
+cauldron_variants = {'contents=0': {'model': 'minecraft:block/cauldron'}}
+for n, tex in CONTENT.items():
+    write(os.path.join(ASSETS, 'models', 'block', f'alchemy_cauldron_{n}.json'),
+          {'parent': 'minecraft:block/template_cauldron_full', 'textures': dict(CAULDRON_TEX, content=tex)})
+    cauldron_variants[f'contents={n}'] = {'model': f'omnispell:block/alchemy_cauldron_{n}'}
+write(os.path.join(ASSETS, 'blockstates', 'alchemy_cauldron.json'), {'variants': cauldron_variants})
+write(os.path.join(ASSETS, 'items', 'alchemy_cauldron.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/alchemy_cauldron_5'}})
 
 # ---------------------------------------------------------------- worldgen
 # Biomes where surface structures may stand: land biomes, vanilla and (optionally) other mods' by convention tags.
@@ -331,6 +378,8 @@ lang = {
     'block.omnispell.arcane_well': 'Arcane Well',
     'block.omnispell.waypoint': 'Waypoint',
     'block.omnispell.boss_altar': 'Boss Seal',
+    'block.omnispell.alchemy_cauldron': 'Alchemy Cauldron',
+    'item.omnispell.brew': 'Potion',
     'enchantment.omnispell.reservoir': 'Reservoir',
     'enchantment.omnispell.wellspring': 'Wellspring',
     'enchantment.omnispell.alacrity': 'Alacrity',
@@ -371,6 +420,15 @@ write(os.path.join(recipe_dir, 'waypoint.json'), {
     'key': {'E': 'minecraft:ender_pearl', 'A': 'minecraft:amethyst_shard', 'S': 'minecraft:stone_bricks'},
     'pattern': [' E ', 'ASA', 'SSS'],
     'result': {'id': 'omnispell:waypoint', 'count': 2}})
+# The alchemy cauldron needs a blaze rod, so brewing waits for the Nether, as in vanilla.
+write(os.path.join(recipe_dir, 'alchemy_cauldron.json'), {
+    'type': 'minecraft:crafting_shapeless', 'category': 'misc',
+    'ingredients': ['minecraft:cauldron', 'minecraft:blaze_rod', 'minecraft:amethyst_shard'],
+    'result': {'id': 'omnispell:alchemy_cauldron'}})
+write(os.path.join(DATA, 'loot_table', 'blocks', 'alchemy_cauldron.json'), {
+    'type': 'minecraft:block',
+    'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
+               'entries': [{'type': 'minecraft:item', 'name': 'omnispell:alchemy_cauldron'}]}]})
 # Until arcane wells generate in structures, one can be built.
 write(os.path.join(recipe_dir, 'arcane_well.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'misc',
@@ -382,7 +440,7 @@ write(os.path.join(DATA, 'loot_table', 'blocks', 'arcane_well.json'), {
     'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
                'entries': [{'type': 'minecraft:item', 'name': 'omnispell:arcane_well'}]}]})
 write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'block', 'mineable', 'pickaxe.json'),
-      {'replace': False, 'values': ['omnispell:arcane_well', 'omnispell:waypoint']})
+      {'replace': False, 'values': ['omnispell:arcane_well', 'omnispell:waypoint', 'omnispell:alchemy_cauldron']})
 
 # ---------------------------------------------------------------- enchantments
 def enchantment(name, fallback, weight, max_level):

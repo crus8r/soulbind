@@ -50,6 +50,8 @@ public class Omnispell implements ModInitializer {
 	public void onInitialize() {
 		CONFIG = OmniConfig.load();
 		WordBank.load();
+		com.omnispell.alchemy.Alchemy.load();
+		com.omnispell.alchemy.Vats.register();
 		OmniItems.register();
 		PlayerStore.register();
 		com.omnispell.waypoint.Waypoints.register();
@@ -181,6 +183,7 @@ public class Omnispell implements ModInitializer {
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved
 			com.omnispell.waypoint.Waypoints.unload();
 			com.omnispell.boss.Bosses.clear();
+			com.omnispell.alchemy.Vats.unload();
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.save(player);
 		});
 

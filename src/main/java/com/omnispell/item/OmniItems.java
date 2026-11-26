@@ -36,6 +36,11 @@ public final class OmniItems {
 					.pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE).noLootTable());
 	public static final Item BOSS_ALTAR_ITEM = register("boss_altar", p -> new BlockItem(BOSS_ALTAR, p), new Item.Properties().useBlockDescriptionPrefix());
 
+	public static final Block ALCHEMY_CAULDRON = registerBlock("alchemy_cauldron", com.omnispell.alchemy.AlchemyCauldronBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(2.0f).sound(SoundType.METAL).noOcclusion().requiresCorrectToolForDrops());
+	public static final Item ALCHEMY_CAULDRON_ITEM = register("alchemy_cauldron", p -> new BlockItem(ALCHEMY_CAULDRON, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Item BREW = register("brew", com.omnispell.alchemy.BrewItem::new, new Item.Properties().stacksTo(16));
+
 	private OmniItems() {
 	}
 

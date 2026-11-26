@@ -1,0 +1,796 @@
+{
+ "bases": {
+  "water": {
+   "name": "Water",
+   "potency": 1,
+   "temperature": "room",
+   "model": 1
+  },
+  "honey": {
+   "name": "Nectar",
+   "potency": 2,
+   "temperature": "room",
+   "model": 2
+  },
+  "milk": {
+   "name": "Milk",
+   "potency": 2,
+   "temperature": "low",
+   "model": 3
+  },
+  "lava": {
+   "name": "Molten Lava",
+   "potency": 3,
+   "temperature": "high",
+   "model": 4
+  },
+  "dragon": {
+   "name": "Dragon's Blood",
+   "potency": 4,
+   "temperature": "high",
+   "model": 5
+  }
+ },
+ "ingredients": {
+  "wheat": {
+   "name": "Wheat",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "dandelion": {
+   "name": "Dandelion",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "poppy": {
+   "name": "Poppy",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "blue_orchid": {
+   "name": "Blue Orchid",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "allium": {
+   "name": "Allium",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "azure_bluet": {
+   "name": "Azure Bluet",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "oxeye_daisy": {
+   "name": "Oxeye Daisy",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "cornflower": {
+   "name": "Cornflower",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "lily_of_the_valley": {
+   "name": "Lily of the Valley",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "wither_rose": {
+   "name": "Wither Rose",
+   "category": "flora",
+   "potency": 4,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "sunflower": {
+   "name": "Sunflower",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "torchflower": {
+   "name": "Torchflower",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "pitcher_plant": {
+   "name": "Pitcher Plant",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "cactus": {
+   "name": "Cactus",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "high",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "bamboo": {
+   "name": "Bamboo",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "kelp": {
+   "name": "Kelp",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "lungs"
+  },
+  "sea_pickle": {
+   "name": "Sea Pickle",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "sweet_berries": {
+   "name": "Sweet Berries",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "glow_berries": {
+   "name": "Glow Berries",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "melon_slice": {
+   "name": "Melon",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "glistering_melon_slice": {
+   "name": "Glistering Melon",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "carrot": {
+   "name": "Carrot",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "golden_carrot": {
+   "name": "Golden Carrot",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "apple": {
+   "name": "Apple",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "golden_apple": {
+   "name": "Golden Apple",
+   "category": "flora",
+   "potency": 4,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "nether_wart": {
+   "name": "Nether Wart",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "crimson_fungus": {
+   "name": "Crimson Fungus",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "warped_fungus": {
+   "name": "Warped Fungus",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "brown_mushroom": {
+   "name": "Brown Mushroom",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "red_mushroom": {
+   "name": "Red Mushroom",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "chorus_fruit": {
+   "name": "Chorus Fruit",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "cocoa_beans": {
+   "name": "Cocoa Beans",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "vine": {
+   "name": "Vine",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "spore_blossom": {
+   "name": "Spore Blossom",
+   "category": "flora",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "lungs"
+  },
+  "beetroot": {
+   "name": "Beetroot",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "sugar_cane": {
+   "name": "Sugar Cane",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "pumpkin_seeds": {
+   "name": "Pumpkin Seeds",
+   "category": "flora",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "bone": {
+   "name": "Bone",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "bone_meal": {
+   "name": "Bone Meal",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "rotten_flesh": {
+   "name": "Rotten Flesh",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "spider_eye": {
+   "name": "Spider Eye",
+   "category": "fauna",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "string": {
+   "name": "Spider Silk",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "feather": {
+   "name": "Feather",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "leather": {
+   "name": "Leather",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "rabbit_foot": {
+   "name": "Rabbit's Foot",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "legs"
+  },
+  "rabbit_hide": {
+   "name": "Rabbit Hide",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "egg": {
+   "name": "Egg",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "ink_sac": {
+   "name": "Ink Sac",
+   "category": "fauna",
+   "potency": 2,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "glow_ink_sac": {
+   "name": "Glow Ink Sac",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "slime_ball": {
+   "name": "Slime",
+   "category": "fauna",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "magma_cream": {
+   "name": "Magma Cream",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "high",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "ghast_tear": {
+   "name": "Ghast Tear",
+   "category": "fauna",
+   "potency": 4,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "phantom_membrane": {
+   "name": "Phantom Membrane",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "body"
+  },
+  "pufferfish": {
+   "name": "Pufferfish",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "lungs"
+  },
+  "tropical_fish": {
+   "name": "Tropical Fish",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "cod": {
+   "name": "Cod",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "salmon": {
+   "name": "Salmon",
+   "category": "fauna",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "turtle_scute": {
+   "name": "Turtle Scute",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "armadillo_scute": {
+   "name": "Armadillo Scute",
+   "category": "fauna",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "nautilus_shell": {
+   "name": "Nautilus Shell",
+   "category": "fauna",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "lungs"
+  },
+  "shulker_shell": {
+   "name": "Shulker Shell",
+   "category": "fauna",
+   "potency": 4,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "honey_bottle": {
+   "name": "Honey",
+   "category": "fauna",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "amethyst_shard": {
+   "name": "Amethyst",
+   "category": "arcana",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "ender_pearl": {
+   "name": "Ender Pearl",
+   "category": "arcana",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "body"
+  },
+  "ender_eye": {
+   "name": "Eye of Ender",
+   "category": "arcana",
+   "potency": 4,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "eyes"
+  },
+  "echo_shard": {
+   "name": "Echo Shard",
+   "category": "arcana",
+   "potency": 4,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "nether_star": {
+   "name": "Nether Star",
+   "category": "arcana",
+   "potency": 5,
+   "temperature": "high",
+   "role": null,
+   "manifestation": "body"
+  },
+  "blaze_rod": {
+   "name": "Blaze Rod",
+   "category": "arcana",
+   "potency": 4,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "breeze_rod": {
+   "name": "Breeze Rod",
+   "category": "arcana",
+   "potency": 3,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "lungs"
+  },
+  "heart_of_the_sea": {
+   "name": "Heart of the Sea",
+   "category": "arcana",
+   "potency": 5,
+   "temperature": "low",
+   "role": null,
+   "manifestation": "lungs"
+  },
+  "experience_bottle": {
+   "name": "Bottled Experience",
+   "category": "arcana",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "glowstone_dust": {
+   "name": "Aetherial Dust",
+   "category": "arcana",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "prismarine_shard": {
+   "name": "Prismarine",
+   "category": "arcana",
+   "potency": 2,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "quartz": {
+   "name": "Quartz",
+   "category": "arcana",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "totem_of_undying": {
+   "name": "Totem of Undying",
+   "category": "arcana",
+   "potency": 5,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "body"
+  },
+  "iron_ingot": {
+   "name": "Iron",
+   "category": "compound",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "gold_ingot": {
+   "name": "Gold",
+   "category": "compound",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "copper_ingot": {
+   "name": "Copper",
+   "category": "compound",
+   "potency": 2,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "emerald": {
+   "name": "Emerald",
+   "category": "compound",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "diamond": {
+   "name": "Diamond",
+   "category": "compound",
+   "potency": 4,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "netherite_scrap": {
+   "name": "Netherite",
+   "category": "compound",
+   "potency": 5,
+   "temperature": "high",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "coal": {
+   "name": "Coal",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "charcoal": {
+   "name": "Charcoal",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "flint": {
+   "name": "Flint",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "gunpowder": {
+   "name": "Gunpowder",
+   "category": "compound",
+   "potency": 2,
+   "temperature": "high",
+   "role": null,
+   "manifestation": null
+  },
+  "clay_ball": {
+   "name": "Clay",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "room",
+   "role": null,
+   "manifestation": null
+  },
+  "obsidian": {
+   "name": "Obsidian",
+   "category": "compound",
+   "potency": 3,
+   "temperature": "room",
+   "role": null,
+   "manifestation": "skin"
+  },
+  "snowball": {
+   "name": "Snow",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "ice": {
+   "name": "Ice",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "low",
+   "role": null,
+   "manifestation": null
+  },
+  "lapis_lazuli": {
+   "name": "Lapis",
+   "category": "compound",
+   "potency": 2,
+   "temperature": "high",
+   "role": "activator",
+   "manifestation": null
+  },
+  "honeycomb": {
+   "name": "Harmonizing Honey",
+   "category": "compound",
+   "potency": 2,
+   "temperature": "room",
+   "role": "harmonizer",
+   "manifestation": null
+  },
+  "redstone": {
+   "name": "Chrono-leaf",
+   "category": "flora",
+   "potency": 2,
+   "temperature": "low",
+   "role": "duration",
+   "manifestation": null
+  },
+  "fermented_spider_eye": {
+   "name": "Void Shard",
+   "category": "arcana",
+   "potency": 3,
+   "temperature": "high",
+   "role": "weaponizer",
+   "manifestation": null
+  },
+  "sugar": {
+   "name": "Manic Sugar",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "high",
+   "role": "consumability",
+   "manifestation": null
+  },
+  "prismarine_crystals": {
+   "name": "Nullfrost Salt",
+   "category": "compound",
+   "potency": 1,
+   "temperature": "room",
+   "role": "temperature_negator",
+   "manifestation": null
+  }
+ }
+}

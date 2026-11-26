@@ -446,6 +446,101 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.getInput().pressKey(options -> options.keyHotbarSlots[1]);
 			context.waitTicks(5);
 
+			// ---- potions: charge, liquid, ingredients, heat, bottle, drink, throw
+			com.omnispell.alchemy.PotionGenerator.transport = request -> {
+				boolean weapon = request.toString().contains("Void Shard");
+				String code = weapon
+						? "{\"type\":\"damage\",\"value\":30,\"duration\":0,\"element\":\"fire\",\"resist_type\":null,\"status\":\"none\",\"mana_type\":null}"
+						: "{\"type\":\"heal\",\"value\":25,\"duration\":0,\"element\":\"nature\",\"resist_type\":null,\"status\":\"regen\",\"mana_type\":null}";
+				String json = "{\"potion\":{\"name\":\"" + (weapon ? "Searing Vitriol" : "Meadow Restorative") + "\",\"description\":\"A test potion.\",\"effect\":\""
+						+ (weapon ? "Deals 30 fire damage when thrown." : "Heals 25 HP.") + "\",\"tier\":3,\"type\":\"" + (weapon ? "offensive" : "healing") + "\",\"effect_code\":" + code + "}}";
+				return CompletableFuture.completedFuture(WordBank.GSON.fromJson(json, JsonObject.class));
+			};
+			BlockPos[] vat = new BlockPos[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				vat[0] = p.blockPosition().offset(-3, 0, 2);
+				level.setBlockAndUpdate(vat[0], OmniItems.ALCHEMY_CAULDRON.defaultBlockState());
+				level.setBlockAndUpdate(vat[0].below(), Blocks.MAGMA_BLOCK.defaultBlockState());
+				check("high".equals(com.omnispell.alchemy.AlchemyCauldronBlock.heat(level, vat[0])), "magma under a cauldron is high heat");
+			});
+			java.util.function.BiConsumer<net.minecraft.world.item.Item, Integer> pour = (item, count) -> server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ItemStack held = new ItemStack(item, count);
+				p.setItemInHand(InteractionHand.OFF_HAND, held);
+				BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(vat[0]), Direction.UP, vat[0], false);
+				p.level().getBlockState(vat[0]).useItemOn(held, p.level(), p, InteractionHand.OFF_HAND, hit);
+			});
+			pour.accept(Items.BLAZE_POWDER, 1);
+			pour.accept(Items.HONEY_BOTTLE, 1);
+			pour.accept(Items.POPPY, 1);
+			pour.accept(Items.GLISTERING_MELON_SLICE, 1);
+			pour.accept(Items.LAPIS_LAZULI, 1);
+			context.waitTicks(5);
+			context.getInput().lookAt(vat[0]);
+			context.waitTicks(5);
+			context.takeScreenshot("28-alchemy-cauldron");
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.waitFor(s -> com.omnispell.alchemy.Vats.at(player(s).level(), vat[0]).servings > 0, 200);
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ItemStack potion = ItemStack.EMPTY;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) if (p.getInventory().getItem(i).is(OmniItems.BREW)) potion = p.getInventory().getItem(i);
+				check(!potion.isEmpty(), "a glass bottle draws a potion from the cauldron");
+				com.omnispell.alchemy.Brew brew = com.omnispell.alchemy.BrewItem.read(potion);
+				check(brew != null && brew.name.equals("Meadow Restorative") && !brew.splash, "the potioneer's reply was read (" + brew.name + ")");
+				check(com.omnispell.alchemy.Vats.at(p.level(), vat[0]).servings == 2, "a brew fills three bottles (two left)");
+				p.setHealth(6f);
+				p.setItemInHand(InteractionHand.MAIN_HAND, potion.copyWithCount(1));
+				potion.getItem().use(p.level(), p, InteractionHand.MAIN_HAND);
+				check(p.getHealth() >= 15.5f, "drinking the healing potion healed 10 health (now " + p.getHealth() + ")");
+			});
+			// a weaponized brew is thrown
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				com.omnispell.alchemy.Vats.Vat v = com.omnispell.alchemy.Vats.at(p.level(), vat[0]);
+				v.base = null;
+				v.items.clear();
+				v.servings = 0;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) if (p.getInventory().getItem(i).is(OmniItems.BREW)) p.getInventory().setItem(i, ItemStack.EMPTY);
+			});
+			pour.accept(Items.LAVA_BUCKET, 1);
+			pour.accept(Items.BLAZE_ROD, 1);
+			pour.accept(Items.FERMENTED_SPIDER_EYE, 1);
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.waitFor(s -> com.omnispell.alchemy.Vats.at(player(s).level(), vat[0]).servings > 0, 200);
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				ItemStack potion = ItemStack.EMPTY;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) if (p.getInventory().getItem(i).is(OmniItems.BREW)) potion = p.getInventory().getItem(i);
+				com.omnispell.alchemy.Brew brew = com.omnispell.alchemy.BrewItem.read(potion);
+				check(brew != null && brew.splash, "a weaponized brew is a potion for throwing");
+				Zombie z = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				BlockPos feet = p.blockPosition();
+				p.teleportTo(level, feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				z.snapTo(feet.getX() + 0.5, feet.getY(), feet.getZ() + 5.5, 180f, 0f);
+				z.setNoAi(true);
+				z.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(z);
+				zombie[0] = z;
+				p.setItemInHand(InteractionHand.MAIN_HAND, potion.copyWithCount(1));
+			});
+			context.waitTicks(10);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.getMainHandItem().getItem().use(p.level(), p, InteractionHand.MAIN_HAND);
+				check(zombie[0].getHealth() < 20f, "the thrown potion hurt its target (" + zombie[0].getHealth() + ")");
+				zombie[0].discard();
+				p.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+			});
+			context.getInput().pressKey(options -> options.keyHotbarSlots[1]);
+			server.runOnServer(s -> player(s).getInventory().setItem(1, WandItem.create("oak", "diamond")));
+			context.waitTicks(5);
+
 			// ---- arcane well: wait for the surge, then draw
 			BlockPos[] well = new BlockPos[1];
 			server.runOnServer(s -> {

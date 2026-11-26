@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:cauldron",
+    "minecraft:blaze_rod",
+    "minecraft:amethyst_shard"
+  ],
+  "result": {
+    "id": "omnispell:alchemy_cauldron"
+  }
+}
