@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "omnispell:block/hardened_air"
+    }
+  }
+}

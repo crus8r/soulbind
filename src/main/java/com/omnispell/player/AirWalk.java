@@ -33,7 +33,7 @@ public final class AirWalk {
 	}
 
 	private static Block step() {
-		return Blocks.STAINED_GLASS.pick(DyeColor.WHITE);
+		return com.omnispell.item.OmniItems.HARDENED_AIR;
 	}
 
 	public static void toggle(ServerPlayer player) {

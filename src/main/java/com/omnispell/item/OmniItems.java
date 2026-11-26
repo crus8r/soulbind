@@ -26,6 +26,11 @@ public final class OmniItems {
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(3.0f, 9.0f).sound(SoundType.AMETHYST).lightLevel(state -> 9));
 	public static final Item ARCANE_WELL_ITEM = register("arcane_well", p -> new BlockItem(ARCANE_WELL, p), new Item.Properties().useBlockDescriptionPrefix());
 
+	/** Air hardened by wind magic: solid for you and your friends, thick as powder snow for anything hostile. Conjured only; it fades. */
+	public static final Block HARDENED_AIR = registerBlock("hardened_air", com.omnispell.block.HardenedAirBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.SNOW).strength(0.3f).sound(SoundType.GLASS).noOcclusion()
+					.isValidSpawn((state, level, pos, type) -> false).isRedstoneConductor((state, level, pos) -> false)
+					.isSuffocating((state, level, pos) -> false).noLootTable());
 	public static final Block WAYPOINT = registerBlock("waypoint", com.omnispell.waypoint.WaypointBlock::new,
 			BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(2.5f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 11)
 					.pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE).noLootTable());

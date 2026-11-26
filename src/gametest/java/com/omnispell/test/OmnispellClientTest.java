@@ -573,19 +573,20 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(Math.abs(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] - 1) < 0.01, "a bolt costs 5 Force mana");
 				z.discard();
 
-				// A coloured strike: Void + Summon + Malice calls purple lightning on what you look at.
+				// Void + Summon + Malice: a void rift that pulls things in, a black hole.
 				PlayerStore.get(p).essence = 500;
 				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Void", "command:Summon", "intention:Malice"));
 				com.omnispell.spell.Spell strike = PlayerStore.get(p).pending;
-				check(strike != null && "strike".equals(strike.toggle) && strike.description.contains("purple lightning"), "Void + Summon + Malice is a strike of purple lightning: " + (strike == null ? "nothing" : strike.description));
-				Zombie z2 = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
-				z2.snapTo(b.getX() + 0.5, b.getY(), b.getZ() - 6.5, 0f, 0f);
-				z2.setNoAi(true);
-				z2.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
-				level.addFreshEntity(z2);
-				p.setXRot(25f);
-				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, strike)) && z2.getHealth() < z2.getMaxHealth(), "the strike hit what stood there (zombie health " + z2.getHealth() + ")");
-				z2.discard();
+				check(strike != null && "black_hole".equals(strike.toggle) && strike.description.contains("black hole"), "Void + Summon + Malice opens a black hole: " + (strike == null ? "nothing" : strike.description));
+				// Hardened air: solid for players, open to hostile creatures.
+				{
+					var air = OmniItems.HARDENED_AIR.defaultBlockState();
+					Zombie wader = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+					boolean zombieThrough = air.getCollisionShape(level, b, net.minecraft.world.phys.shapes.CollisionContext.of(wader)).isEmpty();
+					boolean playerSolid = !air.getCollisionShape(level, b, net.minecraft.world.phys.shapes.CollisionContext.of(p)).isEmpty();
+					check(zombieThrough && playerSolid && com.omnispell.spell.TempBlocks.material("wind") == OmniItems.HARDENED_AIR, "wind builds with hardened air: a zombie wades through it, a player stands on it");
+					wader.discard();
+				}
 
 				// Pillar: Earth + Ascend + Transportation lifts the caster.
 				PlayerStore.get(p).pending = null;
@@ -1208,8 +1209,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.Spell hole = PlayerStore.get(p).pending;
 				check(hole != null && "black_hole".equals(hole.toggle), "Void + Sever + Malice opens a black hole (" + (hole == null ? "nothing" : hole.toggle) + ")");
 				PlayerStore.get(p).pending = null;
-				check(com.omnispell.spell.Rifts.forEntry("stone-launch-destruction") == null && com.omnispell.spell.Rifts.forEntry("stone-envelop-protection") == null
-						&& com.omnispell.spell.Rifts.forEntry("void-summon-destruction") == null, "and the common pairings are untouched (Earth + Sever + Malice still carves, Void + Summon still strikes)");
+				check(com.omnispell.spell.Rifts.forEntry("stone-launch-destruction") == null && com.omnispell.spell.Rifts.forEntry("stone-envelop-protection") == null,
+						"and the common pairings are untouched (Earth + Sever + Malice still carves)");
 
 				// An arena of dirt, then quicksand under a cow.
 				BlockPos c0 = p.blockPosition().offset(0, 0, -30);
@@ -1233,6 +1234,14 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				level.addFreshEntity(cow2);
 				sinker[1] = cow2;
 				com.omnispell.spell.Rifts.blackHole(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hole), Vec3.atBottomCenterOf(c0.offset(1, 0, 0)), 2, 1.0, 1.0, 0x8020C0);
+				// A vacuum beside a third creature, well away from the hole.
+				var gasp = EntityTypes.PIG.create(level, EntitySpawnReason.COMMAND);
+				gasp.snapTo(c0.getX() - 20.5, c0.getY() + 1, c0.getZ() + 0.5, 0f, 0f);
+				level.addFreshEntity(gasp);
+				int airBefore = gasp.getAirSupply();
+				com.omnispell.spell.Rifts.vacuum(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), vac), new Vec3(c0.getX() - 16.5, c0.getY(), c0.getZ() + 0.5), 2, 1.0);
+				check(gasp.getAirSupply() < airBefore - 100 && gasp.getDeltaMovement().x > 0.2, "a vacuum pulls a pig toward its heart and leaves it gasping (air " + airBefore + " to " + gasp.getAirSupply() + ")");
+				gasp.discard();
 			});
 			context.waitTicks(25);
 			server.runOnServer(s -> {

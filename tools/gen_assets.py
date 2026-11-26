@@ -551,6 +551,10 @@ write(os.path.join(ASSETS, 'models', 'block', 'arcane_well.json'), {
     'parent': 'minecraft:block/cube_bottom_top',
     'textures': {'top': 'omnispell:block/arcane_well_top', 'bottom': 'omnispell:block/arcane_well_bottom',
                  'side': 'omnispell:block/arcane_well_side'}})
+# Hardened air: wind magic's conjured blocks. It looks like faint white glass.
+write(os.path.join(ASSETS, 'models', 'block', 'hardened_air.json'), {
+    'parent': 'minecraft:block/cube_all', 'textures': {'all': 'minecraft:block/white_stained_glass'}})
+write(os.path.join(ASSETS, 'blockstates', 'hardened_air.json'), {'variants': {'': {'model': 'omnispell:block/hardened_air'}}})
 write(os.path.join(ASSETS, 'blockstates', 'arcane_well.json'), {'variants': {'': {'model': 'omnispell:block/arcane_well'}}})
 write(os.path.join(ASSETS, 'items', 'arcane_well.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/arcane_well'}})
 
@@ -788,6 +792,7 @@ lang = {
     'item.omnispell.word_scroll': 'Word Scroll',
     'item.omnispell.arcane_potion': 'Arcane Potion',
     'block.omnispell.arcane_well': 'Arcane Well',
+    'block.omnispell.hardened_air': 'Hardened Air',
     'block.omnispell.waypoint': 'Waypoint',
     'block.omnispell.boss_altar': 'Boss Seal',
     'block.omnispell.alchemy_cauldron': 'Alchemy Cauldron',

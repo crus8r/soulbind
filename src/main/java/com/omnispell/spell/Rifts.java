@@ -39,6 +39,7 @@ public final class Rifts {
 	private static final Map<String, String> ENTRIES = Map.ofEntries(
 			Map.entry("void-launch-destruction", "black_hole"),
 			Map.entry("void-grow-destruction", "black_hole"),
+			Map.entry("void-summon-destruction", "black_hole"),
 			Map.entry("wind-shift-destruction", "vacuum"),
 			Map.entry("wind-bind-destruction", "vacuum"),
 			Map.entry("wind-bind-manipulation", "vortex"),
@@ -217,7 +218,7 @@ public final class Rifts {
 
 	// ----- vacuum -----
 
-	private static boolean vacuum(Cast c, Vec3 at, int tier, double power) {
+	public static boolean vacuum(Cast c, Vec3 at, int tier, double power) {
 		ServerLevel level = c.level;
 		ServerPlayer p = c.player;
 		double radius = (3 + tier) * Math.sqrt(power);

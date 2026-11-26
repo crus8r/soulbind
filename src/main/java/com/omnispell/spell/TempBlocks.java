@@ -23,7 +23,7 @@ public final class TempBlocks {
 			case "shadow" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.BLACK);
 			case "light" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.YELLOW);
 			case "stone" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.GRAY);
-			case "wind" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.WHITE);
+			case "wind" -> com.omnispell.item.OmniItems.HARDENED_AIR;
 			case "water" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.LIGHT_BLUE);
 			case "blood" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.RED);
 			case "void" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.PURPLE);
