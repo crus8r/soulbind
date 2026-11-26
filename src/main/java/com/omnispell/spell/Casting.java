@@ -32,6 +32,8 @@ public final class Casting {
 	}
 
 	private static final Map<UUID, Long> BOLT_READY = new HashMap<>();
+	/** Mirror mana per bolt: a full starting reserve is twelve bolts, then about one every ten seconds. */
+	public static final double BOLT_COST = 5.0;
 
 	/**
 	 * Left-click with a wand: cast the selected spell if it is ready. If the slot is
@@ -48,10 +50,17 @@ public final class Casting {
 			return;
 		}
 		if (BOLT_READY.getOrDefault(player.getUUID(), 0L) > now) return;
+		// The bolt is a convenience, not a free weapon: each one is paid for from the Mirror reserve.
+		if (!player.getAbilities().instabuild && com.omnispell.player.Mana.available(player, com.omnispell.player.ManaPool.MIRROR) < BOLT_COST) {
+			player.sendOverlayMessage(Component.literal("Not enough Mirror mana for a bolt.").withStyle(ChatFormatting.GRAY));
+			BOLT_READY.put(player.getUUID(), now + 12);
+			return;
+		}
+		if (!player.getAbilities().instabuild) com.omnispell.player.Mana.spend(player, com.omnispell.player.ManaPool.MIRROR, BOLT_COST);
 		BOLT_READY.put(player.getUUID(), now + 12);
 		ServerLevel level = player.level();
 		com.omnispell.item.WandParts.Core core = com.omnispell.item.WandParts.core(WandItem.core(wand));
-		float damage = 3.0f + Math.max(0, core.words - 3) * 0.5f;
+		float damage = 2.5f + Math.max(0, core.words - 3) * 0.25f;
 		net.minecraft.world.phys.Vec3 from = Targeting.hand(player);
 		net.minecraft.world.entity.LivingEntity target = Targeting.entity(player, 20);
 		net.minecraft.world.phys.Vec3 to = target != null ? target.position().add(0, target.getBbHeight() * 0.6, 0) : Targeting.point(player, 20);

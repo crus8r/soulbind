@@ -71,6 +71,10 @@ public class BookScreen extends Screen {
 		return new BookScreen();
 	}
 
+	public static int currentTab() {
+		return tab;
+	}
+
 	public static void showGuide(String section) {
 		guideSection = section;
 	}
@@ -292,6 +296,11 @@ public class BookScreen extends Screen {
 				}
 			}
 		}
+		// The charge slot (Maxima, Minima and the rest) is always on show; it may be left empty.
+		if (!slotTypes.contains("charge")) {
+			slotTypes.add("charge");
+			slotWords.add(null);
+		}
 		activeSlot = 0;
 	}
 
@@ -312,7 +321,10 @@ public class BookScreen extends Screen {
 		if (craftType.equals("exploration") && !wordType.equals("charge")) return false;
 		int have = 0;
 		for (String t : slotTypes) if (t.equals(wordType)) have++;
-		return have < (wordType.equals("attribute") ? 2 : 1) && slotTypes.size() < ClientState.maxWords;
+		if (wordType.equals("charge")) return have < 1; // charges do not count against the wand's word limit
+		int counted = 0;
+		for (String t : slotTypes) if (!t.equals("charge")) counted++;
+		return have < (wordType.equals("attribute") ? 2 : 1) && counted < ClientState.maxWords;
 	}
 
 	private void craft(GuiGraphicsExtractor g) {

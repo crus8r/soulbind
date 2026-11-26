@@ -22,8 +22,27 @@ public class OmnispellClient implements ClientModInitializer {
 	public static KeyMapping HUD;
 	public static KeyMapping BOOK;
 
+	private static boolean sprintWasDown;
+	private static int sprintTicks = 100;
+
 	@Override
 	public void onInitializeClient() {
+		// Double-tap sprint while in the air with a wand: walk on air.
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (client.player == null) return;
+			boolean down = client.options.keySprint.isDown();
+			sprintTicks++;
+			if (down && !sprintWasDown) {
+				boolean wand = WandItem.isWand(client.player.getMainHandItem()) || WandItem.isWand(client.player.getOffhandItem());
+				if (sprintTicks <= 7 && wand && !client.player.onGround() && client.gui.screen() == null) {
+					ClientPlayNetworking.send(new OmniNet.CastSpell(-3));
+					sprintTicks = 100;
+				} else {
+					sprintTicks = 0;
+				}
+			}
+			sprintWasDown = down;
+		});
 		// Left-click with a wand in the main hand casts the selected spell (sneak: next slot) instead of punching.
 		net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback.EVENT.register((client, player, clickCount) -> {
 			if (!WandItem.isWand(player.getMainHandItem())) return false;

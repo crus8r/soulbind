@@ -331,6 +331,19 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.runOnClient(c -> c.gui.setScreen(BookScreen.onTab(2)));
 			context.waitTicks(8);
 			context.takeScreenshot("16-book-spellbook");
+			// A plain left click on a tab must work.
+			double[] at = context.computeOnClient(c -> {
+				var screen = c.gui.screen();
+				int pw = Math.min(400, screen.width - 20), ph = Math.min(236, screen.height - 20);
+				int px = (screen.width - pw) / 2, py = (screen.height - ph) / 2;
+				double scale = c.getWindow().getGuiScale();
+				return new double[]{(px + 6 + 3 * 58 + 27) * scale, (py + 14) * scale};
+			});
+			context.getInput().setCursorPos(at[0], at[1]);
+			context.waitTicks(3);
+			context.getInput().pressMouse(0);
+			context.waitTicks(3);
+			check(context.computeOnClient(c -> BookScreen.currentTab()) == 3, "a left click on the Guide tab opens it (tab is " + context.computeOnClient(c -> BookScreen.currentTab()) + ")");
 			context.runOnClient(c -> c.gui.setScreen(null));
 			context.waitTicks(5);
 
@@ -536,8 +549,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
 				p.setYRot(180f);
 				p.setXRot(0f);
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.MIRROR.ordinal()] = 6;
 				com.omnispell.spell.Casting.primary(p, wand);
 				check(z.getHealth() < z.getMaxHealth(), "left-click with an empty slot throws an arcane bolt (zombie health " + z.getHealth() + ")");
+				check(Math.abs(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.MIRROR.ordinal()] - 1) < 0.01, "a bolt costs 5 Mirror mana");
 				z.discard();
 
 				// A coloured strike: Void + Summon + Malice calls purple lightning on what you look at.
@@ -570,10 +585,17 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.startUsingItem(net.minecraft.world.InteractionHand.MAIN_HAND);
 				check(WandItem.warding(p), "holding the wand up raises its ward");
 				float warded = com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().generic(), 10f);
-				check(Math.abs(warded - 3f) < 0.01f, "the ward turns 70% of a hit aside (10 became " + warded + ")");
+				check(Math.abs(warded - 5f) < 0.01f, "the ward turns half of a hit aside (10 became " + warded + ")");
 				com.omnispell.player.Mana.wandUpkeep(p);
-				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < 50 - 10.4, "the ward costs Barrier mana to hold");
+				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < 41, "the ward costs Barrier mana to hold");
 				p.stopUsingItem();
+
+				// Shift-click in the inventory sends a wand to the off hand, as it does a shield.
+				p.getInventory().setItem(6, WandItem.create("birch", "flint"));
+				p.inventoryMenu.quickMoveStack(p, 36 + 6);
+				check(WandItem.isWand(p.getOffhandItem()), "shift-clicking a wand in the inventory puts it in the off hand");
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+				p.getInventory().setItem(6, ItemStack.EMPTY);
 
 				// Arcane Focus: 40% of a hit is paid in Barrier mana.
 				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 50;
@@ -584,6 +606,43 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-3, 0, -3), b.offset(-3, 4, 3))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			});
 
+			// Sneak + right-click passes the wand to the other hand; a bolt with no mana left does nothing.
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.MIRROR.ordinal()] = 0;
+				p.setXRot(-60f);
+			});
+			context.getInput().holdKey(options -> options.keyShift);
+			context.waitTicks(5);
+			context.getInput().pressKey(options -> options.keyUse);
+			context.waitTicks(8);
+			context.getInput().releaseKey(options -> options.keyShift);
+			context.waitTicks(3);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(WandItem.isWand(p.getOffhandItem()) && p.getMainHandItem().isEmpty(), "sneak + right-click passes the wand to the off hand");
+				ItemStack wand = p.getOffhandItem();
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+				p.getInventory().setItem(4, wand);
+
+				// Air-walk: hardened air underfoot for as long as Phase mana lasts.
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] = 5;
+				p.teleportTo(p.level(), site[0].getX() + 0.5, site[0].getY() + 12, site[0].getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(4);
+			server.runOnServer(s -> com.omnispell.player.AirWalk.toggle(player(s)));
+			context.waitTicks(30);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(p.getY() > site[0].getY() + 5, "air-walking holds the caster up (height above ground " + (p.getY() - site[0].getY()) + ")");
+				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] < 4, "air-walking drains Phase mana quickly");
+			});
+			context.waitTicks(100);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(p.getY() < site[0].getY() + 2, "when the mana is gone the caster comes down");
+				p.setHealth(p.getMaxHealth());
+			});
 			context.getInput().pressKey(options -> options.keyHotbarSlots[3]);
 			context.waitTicks(5);
 			server.runCommand("execute as @a run omnispell essence 200");

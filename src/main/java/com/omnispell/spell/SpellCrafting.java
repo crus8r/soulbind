@@ -49,7 +49,9 @@ public final class SpellCrafting {
 		if (wordIds.isEmpty()) return "Choose at least a base word.";
 		int budget = WandItem.bestWordBudget(player);
 		if (creative) budget = 7;
-		if (wordIds.size() > budget) return "Your wand can only hold spells of " + budget + " words. A better core allows more.";
+		int counted = 0;
+		for (String id : wordIds) if (!id.startsWith("charge:")) counted++; // a charge shapes a spell without taking one of the wand's word places
+		if (counted > budget) return "Your wand can only hold spells of " + budget + " words. A better core allows more.";
 
 		Map<String, Integer> counts = new HashMap<>();
 		Set<String> seen = new HashSet<>();

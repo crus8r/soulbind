@@ -214,9 +214,21 @@ public final class Modifiers {
 		amount = com.omnispell.charm.Charms.incoming(player, source, amount);
 		// The wand's ward (held right-click): most of a hit is turned aside, paid for in Barrier mana, and the ward flashes into view.
 		if (amount > 0 && com.omnispell.item.WandItem.warding(player) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-			double paid = Mana.spend(player, ManaPool.BARRIER, amount * 0.7 * 1.5) / 1.5;
+			double paid = Mana.spend(player, ManaPool.BARRIER, amount * 0.5 * 1.5) / 1.5;
 			if (paid > 0) {
 				amount -= (float) paid;
+				// Unlike a shield it does not stop the whole blow, but it throws the attacker back hard.
+				if (source.getEntity() instanceof LivingEntity attacker && attacker != player) {
+					net.minecraft.world.phys.Vec3 away = attacker.position().subtract(player.position()).multiply(1, 0, 1);
+					if (away.lengthSqr() < 0.0001) away = player.getLookAngle().multiply(1, 0, 1);
+					away = away.normalize().scale(1.3);
+					attacker.push(away.x, 0.45, away.z);
+					attacker.syncVelocity = true;
+				}
+				if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile projectile) {
+					projectile.setDeltaMovement(projectile.getDeltaMovement().scale(-0.6));
+					projectile.syncVelocity = true;
+				}
 				net.minecraft.server.level.ServerLevel wardLevel = player.level();
 				Fx.ring(wardLevel, player.position().add(0, 0.4, 0), 1.1, 0x66CCFF, null);
 				Fx.ring(wardLevel, player.position().add(0, 1.1, 0), 1.3, 0x99DDFF, net.minecraft.core.particles.ParticleTypes.ENCHANTED_HIT);

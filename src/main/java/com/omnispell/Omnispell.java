@@ -76,6 +76,10 @@ public class Omnispell implements ModInitializer {
 			ServerPlayer player = context.player();
 			ItemStack wand = WandItem.heldWand(player);
 			if (wand.isEmpty()) return;
+			if (payload.slot() == -3) {
+				com.omnispell.player.AirWalk.toggle(player);
+				return;
+			}
 			if (payload.slot() == -2) {
 				WandItem.cycle(player, wand);
 				return;
@@ -172,6 +176,7 @@ public class Omnispell implements ModInitializer {
 		ServerPlayerEvents.LEAVE.register(player -> {
 			PlayerStore.unload(player);
 			Casting.forget(player);
+			com.omnispell.player.AirWalk.forget(player);
 			Modifiers.clear(player);
 		});
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
@@ -208,6 +213,7 @@ public class Omnispell implements ModInitializer {
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			Tasks.tick();
+			com.omnispell.player.AirWalk.tick(server);
 			int tick = server.getTickCount();
 			if (tick % 10 == 0) {
 				MobControl.tick();
