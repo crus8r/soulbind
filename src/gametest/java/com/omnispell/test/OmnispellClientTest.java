@@ -1320,6 +1320,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 
 			// ---- the Arcanist: an unemployed villager walks to an Arcane Well and takes up the trade
 			net.minecraft.world.entity.npc.villager.Villager[] seeker = new net.minecraft.world.entity.npc.villager.Villager[1];
+			java.util.List<net.minecraft.world.entity.Entity> hatWearers = new java.util.ArrayList<>();
 			server.runCommand("time set noon");
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
@@ -1346,12 +1347,25 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				ItemStack hat = new ItemStack(OmniItems.WIZARD_HAT);
 				hat.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x3A2A8C));
-				seeker[0].setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, hat);
 				player(s).getInventory().setItem(5, hat.copy());
+				for (int k = 0; k < 2; k++) {
+					Zombie model = EntityTypes.ZOMBIE.create(player(s).level(), EntitySpawnReason.COMMAND);
+					model.snapTo(seeker[0].getX() + 1.6 - k * 3.4, seeker[0].getY(), seeker[0].getZ() - 1.0, 150f + k * 60f, 0f);
+					model.setNoAi(true);
+					model.setYHeadRot(150f + k * 60f);
+					ItemStack worn = hat.copy();
+					if (k == 1) worn.remove(DataComponents.DYED_COLOR);
+					model.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, worn);
+					player(s).level().addFreshEntity(model);
+					hatWearers.add(model);
+				}
 			});
 			context.waitTicks(20);
 			context.takeScreenshot("31-arcanist");
-			server.runOnServer(s -> seeker[0].discard());
+			server.runOnServer(s -> {
+				seeker[0].discard();
+				hatWearers.forEach(net.minecraft.world.entity.Entity::discard);
+			});
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {

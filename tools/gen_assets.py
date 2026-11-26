@@ -342,25 +342,25 @@ def hat_band(x, y):
     return (0, 0, 0, 0)
 tex('wizard_hat', hat_cone, 'item')
 tex('wizard_hat_band', hat_band, 'item')
-# Worn: an armour sheet for the head (64x32). Grey cap and brim, tinted by the dye, with a gold band overlay.
-def hat_worn(x, y, band):
-    head = x < 32 and y < 16
-    if not head: return (0, 0, 0, 0)
-    if band:
-        return (236, 196, 84, 255) if 12 <= y < 14 and not (8 <= x < 24 and y < 8) else ((255, 240, 170, 255) if noise(x, y, 79) > 0.95 and y < 12 else (0, 0, 0, 0))
-    v = 200 + int(40 * noise(x, y, 73))
-    return (v, v, v, 255)
-for name, band in (('wizard_hat', False), ('wizard_hat_overlay', True)):
-    img = Image.new('RGBA', (64, 32))
-    for yy in range(32):
-        for xx in range(64):
-            img.putpixel((xx, yy), hat_worn(xx, yy, band))
-    path = os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', name + '.png')
+# Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
+def box_uv(u, v, w, h, d):
+    return {'top': (u + d, v, w, d), 'bottom': (u + d + w, v, w, d), 'sides': (u, v + d, 2 * (w + d), h)}
+HAT_BOXES = {'brim': (0, 0, 13, 1, 13), 'cone': (0, 14, 9, 3, 9), 'mid': (0, 27, 7, 3, 7), 'upper': (28, 27, 5, 3, 5), 'top': (0, 38, 3, 3, 3), 'tip': (14, 38, 1, 3, 1)}
+base = Image.new('RGBA', (64, 64))
+trim = Image.new('RGBA', (64, 64))
+for name, (u, v, w, h, d) in HAT_BOXES.items():
+    for face, (fu, fv, fw, fh) in box_uv(u, v, w, h, d).items():
+        for yy in range(fv, fv + fh):
+            for xx in range(fu, fu + fw):
+                g = 205 + int(40 * noise(xx, yy, 83)) - (25 if name == 'brim' and face == 'bottom' else 0)
+                base.putpixel((xx, yy), (g, g, g, 255))
+                if name == 'cone' and face == 'sides' and yy >= fv + fh - 2: trim.putpixel((xx, yy), (236, 196, 84, 255))       # the band
+                elif name in ('mid', 'upper') and face == 'sides' and noise(xx, yy, 89) > 0.9: trim.putpixel((xx, yy), (255, 240, 170, 255))  # stars
+                elif name == 'brim' and face == 'sides': trim.putpixel((xx, yy), (214, 170, 60, 255))                          # a gold edge
+for img, name in ((base, 'wizard_hat'), (trim, 'wizard_hat_trim')):
+    path = os.path.join(ASSETS, 'textures', 'entity', name + '.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
-write(os.path.join(ASSETS, 'equipment', 'wizard_hat.json'), {'layers': {'humanoid': [
-    {'texture': 'omnispell:wizard_hat', 'dyeable': {'color_when_undyed': -12570246}},
-    {'texture': 'omnispell:wizard_hat_overlay'}]}})
 tex('familiar_eyes', orb_eyes, 'item')
 
 # Familiar skins: one 64x64 sheet per species. The regions must match FamiliarRender.layer().
