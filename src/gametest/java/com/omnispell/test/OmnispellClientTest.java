@@ -717,6 +717,14 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] = 5;
 				check(fullVeil != null && "invisibility".equals(fullVeil.toggle) && com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, fullVeil))
 						&& com.omnispell.spell.Shroud.active(p), "a Maxima invisibility shrouds armour and held items too");
+				Zombie hunter = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				hunter.snapTo(p.getX() + 3, p.getY(), p.getZ(), 0f, 0f);
+				hunter.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(hunter);
+				hunter.setTarget(p);
+				com.omnispell.spell.Shroud.everySecond(level.getServer());
+				check(hunter.getTarget() == null && p.getVisibilityPercent(level, hunter) == 0.0, "under full invisibility a hunting zombie loses track and cannot see you");
+				hunter.discard();
 				p.removeAllEffects();
 
 				// Nicknames and the archive.

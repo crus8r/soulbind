@@ -25,10 +25,27 @@ public final class Shroud {
 	public static void apply(ServerPlayer player, int ticks) {
 		UNTIL.put(player.getUUID(), Tasks.now() + ticks);
 		announce(player, ticks);
+		loseTrack(player);
 	}
 
 	public static boolean active(ServerPlayer player) {
 		return UNTIL.getOrDefault(player.getUUID(), 0L) > Tasks.now();
+	}
+
+	/** Every creature hunting the player forgets them. */
+	private static void loseTrack(ServerPlayer player) {
+		for (net.minecraft.world.entity.Mob mob : player.level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player.getBoundingBox().inflate(48))) {
+			if (mob.getTarget() == player) mob.setTarget(null);
+			var brain = mob.getBrain();
+			if (brain.hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET)
+					&& brain.getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET).orElse(null) == player) {
+				brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
+			}
+			if (brain.hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT)
+					&& player.getUUID().equals(brain.getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT).orElse(null))) {
+				brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT);
+			}
+		}
 	}
 
 	private static void announce(ServerPlayer player, int ticks) {
@@ -48,6 +65,7 @@ public final class Shroud {
 			if (player == null) return true;
 			boolean over = entry.getValue() <= now || !player.hasEffect(MobEffects.INVISIBILITY);
 			announce(player, over ? 0 : (int) (entry.getValue() - now));
+			if (!over) loseTrack(player);
 			return over;
 		});
 	}

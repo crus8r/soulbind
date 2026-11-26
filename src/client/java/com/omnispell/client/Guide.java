@@ -75,7 +75,7 @@ public final class Guide {
 				"Guarding intentions (Warding, Fortitude, Restoration, Preservation, Soothing) build and tend: wall, ring wall, dome, platform under your feet, mend the land, quicken growth, calm the weather, or attune yourself to your element (water breathing for Water, fire immunity for Fire, slow falling for Air, and so on).",
 				"Shaping intentions (Binding, Transformation, Empowerment, Creation) work the world: harden water to ice, change the weather, gather loose items, conjure a spring or a mound, lay a path, raise a tree, shape a golem, or lay a field of your element on the ground.",
 				"Travelling intentions (Liberation, Transportation) move you: a launch straight up, a leap forward, bridge, stairs, pillar, teleport, grapple, dash, phase through a wall, a steed.",
-				"Light + Envelop + Concealment makes you invisible, though what you wear and carry still shows. Add Maxima, or use a tier 4 base word or stronger, and you vanish entirely, armour and all.",
+				"Light + Envelop + Concealment makes you invisible, though what you wear and carry still shows. Add Maxima, or use a tier 4 base word or stronger, and you vanish entirely, armour and all, and creatures lose track of you.",
 				"Insight shows things: living creatures, ores, hidden chests and spawners, the way to a village, a waymark to find your way back, lasting lights. Concealment hides you or fools others: invisibility, smoke, decoys, a thicket of leaves, a lull that makes hunters forget you.",
 				"Every one of the sixty pairings does something different.",
 				"THE ELEMENT'S MARK",
