@@ -27,11 +27,13 @@ replaces it.
   cover drains off the square as the spell's cooldown runs. Keys are changed in the
   book's Spellbook tab, where double-tap can also be switched off.
 - **Left-click** with the wand casts the selected spell; sneak + left-click steps to the
-  next slot. If the spell is cooling or the slot is empty, the wand throws a plain arcane
-  bolt instead. **Hold right-click** to raise the wand's ward: unseen until struck, it
-  turns 70% of a hit aside and drains Barrier mana. **Sneak + right-click** passes the
-  wand to the other hand. Sprinting with a wand out is a third faster and spends Phase
-  mana. `H` shows or hides mana. Maxima and Minima are known from the start.
+  next slot. If the spell is cooling or the slot is empty, the wand throws a weak arcane
+  bolt for 5 Mirror mana. **Hold right-click** to raise the wand's ward: unseen until
+  struck, it turns half of a hit aside, throws the attacker back and drains Barrier mana.
+  Sprinting with a wand out is a third faster and spends Phase mana; **double-tap sprint
+  in the air** to walk on air for a few seconds of Phase mana. Shift-click the wand in the
+  inventory (or sneak + right-click) to carry it in the off hand. `H` shows or hides mana.
+  Maxima and Minima are known from the start and do not count against the word limit.
 - There are four kinds of spell: Attack, Defense, Environment and Conjuration.
 - **Combat spells** (attack, defense, conjuration) are
   written by the Omnispell website's spell generator, unchanged. The same words always

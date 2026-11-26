@@ -22,11 +22,12 @@ public final class Guide {
 				"2. Save it. It goes into the first free slot of the wand you are holding.",
 				"3. Hold the wand. A bar of five squares appears above your health, one per spell, each showing its key (Z X C V B at first).",
 				"Press a spell's key once to see its name. Press it again to cast. A grey cover on the square drains away as the spell becomes ready again; stronger spells take longer.",
-				"Left-click with the wand casts the spell you last selected. Sneak + left-click steps to the next slot. If that spell is still cooling, or the slot is empty, the wand throws a plain arcane bolt instead, so you always have something to hit with.",
-				"Hold right-click to raise the wand's ward. It cannot be seen until something strikes it; then it flashes and turns most of the blow aside. It drains Barrier mana while it is up and more with each hit.",
-				"Sprint with a wand in hand and you run a third faster, spending Phase mana as you go.",
-				"Sneak + right-click passes the wand to your other hand and back.",
-				"You know Maxima and Minima from the start. Add one with + when crafting: Maxima raises a spell's tier and power, Minima lowers its tier for a smaller, more exact effect.",
+				"Left-click with the wand casts the spell you last selected. Sneak + left-click steps to the next slot. If that spell is still cooling, or the slot is empty, the wand throws a plain arcane bolt instead. A bolt is weak and costs 5 Mirror mana, so it is a stopgap and not a weapon to lean on.",
+				"Hold right-click to raise the wand's ward. It cannot be seen until something strikes it; then it flashes, turns half the blow aside and throws the attacker back hard. It drains Barrier mana while it is up and more with each hit.",
+				"Sprint (Ctrl) with a wand in hand and you run a third faster, spending Phase mana as you go.",
+				"In the air with a wand in hand, double-tap sprint to walk on air: the air hardens under your feet until your Phase mana runs out, a few seconds at most. It forgives most of a fall, like hay, but not all of it. Double-tap again or sneak to let go.",
+				"To carry the wand in your off hand, shift-click it in your inventory as you would a shield, or sneak + right-click while holding it.",
+				"You know Maxima and Minima from the start. Every spell has a Charge slot on the Craft tab: click it, then pick Maxima for a stronger spell a tier higher, or Minima for a smaller, more exact one a tier lower. A charge does not count against your wand's word limit.",
 				"Change the keys in the Spellbook tab: click the key under a slot, then press the key you want. Double-tap can be switched off there, so one press casts."));
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
