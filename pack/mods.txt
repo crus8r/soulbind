@@ -53,6 +53,9 @@ ecologics                  # creatures
 natures-compass
 explorers-compass
 
+# --- more to meet at night: a handful of vanilla-styled monsters, some of them magical
+ender-zoology
+
 # --- performance
 sodium                     # much faster rendering
 lithium                    # faster game logic (mobs, physics, chunks)

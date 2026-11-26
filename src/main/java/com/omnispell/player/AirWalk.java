@@ -48,6 +48,10 @@ public final class AirWalk {
 		player.level().playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 1.8f);
 	}
 
+	public static boolean isWalking(ServerPlayer player) {
+		return WALKING.contains(player.getUUID());
+	}
+
 	public static void forget(ServerPlayer player) {
 		WALKING.remove(player.getUUID());
 	}
@@ -64,7 +68,8 @@ public final class AirWalk {
 			ServerLevel level = player.level();
 			BlockPos under = BlockPos.containing(player.getX(), player.getY() - 0.2, player.getZ());
 			boolean onStep = level.getBlockState(under).is(step());
-			if (player.onGround() && !onStep) { // back on real ground
+			// Back on real ground. A step that has just faded leaves air underfoot for a moment, which is not landing.
+			if (player.onGround() && !onStep && !level.getBlockState(under).canBeReplaced()) {
 				WALKING.remove(id);
 				continue;
 			}

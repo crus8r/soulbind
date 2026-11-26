@@ -16,6 +16,7 @@ Dungeons and Taverns | 6.2.0+mod | LicenseRef-All-Rights-Reserved | dungeons-and
 Dynamic FPS | 3.11.10 | MIT | dynamic-fps
 e4mc | 6.2.3-fabric-modern | MIT | e4mc
 Ecologics | 2.7.3-NeoFab | LicenseRef-Multiple | ecologics
+Ender Zoology | 26.3.1 | CC0-1.0 | ender-zoology
 Entity Culling | 1.12.2 | LicenseRef-tr7zw-Protective-License | entityculling
 Explorations | 26.3-1.6.5-Fabric | CC-BY-NC-ND-4.0 | explorations
 Explorer's Compass | 26.3-2.5.2-fabric | CC-BY-NC-SA-4.0 | explorers-compass

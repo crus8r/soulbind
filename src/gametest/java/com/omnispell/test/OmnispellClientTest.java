@@ -773,12 +773,12 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] = 5;
 				p.teleportTo(p.level(), site[0].getX() + 0.5, site[0].getY() + 12, site[0].getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
 			});
-			context.waitTicks(4);
+			context.waitTicks(9);
 			server.runOnServer(s -> com.omnispell.player.AirWalk.toggle(player(s)));
 			context.waitTicks(30);
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
-				check(p.getY() > site[0].getY() + 5, "air-walking holds the caster up (height above ground " + (p.getY() - site[0].getY()) + ")");
+				check(p.getY() > site[0].getY() + 5, "air-walking holds the caster up (height above ground " + (p.getY() - site[0].getY()) + ", walking " + com.omnispell.player.AirWalk.isWalking(p) + ", wand " + !WandItem.heldWand(p).isEmpty() + ", sneaking " + p.isShiftKeyDown() + ", phase " + PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] + ", gamemode " + p.gameMode.getGameModeForPlayer() + ")");
 				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] < 4, "air-walking drains Phase mana quickly");
 			});
 			context.waitTicks(100);

@@ -208,6 +208,7 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.boss.Bosses.onEntityLoad(entity);
 			com.omnispell.realm.Realms.onEntityLoad(entity, level);
 			com.omnispell.familiar.Familiars.onEntityLoad(entity);
+			com.omnispell.world.Arcanist.onEntityLoad(entity, level);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved

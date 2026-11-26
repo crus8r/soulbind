@@ -33,7 +33,8 @@ public final class Guide {
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
 				"Word Scrolls teach one word you do not know yet, so a scroll is never wasted. Rarer scrolls hold rarer words.",
-				"Set an Arcane Well beside a villager with no trade and they become an Arcanist. An Arcanist buys amethyst, paper, lapis and fae dust and sells word scrolls, a rarer kind at each level, with an Arcane Focus and charmed gems along the way. A master Arcanist may offer a Forbidden scroll, the Treatise on Conjuration or the Scroll of Sparsus.",
+				"Some villages have an Arcane Well, and whoever there has no trade becomes the Arcanist: look for the midnight-blue robe sewn with gold stars. You can also set a well beside an unemployed villager yourself. Rare scrolls, charmed gems and the like are one to a restock.",
+				" An Arcanist buys amethyst, paper, lapis and fae dust and sells word scrolls, a rarer kind at each level, with an Arcane Focus and charmed gems along the way. A master Arcanist may offer a Forbidden scroll, the Treatise on Conjuration or the Scroll of Sparsus.",
 				"Librarians sell word scrolls for emeralds too, and clerics and wandering traders sometimes do.",
 				"Scrolls are found in the chests of generated structures and, rarely, on hostile creatures. Strongholds, bastions, ancient cities and End cities hold the rarest.",
 				"The more words you know, the less often a new scroll appears.",

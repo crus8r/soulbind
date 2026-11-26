@@ -775,11 +775,11 @@ TRADES = {  # tag -> [(trade name, emeralds, what it gives, uses)]
     'librarian/level_1': [('librarian/1/scroll_common', 6, scroll(1), 4)],
     'librarian/level_2': [('librarian/2/scroll_common', 5, scroll(1), 6)],
     'librarian/level_3': [('librarian/3/scroll_uncommon', 12, scroll(2), 4)],
-    'librarian/level_4': [('librarian/4/scroll_rare', 24, scroll(3), 3)],
-    'librarian/level_5': [('librarian/5/scroll_ancient', 40, scroll(4), 2)],
+    'librarian/level_4': [('librarian/4/scroll_rare', 24, scroll(3), 1)],
+    'librarian/level_5': [('librarian/5/scroll_ancient', 40, scroll(4), 1)],
     'cleric/level_2': [('cleric/2/arcane_potion', 4, {'id': 'omnispell:arcane_potion'}, 8)],
     'cleric/level_4': [('cleric/4/scroll_uncommon', 14, scroll(2), 3)],
-    'cleric/level_5': [('cleric/5/scroll_rare', 28, scroll(3), 2)],
+    'cleric/level_5': [('cleric/5/scroll_rare', 28, scroll(3), 1)],
     'wandering_trader/uncommon': [('wandering_trader/scroll_rare', 20, scroll(3), 1), ('wandering_trader/scroll_ancient', 36, scroll(4), 1)],
     'wandering_trader/common': [('wandering_trader/scroll_uncommon', 10, scroll(2), 2)],
 }
@@ -791,10 +791,10 @@ def named_scroll(key, value, name):
 ARCANIST = {
     1: [('buy', 'minecraft:amethyst_shard', 8), ('buy', 'minecraft:paper', 20), ('sell', 5, scroll(1), 6), ('sell', 3, {'id': 'omnispell:arcane_potion'}, 8)],
     2: [('buy', 'minecraft:lapis_lazuli', 10), ('buy', 'minecraft:glass_bottle', 9), ('sell', 10, scroll(2), 5), ('sell', 6, {'id': 'minecraft:amethyst_shard', 'count': 4}, 8)],
-    3: [('buy', 'omnispell:fae_dust', 4), ('sell', 20, scroll(3), 4), ('sell', 16, {'id': 'omnispell:arcane_focus'}, 2),
-        ('sell', 18, charmed('minecraft:emerald', 'fortune', 1), 2), ('sell', 18, charmed('minecraft:amethyst_shard', 'flow', 2), 2)],
-    4: [('buy', 'minecraft:ender_pearl', 2), ('sell', 34, scroll(4), 3), ('sell', 30, charmed('minecraft:diamond', 'warding', 2), 2),
-        ('sell', 30, charmed('minecraft:echo_shard', 'leech', 2), 2), ('sell', 28, charmed('minecraft:quartz', 'potency', 2), 2)],
+    3: [('buy', 'omnispell:fae_dust', 4), ('sell', 20, scroll(3), 1), ('sell', 16, {'id': 'omnispell:arcane_focus'}, 1),
+        ('sell', 18, charmed('minecraft:emerald', 'fortune', 1), 1), ('sell', 18, charmed('minecraft:amethyst_shard', 'flow', 2), 1)],
+    4: [('buy', 'minecraft:ender_pearl', 2), ('sell', 34, scroll(4), 1), ('sell', 30, charmed('minecraft:diamond', 'warding', 2), 1),
+        ('sell', 30, charmed('minecraft:echo_shard', 'leech', 2), 1), ('sell', 28, charmed('minecraft:quartz', 'potency', 2), 1)],
     5: [('sell', 56, scroll(5), 1), ('sell', 48, named_scroll('omni_type', 'conjuration', 'Treatise on Conjuration'), 1),
         ('sell', 52, named_scroll('omni_word', 'charge:Sparsus (Area of effect)', 'Scroll of Sparsus'), 1),
         ('sell', 44, charmed('minecraft:diamond', 'vigor', 3), 1)],
@@ -816,13 +816,18 @@ for level, offers in ARCANIST.items():
 write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'point_of_interest_type', 'acquirable_job_site.json'), {'replace': False, 'values': ['omnispell:arcanist']})
 # The Arcanist's robe: violet with a gold hem, over the ordinary villager.
 def robe(x, y):
-    if 38 <= y < 64 and x < 28:          # the long outer robe
-        if y >= 60: return (214, 170, 60, 255)
-        return mix((70, 44, 130), (104, 70, 170), noise(x, y, 53))
-    if 20 <= y < 38 and 16 <= x < 44:    # chest
-        if x in (29, 30) and y > 26: return (214, 170, 60, 255)
-        return mix((84, 54, 150), (116, 82, 184), noise(x, y, 59))
-    if y < 8 and x < 32 and (y < 3 or x % 8 in (0, 7)): return mix((70, 44, 130), (104, 70, 170), noise(x, y, 61))  # a hood's rim
+    star = noise(x, y, 67) > 0.93
+    gold = (236, 196, 84, 255)
+    if 38 <= y < 64 and x < 28:          # the long outer robe: midnight blue, sewn with stars, gold at the hem
+        if y >= 61 or y == 38: return gold
+        return gold if star else mix((28, 30, 84), (52, 50, 128), noise(x, y, 53))
+    if 20 <= y < 38 and 16 <= x < 44:    # chest: a gold collar and a clasp
+        if y < 23 or (x in (29, 30) and y < 30): return gold
+        return gold if star else mix((34, 34, 96), (58, 54, 136), noise(x, y, 59))
+    if 22 <= y < 38 and 44 <= x < 60:    # sleeves
+        return gold if y >= 35 else mix((28, 30, 84), (52, 50, 128), noise(x, y, 71))
+    if y < 8 and 8 <= x < 24: return gold if star else mix((28, 30, 84), (52, 50, 128), noise(x, y, 61))   # the hood's crown
+    if 8 <= y < 12 and x < 32: return gold if y == 11 else mix((28, 30, 84), (52, 50, 128), noise(x, y, 61))  # and its brim, all the way round
     return (0, 0, 0, 0)
 for folder in ('villager', 'zombie_villager'):
     img = Image.new('RGBA', (64, 64))
@@ -832,6 +837,7 @@ for folder in ('villager', 'zombie_villager'):
     path = os.path.join(ASSETS, 'textures', 'entity', folder, 'profession', 'arcanist.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
+    write(path + '.mcmeta', {'villager': {'hat': 'full'}})
 
 for tag, trades in TRADES.items():
     for name, cost, gives, uses in trades:

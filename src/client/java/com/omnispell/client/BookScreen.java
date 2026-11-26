@@ -42,6 +42,7 @@ public class BookScreen extends Screen {
 	private static String dictFilter = "base";
 	private static String selectedSpell;
 	private static boolean showArchived;
+	private boolean renaming;
 	private static String guideSection = "Getting started";
 	private static String loreSection = "Enchantments";
 
@@ -196,6 +197,7 @@ public class BookScreen extends Screen {
 			int index = i;
 			button(g, px + 6 + i * (tw + 3), py + 6, tw, 16, TABS[i], true, tab == i, () -> {
 				tab = index;
+				renaming = false;
 				listScroll = 0;
 				detailScroll = 0;
 				addMenu = false;
@@ -205,7 +207,7 @@ public class BookScreen extends Screen {
 		g.text(font(), "✦ " + ClientState.essence, px + pw - 44, py + 10, 0xFF7FD4FF, false);
 		g.horizontalLine(px + 4, px + pw - 5, py + 25, LINE);
 
-		search.visible = tab == 0 || tab == 2 || (tab == 1 && ClientState.pending == null);
+		search.visible = tab == 0 || (tab == 2 && renaming) || (tab == 1 && ClientState.pending == null);
 		search.setHint(Component.literal(tab == 2 ? "Nickname..." : "Search words..."));
 
 		switch (tab) {
@@ -578,7 +580,7 @@ public class BookScreen extends Screen {
 			g.text(font(), fit(spell.label(), lw - 26), lx + 21, cy + 1, SpellLook.tierColor(spell.tier), false);
 			hit(lx, cy - 1, lw, rh, () -> {
 				selectedSpell = spell.id;
-				search.setValue(spell.nickname == null ? "" : spell.nickname);
+				renaming = false;
 				detailScroll = 0;
 			});
 		}
@@ -588,7 +590,21 @@ public class BookScreen extends Screen {
 		if (selected != null) {
 			Spell shown = selected;
 			// Naming: type in the box at the top right, then press Name. An empty box takes the name away.
-			button(g, px + pw - 128 - 40, py + 30, 36, 14, "Name", true, false, () -> send("rename", shown.id + "|" + search.getValue().replace("|", " ")));
+			// Renaming: press Rename, type in the box that appears, press Save. An empty box takes the name away.
+			if (renaming) {
+				button(g, px + pw - 128 - 40, py + 30, 36, 14, "Save", true, true, () -> {
+					send("rename", shown.id + "|" + search.getValue().replace("|", " "));
+					renaming = false;
+					search.setValue("");
+				});
+			} else {
+				button(g, px + pw - 8 - 50, py + 30, 50, 14, "Rename", true, false, () -> {
+					renaming = true;
+					search.setValue(shown.nickname == null ? "" : shown.nickname);
+					setFocused(search);
+					search.setFocused(true);
+				});
+			}
 			spellDetails(g, shown, dx, top + 18, dw, bottom + 14 - 22);
 			int by = bottom + 14 - 18;
 			if (!wand.isEmpty()) {
