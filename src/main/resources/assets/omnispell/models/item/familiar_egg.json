@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "omnispell:item/familiar_egg_shell",
+    "layer1": "omnispell:item/familiar_egg_trim"
+  }
+}

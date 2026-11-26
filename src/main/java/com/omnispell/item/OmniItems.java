@@ -58,6 +58,8 @@ public final class OmniItems {
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(3.0f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 12));
 	public static final Item FOREST_GATE_ITEM = register("forest_gate", p -> new BlockItem(FOREST_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Item FAE_DUST = register("fae_dust", Item::new, new Item.Properties());
+	public static final Item FAMILIAR_EGG = register("familiar_egg", com.omnispell.familiar.FamiliarEggItem::new, new Item.Properties().stacksTo(1));
+	public static final Item FAMILIAR = register("familiar", com.omnispell.familiar.FamiliarItem::new, new Item.Properties().stacksTo(1));
 
 	private OmniItems() {
 	}
@@ -95,6 +97,11 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_LEAVES_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(RUNIC_BOOKSHELF_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(FAE_DUST));
+					for (String species : com.omnispell.familiar.Familiars.SPECIES.keySet()) {
+						output.accept(com.omnispell.familiar.Familiars.egg(species, null, null));
+						com.omnispell.familiar.Familiars.Stat gift = com.omnispell.familiar.Familiars.SPECIES.get(species).gift();
+						output.accept(com.omnispell.familiar.Familiars.egg(species, gift, com.omnispell.familiar.Familiars.Stat.values()[(gift.ordinal() + 1) % 4]));
+					}
 					for (int rarity = 1; rarity <= 5; rarity++) output.accept(WordScrollItem.ofRarity(rarity));
 					for (com.omnispell.data.WordBank.SpellType type : com.omnispell.data.WordBank.spellTypes()) {
 						if (!type.id.equals("attack") && !type.id.equals("defense") && !type.id.equals("exploration")) output.accept(WordScrollItem.ofSpellType(type.id));

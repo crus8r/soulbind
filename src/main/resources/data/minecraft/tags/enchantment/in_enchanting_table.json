@@ -4,6 +4,7 @@
 		"soulbind:soul_bind",
 		"omnispell:reservoir",
 		"omnispell:wellspring",
-		"omnispell:alacrity"
+		"omnispell:alacrity",
+		"omnispell:attunement"
 	]
 }

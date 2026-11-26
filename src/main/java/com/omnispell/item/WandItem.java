@@ -143,6 +143,15 @@ public class WandItem extends Item {
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (player instanceof ServerPlayer serverPlayer) {
+			ItemStack other = player.getItemInHand(hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
+			if (com.omnispell.familiar.Familiars.isEgg(other)) {
+				com.omnispell.familiar.Familiars.describeEgg(serverPlayer, other);
+				return InteractionResult.SUCCESS;
+			}
+			if (other.is(OmniItems.FAMILIAR)) {
+				com.omnispell.familiar.Familiars.describe(serverPlayer, other.getHoverName().getString(), com.omnispell.familiar.Familiars.pocketStats(other), 0, 0);
+				return InteractionResult.SUCCESS;
+			}
 			if (player.isShiftKeyDown()) {
 				int next = (selected(stack) + 1) % SLOTS;
 				select(stack, next);

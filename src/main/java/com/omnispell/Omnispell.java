@@ -55,6 +55,8 @@ public class Omnispell implements ModInitializer {
 		com.omnispell.alchemy.Alchemy.load();
 		com.omnispell.alchemy.Vats.register();
 		OmniItems.register();
+		com.omnispell.charm.Charms.register();
+		com.omnispell.familiar.Familiars.register();
 		PlayerStore.register();
 		com.omnispell.waypoint.Waypoints.register();
 		OmniNet.register();
@@ -176,17 +178,20 @@ public class Omnispell implements ModInitializer {
 		});
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.boss.Bosses::onDeath);
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.realm.Realms::onDeath);
+		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.familiar.Familiars::onDeath);
 
 		// A conjured creature left behind by a crash or restart is removed when its chunk loads.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
 			if (Summons.isStray(entity)) Tasks.later(1, entity::discard);
 			com.omnispell.boss.Bosses.onEntityLoad(entity);
 			com.omnispell.realm.Realms.onEntityLoad(entity, level);
+			com.omnispell.familiar.Familiars.onEntityLoad(entity);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved
 			com.omnispell.waypoint.Waypoints.unload();
 			com.omnispell.boss.Bosses.clear();
+			com.omnispell.familiar.Familiars.clear();
 			com.omnispell.alchemy.Vats.unload();
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.save(player);
 		});
@@ -197,12 +202,14 @@ public class Omnispell implements ModInitializer {
 			if (tick % 10 == 0) {
 				MobControl.tick();
 				com.omnispell.boss.Bosses.tick();
+				com.omnispell.familiar.Familiars.tick(server);
 			}
 			if (tick % 20 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 					Mana.regenerate(player);
 					com.omnispell.boss.BossAltarBlock.wakeNear(player);
 					Modifiers.everySecond(player);
+					com.omnispell.charm.Charms.everySecond(player);
 				}
 			}
 			if (tick % 5 == 0) {

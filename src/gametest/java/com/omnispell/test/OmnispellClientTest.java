@@ -291,7 +291,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 			context.takeScreenshot("13b-book-materials");
-			context.runOnClient(c -> c.gui.setScreen(BookScreen.onTab(4)));
+			context.runOnClient(c -> c.gui.setScreen(BookScreen.onTab(5)));
 			context.waitTicks(5);
 			context.takeScreenshot("14-book-bosses");
 
@@ -698,6 +698,142 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.waitTicks(5);
 			context.takeScreenshot("26-waypoint-screen");
 			context.runOnClient(c -> c.gui.setScreen(null));
+
+			// ---- charms: a gem only takes a charm beside a runic bookshelf, and an anvil sets it into armor
+			server.runCommand("xp set @a 60 levels");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos table = p.blockPosition().offset(6, 0, -6);
+				for (BlockPos clear : BlockPos.betweenClosed(table.offset(-2, 0, -2), table.offset(2, 2, 2))) level.setBlockAndUpdate(clear, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				level.setBlockAndUpdate(table, net.minecraft.world.level.block.Blocks.ENCHANTING_TABLE.defaultBlockState());
+				var access = net.minecraft.world.inventory.ContainerLevelAccess.create(level, table);
+				var menu = new net.minecraft.world.inventory.EnchantmentMenu(90, p.getInventory(), access);
+				menu.getSlot(1).set(new ItemStack(Items.LAPIS_LAZULI, 16));
+				menu.getSlot(0).set(new ItemStack(Items.DIAMOND));
+				check(menu.costs[0] == 0 && menu.costs[2] == 0, "without a runic bookshelf the table offers a gem nothing");
+				menu.getSlot(0).set(ItemStack.EMPTY);
+				for (int dx = -2; dx <= 2; dx++) {
+					level.setBlockAndUpdate(table.offset(dx, 0, -2), net.minecraft.world.level.block.Blocks.BOOKSHELF.defaultBlockState());
+					level.setBlockAndUpdate(table.offset(dx, 1, -2), net.minecraft.world.level.block.Blocks.BOOKSHELF.defaultBlockState());
+					level.setBlockAndUpdate(table.offset(dx, 0, 2), net.minecraft.world.level.block.Blocks.BOOKSHELF.defaultBlockState());
+				}
+				level.setBlockAndUpdate(table.offset(2, 0, 0), com.omnispell.item.OmniItems.RUNIC_BOOKSHELF.defaultBlockState());
+				int doubles = 0;
+				ItemStack charmed = ItemStack.EMPTY;
+				for (int n = 0; n < 12; n++) {
+					menu.getSlot(1).set(new ItemStack(Items.LAPIS_LAZULI, 16));
+					p.setExperienceLevels(60);
+					menu.getSlot(0).set(new ItemStack(Items.DIAMOND));
+					check(menu.costs[2] > 0, "with a runic bookshelf the table offers the gem a charm (cost " + menu.costs[2] + ")");
+					check(menu.clickMenuButton(p, 2), "the charm can be taken (levels " + p.experienceLevel + ", cost " + menu.costs[2] + ", lapis " + menu.getSlot(1).getItem() + ", clue " + menu.enchantClue[2] + ")");
+					charmed = menu.getSlot(0).getItem().copy();
+					var charms = com.omnispell.charm.Charms.charmsOn(charmed);
+					check(!charms.isEmpty(), "the diamond came out charmed: " + charms);
+					if (charms.size() > 1) doubles++;
+					menu.getSlot(0).set(ItemStack.EMPTY);
+				}
+				check(doubles >= 2, "diamonds often take more than one charm (" + doubles + " of 12 did)");
+				menu.getSlot(0).set(new ItemStack(Items.IRON_PICKAXE));
+				check(menu.costs[2] > 0, "ordinary enchanting still works beside a runic bookshelf");
+				menu.getSlot(0).set(ItemStack.EMPTY);
+				menu.getSlot(1).set(ItemStack.EMPTY);
+
+				var anvil = new net.minecraft.world.inventory.AnvilMenu(91, p.getInventory(), access);
+				anvil.getSlot(0).set(new ItemStack(Items.IRON_CHESTPLATE));
+				anvil.getSlot(1).set(charmed);
+				ItemStack worn = anvil.getSlot(2).getItem().copy();
+				check(com.omnispell.charm.Charms.stored(worn).size() == 1 && anvil.getCost() > 0, "the anvil sets the charm into armor (cost " + anvil.getCost() + ")");
+				check(com.omnispell.charm.Charms.slots(worn) == 1, "plain armor has one charm slot");
+				anvil.getSlot(0).set(ItemStack.EMPTY);
+				anvil.getSlot(1).set(ItemStack.EMPTY);
+
+				// A known charm, to check its effect: Vigor II is two more hearts.
+				ItemStack vigorGem = new ItemStack(Items.EMERALD);
+				var vigor = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+						.get(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENCHANTMENT, com.omnispell.Omnispell.id("vigor")));
+				check(vigor.isPresent(), "charm enchantments are registered");
+				vigorGem.enchant(vigor.get(), 2);
+				ItemStack helmet = com.omnispell.charm.Charms.merge(new ItemStack(Items.IRON_HELMET), vigorGem);
+				ItemStack second = com.omnispell.charm.Charms.merge(helmet, charmed);
+				check(com.omnispell.charm.Charms.stored(second).size() == 1, "a full piece pushes out its oldest charm");
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, helmet);
+				com.omnispell.charm.Charms.everySecond(p);
+				check(p.getMaxHealth() == 24.0f, "Vigor II gives two more hearts (max health " + p.getMaxHealth() + ")");
+				p.getInventory().setItem(7, worn);
+			});
+			context.waitTicks(30);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, ItemStack.EMPTY);
+				com.omnispell.charm.Charms.everySecond(p);
+				check(p.getMaxHealth() == 20.0f, "taking the armor off takes the charm away");
+			});
+
+			// ---- familiars: an egg's leanings, soaking, hatching, fighting and pocketing
+			Zombie[] prey = new Zombie[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				var F = com.omnispell.familiar.Familiars.Stat.POWER;
+				ItemStack egg = com.omnispell.familiar.Familiars.egg("phoenix", F, com.omnispell.familiar.Familiars.Stat.SPIRIT);
+				check(egg.getHoverName().getString().equals("Strong Phoenix Egg"), "egg is named for its leaning: " + egg.getHoverName().getString());
+				check(java.util.Arrays.equals(com.omnispell.familiar.Familiars.eggStats(egg), new int[]{4, 1, 1, 4}), "egg stats " + java.util.Arrays.toString(com.omnispell.familiar.Familiars.eggStats(egg)));
+				check(java.util.Arrays.equals(com.omnispell.familiar.Familiars.hatchStats(egg), new int[]{14, 1, 1, 10}), "an unsoaked egg splits 60/40: " + java.util.Arrays.toString(com.omnispell.familiar.Familiars.hatchStats(egg)));
+				check(com.omnispell.familiar.Familiars.egg("griffin", null, null).getHoverName().getString().equals("Blank Griffin Egg"), "blank eggs are named blank");
+				boolean[] changed = {false};
+				com.omnispell.familiar.Familiars.soak(egg, com.omnispell.familiar.Familiars.Stat.VITALITY, 1000, changed);
+				check(changed[0] && com.omnispell.familiar.Familiars.eggStats(egg)[1] == 3, "a soak adds two to its stat");
+				changed[0] = false;
+				com.omnispell.familiar.Familiars.soak(egg, com.omnispell.familiar.Familiars.Stat.VITALITY, 2000, changed);
+				check(!changed[0], "the shell needs time between soaks");
+				com.omnispell.familiar.Familiars.soak(egg, com.omnispell.familiar.Familiars.Stat.POWER, 8000, changed);
+				check(changed[0], "after five minutes it soaks again");
+				int[] hatch = com.omnispell.familiar.Familiars.hatchStats(egg);
+				check(java.util.Arrays.equals(hatch, new int[]{18, 3, 1, 4}), "a soaked egg puts the rest into its highest stat: " + java.util.Arrays.toString(hatch));
+
+				BlockPos feet = p.blockPosition();
+				var mob = com.omnispell.familiar.Familiars.release(p, com.omnispell.familiar.Familiars.SPECIES.get("phoenix"), hatch, "", net.minecraft.world.phys.Vec3.atBottomCenterOf(feet.offset(1, 0, 1)));
+				check(mob != null && com.omnispell.familiar.Familiars.familiarOf(p) == mob, "the familiar hatched as " + (mob == null ? "nothing" : net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType())));
+				check(mob.getMaxHealth() == 25.0f, "Vitality 3 gives 25 health (has " + mob.getMaxHealth() + ")");
+				check(com.omnispell.familiar.Familiars.spiritPercent(p) == 6.0, "Spirit 4 refills mana 6% faster");
+				Zombie z = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				z.snapTo(feet.getX() + 0.5, feet.getY(), feet.getZ() + 4.5, 180f, 0f);
+				z.setNoAi(true);
+				z.setPersistenceRequired();
+				z.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(z);
+				p.setLastHurtMob(z);
+				prey[0] = z;
+			});
+			context.waitTicks(100);
+			context.takeScreenshot("27-familiar");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(!prey[0].isAlive() || prey[0].getHealth() < prey[0].getMaxHealth(), "the familiar fought what its owner fought (zombie health " + prey[0].getHealth() + ")");
+				prey[0].discard();
+				var mob = com.omnispell.familiar.Familiars.familiarOf(p);
+				check(mob != null && mob.isAlive(), "the familiar is still with its owner");
+				float healthBefore = mob.getHealth();
+				mob.hurtServer(p.level(), p.damageSources().playerAttack(p), 5f);
+				check(mob.getHealth() == healthBefore, "its owner cannot hurt it");
+				com.omnispell.familiar.Familiars.pocket(p, mob, 0);
+				boolean carried = false;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+					ItemStack stack = p.getInventory().getItem(i);
+					if (stack.is(com.omnispell.item.OmniItems.FAMILIAR)) {
+						carried = java.util.Arrays.equals(com.omnispell.familiar.Familiars.pocketStats(stack), new int[]{18, 3, 1, 4});
+						p.getInventory().setItem(i, ItemStack.EMPTY);
+					}
+				}
+				check(carried && com.omnispell.familiar.Familiars.familiarOf(p) == null, "the familiar goes into a pocket with its stats intact");
+				p.getInventory().setItem(7, ItemStack.EMPTY);
+			});
+			context.runOnClient(c -> c.gui.setScreen(BookScreen.onTab(4)));
+			context.waitTicks(8);
+			context.takeScreenshot("28-book-lore");
+			context.runOnClient(c -> c.gui.setScreen(null));
+			context.waitTicks(5);
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> player(s).getInventory().setItem(1, ItemStack.EMPTY)); // the loose wand would simply drop

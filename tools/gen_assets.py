@@ -292,6 +292,38 @@ def gate_side(x, y):
 tex('forest_gate', gate_side)
 tex('fae_dust', lambda x, y: ((250, 220, 255, 255) if noise(x, y, 29) > 0.6 else (190, 120, 240, 255)) if (abs(x - 7.5) + abs(y - 9) < 5.5 and noise(x, y, 31) > 0.25) else (0, 0, 0, 0), 'item')
 
+# Familiar eggs: a shell tinted by the primary leaning and a band tinted by the secondary.
+def egg_shell(x, y):
+    cx, cy = 7.5, 8.5
+    rx = 4.6 if y >= 8 else 4.6 - (8 - y) * 0.38
+    if abs(y - cy) > 6.2 or abs(x - cx) > rx: return (0, 0, 0, 0)
+    if 8 <= y <= 10 and not (y == 9 and x % 3 == 0): return (0, 0, 0, 0)
+    v = 200 + int(55 * noise(x, y, 37)) - (40 if x > 9 else 0) + (20 if x < 6 and y < 7 else 0)
+    v = max(120, min(255, v))
+    return (v, v, v, 255)
+def egg_trim(x, y):
+    cx = 7.5
+    rx = 4.6
+    if abs(x - cx) > rx: return (0, 0, 0, 0)
+    if 8 <= y <= 10 and not (y == 9 and x % 3 == 0):
+        v = 255 if y == 9 else 215
+        return (v, v, v, 255)
+    if (x, y) in ((7, 4), (8, 5), (6, 12), (9, 12), (7, 13)): return (235, 235, 235, 255)
+    return (0, 0, 0, 0)
+tex('familiar_egg_shell', egg_shell, 'item')
+tex('familiar_egg_trim', egg_trim, 'item')
+def orb(x, y):
+    d = ((x - 7.5) ** 2 + (y - 7.5) ** 2) ** 0.5
+    if d > 6.5: return (0, 0, 0, 0)
+    if d > 5.3: return (120, 120, 120, 255)
+    v = int(255 - d * 18 + 20 * noise(x, y, 41))
+    v = max(140, min(255, v))
+    return (v, v, v, 255)
+def orb_eyes(x, y):
+    return (30, 24, 44, 255) if (x in (5, 6, 9, 10) and y in (7, 8)) else ((255, 255, 255, 255) if (x in (5, 9) and y == 7) else (0, 0, 0, 0))
+tex('familiar_orb', orb, 'item')
+tex('familiar_eyes', orb_eyes, 'item')
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -334,6 +366,16 @@ for spent in ('false', 'true'):
 write(os.path.join(ASSETS, 'blockstates', 'boss_altar.json'), {'variants': altar_variants})
 write(os.path.join(ASSETS, 'items', 'boss_altar.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/boss_altar'}})
 
+flat_item('familiar_egg', ['familiar_egg_shell', 'familiar_egg_trim'])
+write(os.path.join(ASSETS, 'items', 'familiar_egg.json'), {'model': {
+    'type': 'minecraft:model', 'model': 'omnispell:item/familiar_egg',
+    'tints': [{'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xECE6DA},
+              {'type': 'minecraft:custom_model_data', 'index': 1, 'default': 0x9A948A}]}})
+flat_item('familiar', ['familiar_orb', 'familiar_eyes'])
+write(os.path.join(ASSETS, 'items', 'familiar.json'), {'model': {
+    'type': 'minecraft:model', 'model': 'omnispell:item/familiar',
+    'tints': [{'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xC9A0FF},
+              {'type': 'minecraft:constant', 'value': -1}]}})
 flat_item('brew', ['brew_bottle', 'brew_liquid'])
 write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/brew',
@@ -536,6 +578,9 @@ lang = {
     'biome.omnispell.palewood': 'Palewood',
     'biome.omnispell.ancient_spires': 'Ancient Spires',
     'item.omnispell.brew': 'Potion',
+    'item.omnispell.familiar_egg': 'Familiar Egg',
+    'item.omnispell.familiar': 'Familiar',
+    'enchantment.omnispell.attunement': 'Attunement',
     'enchantment.omnispell.reservoir': 'Reservoir',
     'enchantment.omnispell.wellspring': 'Wellspring',
     'enchantment.omnispell.alacrity': 'Alacrity',
@@ -548,6 +593,11 @@ lang = {
     'key.omnispell.hud': 'Show / Hide Mana',
     'key.omnispell.book': 'Open Book of Words',
 }
+charm_java = open(os.path.join(ROOT, '..', 'java', 'com', 'omnispell', 'charm', 'Charms.java')).read()
+CHARMS = re.findall(r'charm\("(\w+)", "([^"]+)", "([^"]+)"\)', charm_java)
+assert len(CHARMS) >= 10, CHARMS
+for cid, cname, _ in CHARMS:
+    lang[f'enchantment.omnispell.{cid}'] = cname
 write(os.path.join(ASSETS, 'lang', 'en_us.json'), lang)
 
 # ---------------------------------------------------------------- recipes
@@ -639,10 +689,23 @@ def enchantment(name, fallback, weight, max_level):
 enchantment('reservoir', 'Reservoir', 4, 3)    # +10% to every mana reserve per level, per piece
 enchantment('wellspring', 'Wellspring', 4, 3)  # +15% mana refill speed per level, per piece
 enchantment('alacrity', 'Alacrity', 3, 3)      # -4% spell cooldown per level, per piece
+enchantment('attunement', 'Attunement', 2, 2)  # +1 charm slot per level
+# Charm enchantments only ever sit on gems. The mod itself decides which gem gets which.
+GEMS = ['minecraft:amethyst_shard', 'minecraft:lapis_lazuli', 'minecraft:quartz', 'minecraft:prismarine_crystals',
+        'minecraft:emerald', 'minecraft:echo_shard', 'minecraft:diamond', 'minecraft:netherite_ingot']
+write(os.path.join(DATA, 'tags', 'item', 'charm_gems.json'), {'replace': False, 'values': GEMS})
+for cid, cname, _ in CHARMS:
+    write(os.path.join(DATA, 'enchantment', cid + '.json'), {
+        'description': {'translate': f'enchantment.omnispell.{cid}', 'fallback': cname},
+        'supported_items': '#omnispell:charm_gems',
+        'weight': 1, 'max_level': 3,
+        'min_cost': {'base': 1, 'per_level_above_first': 10},
+        'max_cost': {'base': 50, 'per_level_above_first': 10},
+        'anvil_cost': 2, 'slots': ['any']})
 for tag in ('in_enchanting_table', 'non_treasure'):
     path = os.path.join(ROOT, 'data', 'minecraft', 'tags', 'enchantment', tag + '.json')
     current = json.load(open(path)) if os.path.exists(path) else {'replace': False, 'values': []}
-    for e in ('omnispell:reservoir', 'omnispell:wellspring', 'omnispell:alacrity'):
+    for e in ('omnispell:reservoir', 'omnispell:wellspring', 'omnispell:alacrity', 'omnispell:attunement'):
         if e not in current['values']: current['values'].append(e)
     with open(path, 'w') as f: json.dump(current, f, indent='\t')
 

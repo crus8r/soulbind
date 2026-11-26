@@ -51,6 +51,7 @@ public final class Mana {
 			percent += armorPercent(piece);
 			percent += 10 * SoulBind.enchantmentLevel(piece, RESERVOIR);
 		}
+		percent += com.omnispell.charm.Charms.manaPercent(player);
 		return Math.round(pool.baseMax * (1.0 + percent / 100.0) * 10.0) / 10.0;
 	}
 
@@ -62,12 +63,13 @@ public final class Mana {
 		for (EquipmentSlot slot : ARMOR) {
 			percent += 15 * SoulBind.enchantmentLevel(player.getItemBySlot(slot), WELLSPRING);
 		}
+		percent += com.omnispell.charm.Charms.regenPercent(player) + com.omnispell.familiar.Familiars.spiritPercent(player);
 		return 1.0 + percent / 100.0;
 	}
 
 	/** Percent taken off spell cooldowns by worn armor: Alacrity gives 4% per level per piece, and chainmail 3% per piece. */
 	public static double alacrityPercent(ServerPlayer player) {
-		double percent = 0;
+		double percent = com.omnispell.charm.Charms.cooldownPercent(player);
 		for (EquipmentSlot slot : ARMOR) {
 			ItemStack piece = player.getItemBySlot(slot);
 			percent += 4 * SoulBind.enchantmentLevel(piece, ALACRITY);

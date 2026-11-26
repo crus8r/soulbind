@@ -26,7 +26,7 @@ import java.util.Map;
  * spell), Spellbook (your spells and the wand's five slots), Guide and Bosses.
  */
 public class BookScreen extends Screen {
-	private static final String[] TABS = {"Dictionary", "Craft", "Spellbook", "Guide", "Bosses"};
+	private static final String[] TABS = {"Dictionary", "Craft", "Spellbook", "Guide", "Lore", "Bosses"};
 	private static final String[] ADDABLE = {"intention", "charge", "source", "attribute"};
 
 	// Colours (ARGB)
@@ -42,6 +42,7 @@ public class BookScreen extends Screen {
 	private static String dictFilter = "base";
 	private static String selectedSpell;
 	private static String guideSection = "Getting started";
+	private static String loreSection = "Enchantments";
 
 	private record Region(int x, int y, int w, int h, Runnable action, Runnable alt) {
 		boolean has(double mx, double my) {
@@ -64,7 +65,7 @@ public class BookScreen extends Screen {
 		if (slotTypes.isEmpty()) resetSlots();
 	}
 
-	/** Opens the book on a given tab (0 Dictionary, 1 Craft, 2 Spellbook, 3 Guide, 4 Bosses). */
+	/** Opens the book on a given tab (0 Dictionary, 1 Craft, 2 Spellbook, 3 Guide, 4 Lore, 5 Bosses). */
 	public static BookScreen onTab(int index) {
 		tab = Math.max(0, Math.min(TABS.length - 1, index));
 		return new BookScreen();
@@ -185,7 +186,7 @@ public class BookScreen extends Screen {
 		g.outline(px - 1, py - 1, pw + 2, ph + 2, 0xFF0A0C14);
 
 		// Tabs
-		int tw = 68;
+		int tw = 55;
 		for (int i = 0; i < TABS.length; i++) {
 			int index = i;
 			button(g, px + 6 + i * (tw + 3), py + 6, tw, 16, TABS[i], true, tab == i, () -> {
@@ -205,7 +206,8 @@ public class BookScreen extends Screen {
 			case 0 -> dictionary(g);
 			case 1 -> craft(g);
 			case 2 -> spellbook(g);
-			case 3 -> guide(g);
+			case 3 -> guide(g, Guide.sections(), false);
+			case 4 -> guide(g, Guide.lore(), true);
 			default -> bosses(g);
 		}
 
@@ -628,24 +630,25 @@ public class BookScreen extends Screen {
 
 	// ------------------------------------------------------------------ guide
 
-	private void guide(GuiGraphicsExtractor g) {
-		Map<String, List<String>> sections = Guide.sections();
+	private void guide(GuiGraphicsExtractor g, Map<String, List<String>> sections, boolean lore) {
+		String current = lore ? loreSection : guideSection;
 		int lx = px + 8, top = py + 32, lw = 104;
 		int i = 0;
 		for (String name : sections.keySet()) {
-			button(g, lx, top + i * 14, lw, 13, name, true, name.equals(guideSection), () -> {
-				guideSection = name;
+			button(g, lx, top + i * 14, lw, 13, name, true, name.equals(current), () -> {
+				if (lore) loreSection = name;
+				else guideSection = name;
 				detailScroll = 0;
 			});
 			i++;
 		}
 		int dx = lx + lw + 10, dw = pw - lw - 30, bottom = py + ph - 16;
 		g.fill(dx - 4, top - 2, px + pw - 6, bottom, INSET);
-		List<String> paragraphs = sections.getOrDefault(guideSection, List.of());
+		List<String> paragraphs = sections.getOrDefault(current, List.of());
 		g.enableScissor(dx - 4, top, px + pw - 6, bottom - 2);
 		int y = top + 2 - detailScroll * 10;
 		for (String p : paragraphs) {
-			boolean heading = p.equals(p.toUpperCase()) && p.length() < 12;
+			boolean heading = p.equals(p.toUpperCase()) && p.length() < 24;
 			y = wrapped(g, p, dx, y, dw, heading ? GOLD : TEXT) + 5;
 		}
 		g.disableScissor();

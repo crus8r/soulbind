@@ -64,6 +64,11 @@ public final class Realms {
 	/** Anything hostile slain by a player in the forest may leave fae dust. */
 	public static void onDeath(LivingEntity entity, DamageSource source) {
 		if (!(source.getEntity() instanceof ServerPlayer) || !(entity instanceof Enemy) || !isForest(entity.level())) return;
+		if (entity.getRandom().nextFloat() < 0.05f) {
+			ItemEntity egg = new ItemEntity(entity.level(), entity.getX(), entity.getY() + 0.5, entity.getZ(), com.omnispell.familiar.Familiars.randomEgg(entity.getRandom()));
+			egg.setDefaultPickUpDelay();
+			entity.level().addFreshEntity(egg);
+		}
 		if (entity.getRandom().nextFloat() < 0.35f) {
 			ItemEntity item = new ItemEntity(entity.level(), entity.getX(), entity.getY() + 0.5, entity.getZ(), new ItemStack(OmniItems.FAE_DUST, 1 + entity.getRandom().nextInt(2)));
 			item.setDefaultPickUpDelay();

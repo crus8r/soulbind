@@ -206,9 +206,13 @@ public final class Modifiers {
 
 	/** Fortify, resistances and mana shield change how much a hit does. Called from the damage mixin. */
 	public static float modifyIncoming(LivingEntity entity, DamageSource source, float amount) {
-		if (amount > 0 && !(entity instanceof ServerPlayer)) return com.omnispell.boss.Bosses.modifyDamage(entity, source, amount);
+		if (amount > 0 && !(entity instanceof ServerPlayer)) {
+			if (com.omnispell.familiar.Familiars.spared(entity, source)) return 0;
+			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));
+		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
-		if (list(player).isEmpty() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return amount;
+		amount = com.omnispell.charm.Charms.incoming(player, source, amount);
+		if (amount <= 0 || list(player).isEmpty() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return amount;
 		double damage = amount;
 		double scale = Omnispell.CONFIG.valueScale;
 

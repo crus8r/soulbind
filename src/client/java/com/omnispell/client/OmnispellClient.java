@@ -24,6 +24,26 @@ public class OmnispellClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// Armor shows its charm slots, and what is set in them.
+		net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+			int slots = com.omnispell.charm.Charms.slots(stack);
+			if (slots == 0) return;
+			java.util.List<com.omnispell.charm.Charms.Set> sets = com.omnispell.charm.Charms.stored(stack);
+			lines.add(net.minecraft.network.chat.Component.literal("Charm slots: " + sets.size() + "/" + slots).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+			for (com.omnispell.charm.Charms.Set set : sets) {
+				StringBuilder text = new StringBuilder(" \u25C6 " + set.gem() + ": ");
+				boolean first = true;
+				for (java.util.Map.Entry<String, Integer> e : set.charms().entrySet()) {
+					if (!first) text.append(", ");
+					text.append(com.omnispell.charm.Charms.ALL.get(e.getKey()).name()).append(' ').append(com.omnispell.charm.Charms.roman(e.getValue()));
+					first = false;
+				}
+				lines.add(net.minecraft.network.chat.Component.literal(text.toString()).withStyle(net.minecraft.ChatFormatting.DARK_PURPLE));
+			}
+			for (int i = sets.size(); i < slots; i++) {
+				lines.add(net.minecraft.network.chat.Component.literal(" \u25C7 empty").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+			}
+		});
 		int[] defaults = {InputConstants.KEY_Z, InputConstants.KEY_X, InputConstants.KEY_C, InputConstants.KEY_V, InputConstants.KEY_B};
 		for (int i = 0; i < CAST.length; i++) {
 			CAST[i] = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.omnispell.cast_" + (i + 1), defaults[i], CATEGORY));

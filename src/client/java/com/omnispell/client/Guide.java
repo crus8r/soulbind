@@ -135,4 +135,89 @@ public final class Guide {
 				"Gear loses durability each time it is kept. A bundle, shulker box or ender chest loses one level instead."));
 		return s;
 	}
+
+	/** The Lore tab: the deeper systems, and a list of every enchantment Omnispell adds. */
+	public static Map<String, List<String>> lore() {
+		Map<String, List<String>> s = new LinkedHashMap<>();
+		s.put("Enchantments", List.of(
+				"These join the vanilla enchantments. All but the charm enchantments can come from an ordinary enchanting table.",
+				"SOUL BIND",
+				"Soul Bind I-III. The item stays with you when you die, at a cost in durability or levels. Books drop from endermen and lie in dungeon chests.",
+				"WAYFINDER",
+				"Wayfinder, on helmets and filled maps. Sneak while holding a map and a dotted trail points to the map's target. On a helmet it works with any map and costs durability; on a map it is free and is used up on arrival.",
+				"RESERVOIR",
+				"Reservoir I-III, on armor. +10% to every mana reserve per level, per piece.",
+				"WELLSPRING",
+				"Wellspring I-III, on armor. +15% mana refill speed per level, per piece.",
+				"ALACRITY",
+				"Alacrity I-III, on armor. -4% spell cooldown per level, per piece.",
+				"ATTUNEMENT",
+				"Attunement I-II, on armor. One more charm slot per level. Every piece of armor has one slot without it."));
+		List<String> charms = new ArrayList<>();
+		charms.add("Charm enchantments only ever settle on gems. Each has three levels. However much you wear, one charm never counts for more than " + com.omnispell.charm.Charms.CAP + " levels.");
+		for (com.omnispell.charm.Charms.Charm charm : com.omnispell.charm.Charms.ALL.values()) {
+			charms.add(charm.name() + ": " + charm.effect() + ".");
+		}
+		s.put("Charm list", charms);
+		List<String> making = new ArrayList<>(List.of(
+				"A charm is an enchanted gem set into a piece of armor.",
+				"1. Bring faewood home from the Enchanted Forest and build a Runic Bookshelf: faewood planks above and below three books.",
+				"2. Stand it within two blocks of an enchanting table. Without one, the table offers a gem nothing. It also counts as a bookshelf.",
+				"3. Enchant a gem as you would a tool: one gem, lapis, levels.",
+				"4. On an anvil, put armor on the left and the enchanted gem on the right. The charm is set into the armor.",
+				"Hover over any armor to see its charm slots and what is in them. If every slot is full, a new charm pushes out the oldest.",
+				"GEMS",
+				"Each gem leans towards certain charms, though any gem can take any charm. Rarer gems often take two charms at once, and sometimes three."));
+		for (Map.Entry<net.minecraft.world.item.Item, com.omnispell.charm.Charms.Gem> gem : com.omnispell.charm.Charms.GEMS.entrySet()) {
+			StringBuilder line = new StringBuilder(gem.getValue().name() + " leans to ");
+			List<String> favoured = gem.getValue().favoured();
+			for (int i = 0; i < favoured.size(); i++) {
+				line.append(i == 0 ? "" : i == favoured.size() - 1 ? " and " : ", ").append(com.omnispell.charm.Charms.ALL.get(favoured.get(i)).name());
+			}
+			int second = (int) Math.round(gem.getValue().second() * 100);
+			line.append(second >= 50 ? ". Usually takes more than one." : second >= 20 ? ". Sometimes takes two." : ".");
+			making.add(line.toString());
+		}
+		s.put("Charms", making);
+		List<String> familiars = new ArrayList<>(List.of(
+				"Familiars hatch from eggs found in the Enchanted Forest: hidden in faewood blossom, or carried by the things that hunt there.",
+				"READING AN EGG",
+				"The name tells you the creature and its leaning: a Strong Phoenix Egg, a Blank Griffin Egg. The shell's colour is its primary stat and the band around it is its secondary. A blank egg is pale.",
+				"Red is Power: it hits harder. Green is Vitality: more health. Yellow is Swiftness: it moves and strikes faster. Blue is Spirit: your mana refills faster while it is out.",
+				"Hold the egg in one hand and use your wand with the other to read its stats exactly.",
+				"SOAKING",
+				"Use the egg on a lava cauldron for Power, a powder snow cauldron for Vitality, a water cauldron for Swiftness, or an Arcane Well for Spirit.",
+				"Each soak adds 2 to that stat and uses up the cauldron. The shell needs five minutes between soaks, and takes eight in all.",
+				"HATCHING",
+				"Sneak and use the egg on the ground. You need not finish soaking: soaks never taken go to its highest stat. An egg never soaked at all splits them 60/40 between its primary and secondary.",
+				"LIVING WITH ONE",
+				"A familiar follows you, fights what you fight and what hurts you, and cannot be hurt by you. Use a wand on it to see its stats.",
+				"Sneak and use an empty hand on it to put it in your pocket; use the pocketed familiar on the ground to let it out. It pockets itself if you leave the realm without it.",
+				"If it falls it returns to your pocket and must rest five minutes. You can keep many, but only one walks beside you.",
+				"KINDS"));
+		for (com.omnispell.familiar.Familiars.Species species : com.omnispell.familiar.Familiars.SPECIES.values()) {
+			familiars.add(species.name() + ": gifted in " + species.gift().label + ".");
+		}
+		s.put("Familiars", familiars);
+		s.put("Realms and gates", List.of(
+				"Each realm opens a part of the craft, and the further you go the rarer the word scrolls you find there.",
+				"THE NETHER",
+				"Gate: a frame of obsidian, four wide and five tall, lit with flint and steel.",
+				"Opens potions: the Alchemy Cauldron needs a blaze rod, and nether wart, blaze powder, magma cream and ghast tears are strong ingredients. Crimson and warped wood and quartz make wands and charms. Scrolls found here are one step rarer.",
+				"THE ENCHANTED FOREST",
+				"Gate: craft a Forest Gate. Moss block, emerald, moss block; amethyst shard, ender pearl, amethyst shard; moss block, glow berries, moss block. Set it down and use it. A gate back is made where you arrive.",
+				"Opens charms and familiars: faewood for the Runic Bookshelf, familiar eggs in the blossom, fae dust from what you slay. Everything hostile there is half again as strong. Scrolls are two steps rarer.",
+				"THE AERIAL HELL",
+				"Gate: look for a ruined sky portal in the overworld; its chest often holds a Stellar Lighter. Or mine Stellar Debris, smelt it into Stellar Portal Bricks, craft four into a Stellar Portal Frame, build a frame like a nether portal, and light the inside with a Stellar Lighter (fluorite and ruby).",
+				"A realm of floating islands, dungeons and bosses of its own. Scrolls are two steps rarer.",
+				"THE END",
+				"Gate: find a stronghold with eyes of ender (blaze powder and an ender pearl) and fill the portal's frame with them.",
+				"The Ender Dragon guards a word, and its egg is how Razza is called. End cities hold the rarest scrolls, and dragon's breath is the strongest liquid to brew with."));
+		s.put("The world", List.of(
+				"Razza did not kill the wizards who came before. He unmade them, word by word, and scattered the words so no one could speak against him again.",
+				"That is why words lie in chests and in the pockets of monsters, why the old shrines still hold wells of essence, and why the worst of his servants sit sealed in domes of ice with a door that tells you how afraid to be.",
+				"The Enchanted Forest is where the unmade went. The familiars there were theirs. The faewood remembers them, which is why only its shelves can teach a gem to hold a charm.",
+				"You are what they left. Gather the words. Say his name back to him."));
+		return s;
+	}
 }
