@@ -322,6 +322,13 @@ def orb(x, y):
 def orb_eyes(x, y):
     return (30, 24, 44, 255) if (x in (5, 6, 9, 10) and y in (7, 8)) else ((255, 255, 255, 255) if (x in (5, 9) and y == 7) else (0, 0, 0, 0))
 tex('familiar_orb', orb, 'item')
+def focus(x, y):
+    d = abs(x - 7.5) + abs(y - 7.5)
+    if d > 7: return (0, 0, 0, 0)
+    if d > 5.6: return (214, 170, 60, 255) if (x + y) % 2 == 0 else (160, 118, 34, 255)
+    if d < 1.6: return (250, 240, 255, 255)
+    return mix((92, 60, 190), (190, 130, 255), noise(x, y, 43) * 0.6 + (5.6 - d) / 9)
+tex('arcane_focus', focus, 'item')
 tex('familiar_eyes', orb_eyes, 'item')
 
 # ---------------------------------------------------------------- models
@@ -376,6 +383,8 @@ write(os.path.join(ASSETS, 'items', 'familiar.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/familiar',
     'tints': [{'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xC9A0FF},
               {'type': 'minecraft:constant', 'value': -1}]}})
+flat_item('arcane_focus', ['arcane_focus'])
+write(os.path.join(ASSETS, 'items', 'arcane_focus.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:item/arcane_focus'}})
 flat_item('brew', ['brew_bottle', 'brew_liquid'])
 write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/brew',
@@ -579,6 +588,7 @@ lang = {
     'biome.omnispell.ancient_spires': 'Ancient Spires',
     'item.omnispell.brew': 'Potion',
     'item.omnispell.familiar_egg': 'Familiar Egg',
+    'item.omnispell.arcane_focus': 'Arcane Focus',
     'item.omnispell.familiar': 'Familiar',
     'enchantment.omnispell.attunement': 'Attunement',
     'enchantment.omnispell.reservoir': 'Reservoir',
@@ -664,6 +674,30 @@ for tag, values in {'block/mineable/axe': ['omnispell:faewood_log', 'omnispell:f
                     'block/planks': ['omnispell:faewood_planks'], 'item/planks': ['omnispell:faewood_planks'],
                     'block/enchantment_power_provider': ['omnispell:runic_bookshelf']}.items():
     write(os.path.join(ROOT, 'data', 'minecraft', 'tags', tag + '.json'), {'replace': False, 'values': values})
+write(os.path.join(recipe_dir, 'arcane_focus.json'), {
+    'type': 'minecraft:crafting_shaped', 'category': 'equipment',
+    'key': {'G': 'minecraft:gold_ingot', 'A': 'minecraft:amethyst_shard', 'L': 'minecraft:lapis_lazuli'},
+    'pattern': [' G ', 'ALA', ' G '], 'result': {'id': 'omnispell:arcane_focus'}})
+# An abandoned alchemy cauldron over a campfire, rare, in the stranger biomes.
+write(os.path.join(DATA, 'worldgen', 'feature', 'abandoned_cauldron.json'), {
+    'type': 'minecraft:block_column',
+    'allowed_placement': {'type': 'minecraft:matching_block_tag', 'tag': 'minecraft:air'},
+    'direction': 'up', 'prioritize_tip': False,
+    'layers': [{'height': 1, 'provider': {'id': 'minecraft:campfire', 'properties': {'facing': 'north', 'lit': 'true', 'signal_fire': 'false', 'waterlogged': 'false'}}},
+               {'height': 1, 'provider': {'id': 'omnispell:alchemy_cauldron'}}]})
+write(os.path.join(DATA, 'worldgen', 'placed_feature', 'abandoned_cauldron.json'), {
+    'feature': 'omnispell:abandoned_cauldron',
+    'placement': [{'type': 'minecraft:rarity_filter', 'chance': 90}, {'type': 'minecraft:in_square'},
+                  {'type': 'minecraft:heightmap', 'heightmap': 'MOTION_BLOCKING_NO_LEAVES'}, {'type': 'minecraft:biome'},
+                  {'type': 'minecraft:block_predicate_filter', 'predicate': {'type': 'minecraft:all_of', 'predicates': [
+                      {'type': 'minecraft:matching_block_tag', 'tag': 'minecraft:air'},
+                      {'type': 'minecraft:solid', 'offset': [0, -1, 0]}]}}]})
+write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_abandoned_cauldron.json'), {'replace': False, 'values': [
+    'minecraft:swamp', 'minecraft:mangrove_swamp', 'minecraft:dark_forest', 'minecraft:pale_garden', 'minecraft:mushroom_fields',
+    'minecraft:old_growth_spruce_taiga', 'minecraft:soul_sand_valley', 'minecraft:warped_forest',
+    'omnispell:gloamwood', 'omnispell:glowcap_glade', 'omnispell:palewood',
+    {'id': '#c:is_swamp', 'required': False}, {'id': '#c:is_magical', 'required': False}, {'id': '#c:is_spooky', 'required': False},
+    {'id': '#c:is_mushroom', 'required': False}, {'id': '#c:is_dead', 'required': False}]})
 # Until arcane wells generate in structures, one can be built.
 write(os.path.join(recipe_dir, 'arcane_well.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'misc',

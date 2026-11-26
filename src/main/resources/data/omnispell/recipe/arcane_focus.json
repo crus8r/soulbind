@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "G": "minecraft:gold_ingot",
+    "A": "minecraft:amethyst_shard",
+    "L": "minecraft:lapis_lazuli"
+  },
+  "pattern": [
+    " G ",
+    "ALA",
+    " G "
+  ],
+  "result": {
+    "id": "omnispell:arcane_focus"
+  }
+}

@@ -115,6 +115,14 @@ public class WandItem extends Item {
 	}
 
 	/** The wand in the main hand, else the off hand, else nothing. */
+	/** Steps the wand to its next slot and says which spell is there. */
+	public static void cycle(ServerPlayer player, ItemStack stack) {
+		int next = (selected(stack) + 1) % SLOTS;
+		select(stack, next);
+		Spell spell = spell(stack, next);
+		player.sendOverlayMessage(Component.literal("Slot " + (next + 1) + ": " + (spell == null ? "empty" : spell.name)));
+	}
+
 	public static ItemStack heldWand(Player player) {
 		if (isWand(player.getMainHandItem())) return player.getMainHandItem();
 		if (isWand(player.getOffhandItem())) return player.getOffhandItem();
@@ -152,14 +160,11 @@ public class WandItem extends Item {
 				com.omnispell.familiar.Familiars.describe(serverPlayer, other.getHoverName().getString(), com.omnispell.familiar.Familiars.pocketStats(other), 0, 0);
 				return InteractionResult.SUCCESS;
 			}
-			if (player.isShiftKeyDown()) {
-				int next = (selected(stack) + 1) % SLOTS;
-				select(stack, next);
-				Spell spell = spell(stack, next);
-				serverPlayer.sendOverlayMessage(Component.literal("Slot " + (next + 1) + ": " + (spell == null ? "empty" : spell.name)));
-			} else {
-				Casting.cast(serverPlayer, stack, selected(stack));
-			}
+			// Right-click passes the wand to the other hand, the way armor is put on. Casting is left-click and the spell keys.
+			InteractionHand otherHand = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+			player.setItemInHand(hand, other);
+			player.setItemInHand(otherHand, stack);
+			level.playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_GENERIC.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.4f);
 		}
 		return InteractionResult.SUCCESS;
 	}

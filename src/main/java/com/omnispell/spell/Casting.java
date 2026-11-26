@@ -9,6 +9,7 @@ import com.omnispell.player.PlayerStore;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -28,6 +29,40 @@ public final class Casting {
 	private static final Map<UUID, Map<String, Cooldown>> COOLDOWNS = new HashMap<>();
 
 	private Casting() {
+	}
+
+	private static final Map<UUID, Long> BOLT_READY = new HashMap<>();
+
+	/**
+	 * Left-click with a wand: cast the selected spell if it is ready. If the slot is
+	 * empty or the spell is still cooling, the wand throws a plain arcane bolt
+	 * instead, so a wizard always has something to hit with.
+	 */
+	public static void primary(ServerPlayer player, ItemStack wand) {
+		int slot = WandItem.selected(wand);
+		Spell spell = WandItem.spell(wand, slot);
+		long now = Tasks.now();
+		Cooldown cd = spell == null ? null : COOLDOWNS.computeIfAbsent(player.getUUID(), k -> new HashMap<>()).get(spell.id);
+		if (spell != null && (cd == null || cd.ready <= now)) {
+			cast(player, wand, slot);
+			return;
+		}
+		if (BOLT_READY.getOrDefault(player.getUUID(), 0L) > now) return;
+		BOLT_READY.put(player.getUUID(), now + 12);
+		ServerLevel level = player.level();
+		com.omnispell.item.WandParts.Core core = com.omnispell.item.WandParts.core(WandItem.core(wand));
+		float damage = 3.0f + Math.max(0, core.words - 3) * 0.5f;
+		net.minecraft.world.phys.Vec3 from = Targeting.hand(player);
+		net.minecraft.world.entity.LivingEntity target = Targeting.entity(player, 20);
+		net.minecraft.world.phys.Vec3 to = target != null ? target.position().add(0, target.getBbHeight() * 0.6, 0) : Targeting.point(player, 20);
+		net.minecraft.world.phys.Vec3 step = to.subtract(from);
+		int points = Math.max(2, (int) (step.length() * 2));
+		for (int i = 1; i <= points; i++) {
+			net.minecraft.world.phys.Vec3 at = from.add(step.scale(i / (double) points));
+			level.sendParticles(net.minecraft.core.particles.ParticleTypes.WITCH, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		}
+		level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.7f, 1.6f);
+		if (target != null) target.hurtServer(level, level.damageSources().indirectMagic(player, player), damage);
 	}
 
 	public static void cast(ServerPlayer player, ItemStack wand, int slot) {

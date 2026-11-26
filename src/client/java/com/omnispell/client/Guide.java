@@ -22,22 +22,27 @@ public final class Guide {
 				"2. Save it. It goes into the first free slot of the wand you are holding.",
 				"3. Hold the wand. A bar of five squares appears above your health, one per spell, each showing its key (Z X C V B at first).",
 				"Press a spell's key once to see its name. Press it again to cast. A grey cover on the square drains away as the spell becomes ready again; stronger spells take longer.",
-				"Right-click casts the spell you last selected. Sneak + right-click steps to the next slot.",
+				"Left-click with the wand casts the spell you last selected. Sneak + left-click steps to the next slot. If that spell is still cooling, or the slot is empty, the wand throws a plain arcane bolt instead, so you always have something to hit with.",
+				"Right-click passes the wand to your other hand and back.",
 				"Change the keys in the Spellbook tab: click the key under a slot, then press the key you want. Double-tap can be switched off there, so one press casts."));
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
 				"Word Scrolls teach one word you do not know yet, so a scroll is never wasted. Rarer scrolls hold rarer words.",
 				"Scrolls are found in the chests of generated structures and, rarely, on hostile creatures. Strongholds, bastions, ancient cities and End cities hold the rarest.",
 				"The more words you know, the less often a new scroll appears.",
-				"Treatises unlock a whole kind of spell: Enchantment, Illusion, Charm, then Conjuration. They lie in the rarer vaults.",
+				"There are four kinds of spell: Attack, Defense, Environment and Conjuration. You begin with the first three. A treatise in the rarer vaults, or your first boss, teaches Conjuration.",
 				"The Wither, the Warden and the Ender Dragon each guard a word of their own.",
 				"In creative mode every word and every kind of spell is open, crafting is free, and the Omnispell tab holds a scroll for each word."));
 		s.put("Crafting a spell", List.of(
 				"Pick the kind of spell, then fill its slots: click a slot, then click a word. Words that do not suit the spell are greyed and sorted to the bottom.",
 				"Base: the element or force. Command: what it does. Intention: why. Use + to add a Charge, Source or Attribute.",
 				"Crafting costs arcane essence: 5 for every two words. Discarding a spell returns half.",
-				"Attack, Defense and the other combat spells are interpreted by the Oracle. The same words always give the same spell, for everyone.",
-				"Exploration spells follow fixed laws: Base + Command + Intention decide the effect. Light + Envelop + Concealment is invisibility. Experiment.",
+				"Attack, Defense and Conjuration spells are interpreted by the Oracle. The same words always give the same spell, for everyone.",
+				"Environment spells follow fixed laws: Base + Command + Intention decide the effect. Light + Envelop + Concealment is invisibility. Experiment.",
+				"ENVIRONMENT SPELLS",
+				"Many of them shape the land. With a harsh intention (Malice, Banishment, Weakening): striking and forming commands such as Sever, Breach, Pierce, Throw or Fortify carve a tunnel where you look; enveloping, binding, summoning and bursting ones such as Envelop, Bind, Summon, Agitate or Grow blast a crater. With a guarding intention (Warding, Fortitude, Restoration): Fortify, Solidify, Seal, Grow or Scatter raise a wall; Repel and Agitate close a dome around you; Envelop, Shield, Cover, Guide or Move mend the land, filling water, lava and hollows and putting out fires. Other pairings bridge gaps, carry you, or reveal what is hidden. A few elements bend these rules; the spell's description always says what it will do.",
+				"The base word is the material. Earth builds with dirt and leaves grass behind; Sand, Mud, Ice, Wood, Vine and Lava build with their own stuff, and stone-like words with cobblestone. These stay. Stranger words conjure hardened magic that fades after a minute or so.",
+				"The base word's tier is the spell's reach: a tier 1 tunnel is 5 blocks long, a tier 5 tunnel 22. Maxima adds a tier. Carving leaves ores standing and drops nothing; harder rock needs a higher tier, and obsidian only yields to tier 5.",
 				"How many words a spell may hold depends on the best wand core you carry."));
 		List<String> wands = new ArrayList<>();
 		wands.add("Recipe: one plank, a core, and another plank of the same wood, in a vertical line in a crafting grid.");
@@ -118,12 +123,36 @@ public final class Guide {
 				"An uneasy brew still works, but comes out with a side effect.",
 				"The same recipe at the same heat always makes the same potion. Gunpowder makes a potion for throwing. Glowstone dust makes potions that restore or drain mana.",
 				"Use a potion to drink it. Harmful potions are thrown where you look instead. Potions stack to 16 and there is no limit on how many you carry."));
+		s.put("Recipes", List.of(
+				"Rows are read top to bottom, left to right. A dash is an empty space.",
+				"WAND",
+				"Plank / core / plank, in one column, both planks the same wood. Any of twelve woods; the cores are listed under Materials. The wood sets mana, the core sets how many words a spell may hold.",
+				"BOOK OF WORDS",
+				"Book + amethyst shard + lapis lazuli, anywhere in the grid. The book also stays with you when you die.",
+				"WAYPOINTS (makes a bonded pair)",
+				"-  ender pearl  -   /   amethyst shard  stone bricks  amethyst shard   /   stone bricks x3",
+				"ARCANE WELL",
+				"stone bricks  amethyst shard  stone bricks   /   stone bricks  water bucket  stone bricks   /   stone bricks x3",
+				"ALCHEMY CAULDRON",
+				"Cauldron + blaze rod + amethyst shard, anywhere in the grid. Abandoned ones also stand over old campfires in swamps, dark forests, mushroom fields and the Enchanted Forest.",
+				"ARCANE FOCUS",
+				"-  gold ingot  -   /   amethyst shard  lapis lazuli  amethyst shard   /   -  gold ingot  -. Held in the off hand it is a wizard's shield: 40% of every hit is paid from your Barrier mana instead of your health.",
+				"FOREST GATE",
+				"moss block  emerald  moss block   /   amethyst shard  ender pearl  amethyst shard   /   moss block  glow berries  moss block",
+				"FAEWOOD PLANKS",
+				"One faewood log makes four.",
+				"RUNIC BOOKSHELF",
+				"faewood planks x3   /   book x3   /   faewood planks x3. Stand it within two blocks of an enchanting table to charm gems.",
+				"FAMILIAR EGGS",
+				"Not crafted: found in faewood blossom or on what hunts in the Enchanted Forest. Soak in a lava, powder snow or water cauldron, or an Arcane Well. See Familiars under Lore.",
+				"CHARMED ARMOR",
+				"Anvil: armor on the left, an enchanted gem on the right."));
 		s.put("Shrines and lairs", List.of(
 				"Arcane shrines stand in the open across the world: a stone platform, four amethyst-crowned pillars, and an arcane well at the centre. Draw your essence there.",
 				"Boss lairs are white domes of snow and ice, like great igloos, with a single sealed door.",
-				"The door's material tells you how dangerous the lair is: hay, then wood, stone, iron, gold, diamond, and netherite for the worst of them. Break the door and the block is yours.",
+				"The door's material tells you how dangerous the lair is: hay, then wood, stone, iron, gold, diamond, and netherite for the worst of them. A sealed lair cannot be broken into by hand. Carve or blast the door with an environment spell: tier 1 opens hay and wood, tier 2 stone, tier 3 iron and gold, tier 4 diamond, tier 5 netherite. Once the boss wakes the seal is gone and the lair is ordinary blocks again.",
 				"Inside is a dark seal. Step close and the boss breaks out. It has a boss bar, an element it resists and one it is weak to, and tricks of its own.",
-				"Each boss drops word scrolls, rarer for harder lairs. Your first victories also teach new kinds of spell: Enchantment, Illusion, Charm, then Conjuration.",
+				"Each boss drops word scrolls, rarer for harder lairs. Your first victory also teaches Conjuration.",
 				"The Bosses tab keeps count.",
 				"Razza is not in this world. When the Ender Dragon is dead, take a wand to its egg. The egg is not used up, so bring your friends."));
 		s.put("Dark magic", List.of(

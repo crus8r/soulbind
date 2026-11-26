@@ -58,6 +58,7 @@ public final class OmniItems {
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(3.0f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 12));
 	public static final Item FOREST_GATE_ITEM = register("forest_gate", p -> new BlockItem(FOREST_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Item FAE_DUST = register("fae_dust", Item::new, new Item.Properties());
+	public static final Item ARCANE_FOCUS = register("arcane_focus", Item::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR_EGG = register("familiar_egg", com.omnispell.familiar.FamiliarEggItem::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR = register("familiar", com.omnispell.familiar.FamiliarItem::new, new Item.Properties().stacksTo(1));
 
@@ -88,6 +89,7 @@ public final class OmniItems {
 					}
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_WELL_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_POTION));
+					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_FOCUS));
 					output.accept(new net.minecraft.world.item.ItemStack(ALCHEMY_CAULDRON_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
 					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));

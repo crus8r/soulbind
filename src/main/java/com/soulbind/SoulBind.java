@@ -209,6 +209,14 @@ public class SoulBind implements ModInitializer {
 		player.addTag(STARTER_KIT_TAG);
 
 		List<ItemStack> kit = com.omnispell.Omnispell.starterKit(player);
+		Holder<Enchantment> unbreaking = findEnchantment(player.level().registryAccess(), UNBREAKING_ID);
+		for (ItemStack stack : kit) {
+			if (!com.omnispell.item.WandItem.isWand(stack)) continue;
+			EnchantmentHelper.updateEnchantments(stack, enchantments -> {
+				if (soulBind != null && STARTER_SOUL_BIND > 0) enchantments.set(soulBind, STARTER_SOUL_BIND);
+				if (unbreaking != null && STARTER_UNBREAKING > 0) enchantments.set(unbreaking, STARTER_UNBREAKING);
+			});
+		}
 		if (hadBundle) {
 			// A player from before Omnispell already has their bundle: hand the new items over directly.
 			for (ItemStack stack : kit) giveOrDrop(player, stack);

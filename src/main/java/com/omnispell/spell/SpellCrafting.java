@@ -166,6 +166,12 @@ public final class SpellCrafting {
 		spell.visual.shape = entry.shape;
 		spell.visual.motion = entry.motion;
 		spell.visual.intensity = Math.max(1, Math.min(5, entry.intensity));
+		String land = Terraform.remap(entry.toggle);
+		if (land != null) {
+			spell.toggle = land;
+			spell.effect = Terraform.effectName(land);
+			spell.description = Terraform.describe(land, spell);
+		}
 		WordBank.Flavor flavor = WordBank.flavor(base);
 		if (flavor != null) {
 			spell.visual.color1 = flavor.color;

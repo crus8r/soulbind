@@ -57,6 +57,8 @@ public class Omnispell implements ModInitializer {
 		OmniItems.register();
 		com.omnispell.charm.Charms.register();
 		com.omnispell.familiar.Familiars.register();
+		com.omnispell.boss.Lairs.register();
+		com.omnispell.world.Cauldrons.register();
 		PlayerStore.register();
 		com.omnispell.waypoint.Waypoints.register();
 		OmniNet.register();
@@ -74,7 +76,15 @@ public class Omnispell implements ModInitializer {
 			ServerPlayer player = context.player();
 			ItemStack wand = WandItem.heldWand(player);
 			if (wand.isEmpty()) return;
-			int slot = payload.slot() < 0 ? WandItem.selected(wand) : Math.min(WandItem.SLOTS - 1, payload.slot());
+			if (payload.slot() == -2) {
+				WandItem.cycle(player, wand);
+				return;
+			}
+			if (payload.slot() == -1) {
+				Casting.primary(player, wand);
+				return;
+			}
+			int slot = Math.min(WandItem.SLOTS - 1, payload.slot());
 			if (payload.slot() >= 0 && slot != WandItem.selected(wand)) WandItem.select(wand, slot);
 			Casting.cast(player, wand, slot);
 		});

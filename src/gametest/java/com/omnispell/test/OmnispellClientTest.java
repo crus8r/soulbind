@@ -225,8 +225,13 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					bundles++;
 					check(com.soulbind.SoulBind.soulBindLevel(stack) == 2, "starter bundle has Soul Bind II");
 					BundleContents contents = stack.get(DataComponents.BUNDLE_CONTENTS);
+					var weight = contents.weight().getOrThrow();
+					check(weight.compareTo(org.apache.commons.lang3.math.Fraction.getFraction(4, 64)) == 0, "the starter kit takes 4 of the bundle's 64 places (takes " + weight + ")");
 					for (ItemStack inside : contents.itemCopies().toList()) {
-						if (WandItem.isWand(inside)) wand = true;
+						if (WandItem.isWand(inside)) {
+							wand = true;
+							check(com.soulbind.SoulBind.soulBindLevel(inside) == 2, "the starter wand is soul-bound like its bundle");
+						}
 						if (inside.is(OmniItems.GRIMOIRE)) book = true;
 					}
 				}
@@ -418,7 +423,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			craftAndSave(context, server, "exploration", "base:Fire,command:Transmute,intention:Transportation");
 			server.runOnServer(s -> {
 				ItemStack wand = player(s).getMainHandItem();
-				check("barrier_wall".equals(WandItem.spell(wand, 0).toggle), "Fire + Fortify + Warding is a wall (got " + WandItem.spell(wand, 0).toggle + ")");
+				check("raise_wall".equals(WandItem.spell(wand, 0).toggle), "Fire + Fortify + Warding is a wall (got " + WandItem.spell(wand, 0).toggle + ")");
 				check("teleport".equals(WandItem.spell(wand, 1).toggle), "Fire + Transmute + Transportation is a teleport (got " + WandItem.spell(wand, 1).toggle + ")");
 			});
 			cast(context, 0);
@@ -427,7 +432,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				ServerLevel level = player(s).level();
 				int placed = 0;
-				for (BlockPos pos : BlockPos.betweenClosed(origin[0].offset(-3, 0, 3), origin[0].offset(3, 2, 3))) if (!level.getBlockState(pos).isAir()) placed++;
+				for (BlockPos pos : BlockPos.betweenClosed(origin[0].offset(-3, -6, 3), origin[0].offset(3, 3, 3))) if (level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.TransparentBlock) placed++;
 				check(placed >= 12, "wall spell raised a wall (" + placed + " blocks)");
 			});
 			// Turn away from the wall just raised: a teleport stops at the first thing in the way.
@@ -449,9 +454,104 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				ServerLevel level = player(s).level();
 				int left = 0;
 				for (int z = 1; z <= 12; z++) if (!level.getBlockState(origin[0].offset(0, -1, z)).isAir()) left++;
-				for (BlockPos pos : BlockPos.betweenClosed(origin[0].offset(-3, 0, 3), origin[0].offset(3, 2, 3))) if (!level.getBlockState(pos).isAir()) left++;
-				check(left == 0, "conjured bridge and wall vanished again (" + left + " blocks left)");
+				check(left == 0, "the conjured bridge vanished again (" + left + " blocks left)");
+				for (BlockPos pos : BlockPos.betweenClosed(origin[0].offset(-5, -6, 3), origin[0].offset(5, 4, 3))) if (level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.TransparentBlock) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			});
+
+			// ---- land shaping: carve a tunnel, mend water into grass, raise a lasting wall; then the wand's plain bolt
+			BlockPos[] site = new BlockPos[1];
+			server.runOnServer(s -> player(s).getInventory().setItem(4, WandItem.create("oak", "nether_star")));
+			context.getInput().pressKey(options -> options.keyHotbarSlots[4]);
+			context.waitTicks(5);
+			server.runCommand("execute as @a run omnispell essence 200");
+			craftAndSave(context, server, "exploration", "base:Earth,command:Sever,intention:Malice");
+			craftAndSave(context, server, "exploration", "base:Earth,command:Envelop,intention:Restoration");
+			craftAndSave(context, server, "exploration", "base:Earth,command:Fortify,intention:Warding");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				ItemStack wand = p.getMainHandItem();
+				check("carve".equals(WandItem.spell(wand, 0).toggle), "Earth + Sever + Malice carves (got " + WandItem.spell(wand, 0).toggle + ")");
+				check("mend_land".equals(WandItem.spell(wand, 1).toggle), "Earth + Envelop + Restoration mends the land (got " + WandItem.spell(wand, 1).toggle + ")");
+				check("raise_wall".equals(WandItem.spell(wand, 2).toggle), "Earth + Fortify + Warding raises a wall");
+				BlockPos b = origin[0].offset(40, 0, 0);
+				site[0] = b;
+				var stone = net.minecraft.world.level.block.Blocks.STONE.defaultBlockState();
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-9, 0, -9), b.offset(9, 8, 9))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-9, -2, -9), b.offset(9, -1, 9))) level.setBlockAndUpdate(pos, stone);
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-3, 0, 2), b.offset(3, 4, 8))) level.setBlockAndUpdate(pos, stone);
+				level.setBlockAndUpdate(b.offset(0, 1, 4), net.minecraft.world.level.block.Blocks.DIAMOND_ORE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-2, -1, -5), b.offset(2, -1, -2))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.WATER.defaultBlockState());
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(10);
+			cast(context, 0);
+			context.waitTicks(10);
+			context.takeScreenshot("22d-carve");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos b = site[0];
+				check(level.getBlockState(b.offset(0, 1, 3)).isAir() && level.getBlockState(b.offset(0, 0, 5)).isAir(), "the carve spell bored a tunnel into the stone");
+				check(level.getBlockState(b.offset(0, 1, 4)).is(net.minecraft.world.level.block.Blocks.DIAMOND_ORE), "carving leaves ore standing");
+				check(!level.getBlockState(b.offset(0, -1, 4)).isAir(), "carving level leaves the floor");
+				check(!level.getBlockState(b.offset(0, 1, 8)).isAir(), "a tier 1 tunnel stops after five blocks");
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 40f, true);
+			});
+			context.waitTicks(10);
+			cast(context, 1);
+			context.waitTicks(10);
+			context.takeScreenshot("22e-mend");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos b = site[0];
+				int water = 0, grass = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-2, -1, -5), b.offset(2, -1, -2))) {
+					if (!level.getFluidState(pos).isEmpty()) water++;
+					if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.GRASS_BLOCK)) grass++;
+				}
+				check(water <= 4 && grass >= 12, "mending covered the water with grass (" + grass + " grass, " + water + " water left)");
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 90f, 0f, true);
+			});
+			context.waitTicks(10);
+			cast(context, 2);
+			context.waitTicks(10);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos b = site[0];
+				int dirt = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-3, 0, -3), b.offset(-3, 3, 3))) if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.DIRT)) dirt++;
+				check(dirt >= 12, "an Earth wall is real dirt (" + dirt + " blocks)");
+
+				// The wand's left-click with an empty slot: a plain bolt.
+				ItemStack wand = p.getMainHandItem();
+				WandItem.select(wand, 4);
+				Zombie z = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				z.snapTo(b.getX() + 0.5, b.getY(), b.getZ() - 5.5, 0f, 0f);
+				z.setNoAi(true);
+				z.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+				level.addFreshEntity(z);
+				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
+				p.setYRot(180f);
+				p.setXRot(0f);
+				com.omnispell.spell.Casting.primary(p, wand);
+				check(z.getHealth() < z.getMaxHealth(), "left-click with an empty slot throws an arcane bolt (zombie health " + z.getHealth() + ")");
+				z.discard();
+
+				// Arcane Focus: 40% of a hit is paid in Barrier mana.
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 50;
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, new ItemStack(OmniItems.ARCANE_FOCUS));
+				float hit = com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().generic(), 10f);
+				check(Math.abs(hit - 6f) < 0.01f, "an Arcane Focus turns 40% of a hit into spent mana (10 became " + hit + ")");
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-3, 0, -3), b.offset(-3, 4, 3))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+			});
+
+			context.getInput().pressKey(options -> options.keyHotbarSlots[3]);
+			context.waitTicks(5);
+			server.runCommand("execute as @a run omnispell essence 200");
 
 			// ---- particles: one attack spell per element, at tiers 1 to 5
 			server.runOnServer(s -> {
@@ -836,7 +936,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.waitTicks(5);
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
-			server.runOnServer(s -> player(s).getInventory().setItem(1, ItemStack.EMPTY)); // the loose wand would simply drop
+			server.runOnServer(s -> {
+				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop
+				player(s).getInventory().setItem(8, new ItemStack(OmniItems.GRIMOIRE)); // a loose book must not
+			});
 			server.runCommand("kill @a");
 			context.waitForScreen(net.minecraft.client.gui.screens.DeathScreen.class);
 			context.waitTicks(30);
@@ -852,8 +955,9 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					check(stack.get(DataComponents.BUNDLE_CONTENTS).size() == 3, "bundle kept its three items through death");
 				}
 				check(bundles == 1, "one bundle after respawn, not zero and not a second one (found " + bundles + ")");
+				check(p.getInventory().getItem(8).is(OmniItems.GRIMOIRE), "a loose Book of Words is kept through death");
 				PlayerData data = PlayerStore.get(p);
-				check(data.spells.size() == 12 && data.words.size() > 200, "words and spells survive death (" + data.spells.size() + " spells)");
+				check(data.spells.size() == 15 && data.words.size() > 200, "words and spells survive death (" + data.spells.size() + " spells)");
 			});
 			context.takeScreenshot("30-after-respawn");
 		} finally {

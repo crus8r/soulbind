@@ -539,7 +539,7 @@ public final class Bosses {
 			if (data.bosses.add(def.id)) {
 				player.sendSystemMessage(Component.literal(def.name + " is defeated. " + def.lesson).withStyle(ChatFormatting.GOLD));
 				// Each first victory teaches the next kind of spell, in the website's order.
-				for (String type : new String[]{"enchantment", "illusion", "charm", "conjuration"}) {
+				for (String type : new String[]{"conjuration"}) {
 					if (tier >= 1 && data.spellTypes.add(type)) {
 						player.sendSystemMessage(Component.literal("You can now craft " + type + " spells.").withStyle(ChatFormatting.LIGHT_PURPLE));
 						break;

@@ -212,6 +212,15 @@ public final class Modifiers {
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
 		amount = com.omnispell.charm.Charms.incoming(player, source, amount);
+		// An Arcane Focus in the off hand is the wizard's shield: it turns part of every hit into spent Barrier mana.
+		if (amount > 0 && player.getOffhandItem().is(com.omnispell.item.OmniItems.ARCANE_FOCUS) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+			double wanted = amount * 0.4;
+			double paid = Mana.spend(player, ManaPool.BARRIER, wanted * 2.5) / 2.5;
+			if (paid > 0) {
+				amount -= (float) paid;
+				player.level().sendParticles(net.minecraft.core.particles.ParticleTypes.ENCHANTED_HIT, player.getX(), player.getY() + 1, player.getZ(), 6, 0.3, 0.4, 0.3, 0.05);
+			}
+		}
 		if (amount <= 0 || list(player).isEmpty() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return amount;
 		double damage = amount;
 		double scale = Omnispell.CONFIG.valueScale;

@@ -95,7 +95,7 @@ public final class OmniLoot {
 	}
 
 	private static String treatiseFor(Entity opener, RandomSource random) {
-		String[] all = {"enchantment", "illusion", "charm", "conjuration"};
+		String[] all = {"conjuration"};
 		if (!(opener instanceof ServerPlayer player)) return all[random.nextInt(all.length)];
 		PlayerData data = PlayerStore.get(player);
 		for (String type : all) {

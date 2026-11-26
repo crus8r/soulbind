@@ -25,13 +25,19 @@ replaces it.
 - Hold the wand: a bar of five squares appears above your health, each showing its key
   (`Z X C V B` at first). Press a key once to see the spell's name, again to cast. A grey
   cover drains off the square as the spell's cooldown runs. Keys are changed in the
-  book's Spellbook tab, where double-tap can also be switched off. Right-click casts the
-  selected spell. `H` shows or hides the mana display.
-- **Combat spells** (attack, defense, enchantment, illusion, charm, conjuration) are
+  book's Spellbook tab, where double-tap can also be switched off.
+- **Left-click** with the wand casts the selected spell; sneak + left-click steps to the
+  next slot. If the spell is cooling or the slot is empty, the wand throws a plain arcane
+  bolt instead. **Right-click** passes the wand to the other hand. `H` shows or hides mana.
+- There are four kinds of spell: Attack, Defense, Environment and Conjuration.
+- **Combat spells** (attack, defense, conjuration) are
   written by the Omnispell website's spell generator, unchanged. The same words always
   give the same spell. Each new combination is requested once and then remembered.
-- **Exploration spells** (bridges, teleports, invisibility and about forty other
-  effects) come from Omnispell's fixed table: base + command + intention decide the effect.
+- **Environment spells** come from Omnispell's fixed table: base + command + intention
+  decide the effect. Many shape the land: carve a tunnel, blast a crater, raise a wall or
+  a dome, mend the ground (fills water, lava and hollows). The base word is the material
+  (Earth is dirt and leaves grass) and its tier is the reach. Others bridge, teleport,
+  reveal or conceal.
 - **Words** come from Word Scrolls in structure chests and, rarely, from hostile mobs.
   A scroll always teaches a word you do not know. The Wither, the Warden and the Ender
   Dragon each drop a scroll of their own.
@@ -44,7 +50,8 @@ replaces it.
   again. With essence full and a glass bottle in hand, three catches make an Arcane Potion.
   Wells stand in **arcane shrines** that generate across the land.
 - **Boss lairs** are igloo-like domes. The door's block shows the tier: hay, wood, stone,
-  iron, gold, diamond, netherite. Step near the seal inside and the boss wakes. Bosses
+  iron, gold, diamond, netherite. A sealed lair cannot be broken by hand: carve the door
+  with an environment spell of high enough tier. Step near the seal inside and the boss wakes. Bosses
   drop word scrolls and unlock new kinds of spell. **Razza** is called by using a wand
   on the dragon egg after the Ender Dragon is dead.
 - **Potions** are brewed in an Alchemy Cauldron (cauldron + blaze rod + amethyst shard):
@@ -52,6 +59,8 @@ replaces it.
   and more), up to
   three ingredients and two catalysts, a heat source underneath, then a glass bottle.
   The Omnispell potioneer decides the result; a recipe always gives the same potion.
+- An **Arcane Focus** in the off hand is the wizard's shield: 40% of each hit is paid from
+  Barrier mana. The Book of Words is always kept on death.
 - **Waypoints** are crafted in pairs. Place both and use either to travel to the other.
 - **The Enchanted Forest** is Omnispell's own realm, reached by a craftable Forest Gate.
   Everything hostile there is half again as strong and scrolls found there are rarer.

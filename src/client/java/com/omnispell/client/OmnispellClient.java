@@ -24,6 +24,15 @@ public class OmnispellClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// Left-click with a wand in the main hand casts the selected spell (sneak: next slot) instead of punching.
+		net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback.EVENT.register((client, player, clickCount) -> {
+			if (!WandItem.isWand(player.getMainHandItem())) return false;
+			if (clickCount > 0) {
+				ClientPlayNetworking.send(new OmniNet.CastSpell(player.isShiftKeyDown() ? -2 : -1));
+				player.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);
+			}
+			return true;
+		});
 		// Armor shows its charm slots, and what is set in them.
 		net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
 			int slots = com.omnispell.charm.Charms.slots(stack);

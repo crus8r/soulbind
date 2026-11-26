@@ -267,6 +267,12 @@ public class WorldgenTest implements FabricClientGameTest {
 					if (level.getBlockState(altar[0].relative(d, 6)).is(BossDef.door(tier[0]))) doorSide = d;
 				}
 				check(doorSide != null, "the lair's door is made of " + BossDef.TIER_NAMES[tier[0]]);
+				BlockPos door = altar[0].relative(doorSide, 6);
+				int needed = new com.omnispell.boss.Lairs.Guard(level).tierNeeded(door);
+				check(needed == com.omnispell.boss.Lairs.spellTierFor(tier[0]), "the sealed door needs an environment spell of tier " + needed);
+				p.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+				check(!p.gameMode.destroyBlock(door) && !level.getBlockState(door).isAir(), "a sealed lair cannot be broken into by hand");
+				p.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
 				BlockPos view = altar[0].relative(doorSide, 12).above(2);
 				p.teleportTo(level, view.getX() + 0.5, view.getY(), view.getZ() + 0.5, java.util.Set.of(), doorSide.getOpposite().toYRot(), 10f, true);
 			});

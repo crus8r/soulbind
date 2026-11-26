@@ -29,7 +29,7 @@ public abstract class InventoryMixin {
 		soulbind$kept.clear();
 		for (int i = 0; i < self.getContainerSize(); i++) {
 			ItemStack stack = self.getItem(i);
-			if (SoulBind.payDeathCost(stack)) {
+			if (stack.is(com.omnispell.item.OmniItems.GRIMOIRE) || SoulBind.payDeathCost(stack)) {
 				soulbind$kept.put(i, stack);
 				self.setItem(i, ItemStack.EMPTY);
 			}

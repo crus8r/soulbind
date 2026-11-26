@@ -62,10 +62,22 @@ public final class WordBank {
 		List<Word> words = GSON.fromJson(root.get("words"), new TypeToken<List<Word>>() { }.getType());
 		for (Word word : words) WORDS.put(word.id, word);
 		List<SpellType> types = GSON.fromJson(root.get("spellTypes"), new TypeToken<List<SpellType>>() { }.getType());
-		for (SpellType type : types) TYPES.put(type.id, type);
+		for (SpellType type : types) {
+			// Enchantment, illusion and charm are retired: four kinds of spell remain.
+			if (type.id.equals("enchantment") || type.id.equals("illusion") || type.id.equals("charm")) continue;
+			if (type.id.equals("exploration")) {
+				type.name = "Environment Spells";
+				type.description = "Spells that shape the land and help you cross it: carve, raise, mend, bridge, travel and reveal.";
+				type.rules = List.of("Base + Action + Intent decide the effect. The same three always do the same thing.",
+						"The base word is also the material: Earth builds with dirt, Ice with packed ice, Wood with planks.",
+						"A higher-tier base word reaches further. Maxima raises the tier by one.");
+			}
+			TYPES.put(type.id, type);
+		}
 		JsonObject compat = root.getAsJsonObject("intentionCompatibility");
 		for (String key : compat.keySet()) {
 			Set<String> names = GSON.fromJson(compat.getAsJsonObject(key).get("compatible"), new TypeToken<Set<String>>() { }.getType());
+			if (key.equals("exploration")) names.addAll(List.of("Malice", "Warding", "Creation", "Preservation", "Banishment", "Soothing", "Transportation"));
 			COMPATIBLE.put(key, names);
 		}
 
