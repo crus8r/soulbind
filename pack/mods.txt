@@ -61,7 +61,6 @@ entityculling              # skips drawing creatures and chests you cannot see
 moreculling
 immediatelyfast            # faster HUD and text
 krypton                    # lighter networking for multiplayer
-c2me-fabric                # chunk generation on several cores: the heavy terrain mods need it
 structure-layout-optimizer # faster generation of large structures
 zfastnoise                 # faster terrain noise
 ksyxis                     # faster world loading
@@ -80,3 +79,4 @@ e4mc                       # Open to LAN gives a public address friends can join
 # betternether, betterend   their library (World Weaver) crashed at start next to the other mods in testing
 # formations (+ overworld, nether)   marked for 26.3 but built against old class names; crashes on start
 # antarchy (+ antos, anthology, integrated-api, sizeable-foliage, geckolib)   removed at the owner's request: its AntOS library puts phones and computers in chests, and the mod has portal guns and other modern tech
+# c2me-fabric   alpha build for 26.3; crashes at start next to Lithium and Krypton in testing

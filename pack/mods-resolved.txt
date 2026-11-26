@@ -1,32 +1,44 @@
 AdoraBuild: Structures | 2.12 | LicenseRef-All-Rights-Reserved | adorabuild-structures
 Aerial Hell | 0.7.9 | CC-BY-NC-SA-4.0 | aerial-hell
+Alternate Current | mc26.3-1.9.0 | MIT | alternate-current
 Architectury API | 22.1.7+fabric | LGPL-3.0-only | architectury-api
 ATi Structures - Vanilla Edition | 1.4.7 | LicenseRef-All-Rights-Reserved | ati-structures-vanilla-edition
+BadOptimizations | 2.4.1 | MIT | badoptimizations
 Better Archeology | 26.3.x-1.3.9 | MIT | better-archeology
 Biomes O' Plenty | 26.3.0.0.7 | LicenseRef-All-Rights-Reserved | biomes-o-plenty
 ChoiceTheorem's Overhauled Village | 4.2.2a | CC-BY-NC-ND-4.0 | ct-overhaul-village
 Cloth Config API | 26.3.161+fabric | LGPL-3.0-only | cloth-config
+Clumps | 26.3.2 | MIT | clumps
 Collective | 26.3.0-8.88-fabric+forge+neo | LicenseRef-All-Rights-Reserved | collective
 Cristel Lib | fabric-26.3-3.1.13 | CC-BY-NC-ND-4.0 | cristel-lib
 DeCubed Dungeons (Formerly Dungeons+) | 1.13.1+mod | CC-BY-NC-SA-4.0 | decubed-dungeons
 Dungeons and Taverns | 6.2.0+mod | LicenseRef-All-Rights-Reserved | dungeons-and-taverns
+Dynamic FPS | 3.11.10 | MIT | dynamic-fps
 e4mc | 6.2.3-fabric-modern | MIT | e4mc
 Ecologics | 2.7.3-NeoFab | LicenseRef-Multiple | ecologics
+Entity Culling | 1.12.2 | LicenseRef-tr7zw-Protective-License | entityculling
 Explorations | 26.3-1.6.5-Fabric | CC-BY-NC-ND-4.0 | explorations
 Explorer's Compass | 26.3-2.5.2-fabric | CC-BY-NC-SA-4.0 | explorers-compass
 Explorify | v1.6.6 | LicenseRef-All-Rights-Reserved | explorify
 Fabric API | 0.166.2+26.3 | Apache-2.0 | fabric-api
+Fast Noise | 1.1.3+26.3 | MPL-2.0 | zfastnoise
+FerriteCore | 9.0.0-fabric | MIT | ferrite-core
 Forge Config API Port | 26.3.1 | MPL-2.0 | forge-config-api-port
 Friends&Foes (Fabric/Quilt) | fabric-5.0.5+mc26.3 | CC-BY-NC-ND-4.0 | friends-and-foes
 FrozenLib | 3.0.3-mc26.3-fabric | GPL-3.0-only | frozenlib
 GlitchCore | 26.3.0.0.5 | LicenseRef-All-Rights-Reserved | glitchcore
+ImmediatelyFast | 1.17.1+26.3-fabric | LGPL-3.0-or-later | immediatelyfast
 Incendium Legacy | 5.5.4+26.3 | LicenseRef-Stardust-Labs-License | incendium
 It Takes a Pillage Continuation | fabric-1.0.13+mc26.3 | MIT | it-takes-a-pillage-continuation
+Krypton | 0.3.2 | LGPL-3.0-only | krypton
+Ksyxis | 1.4.6 | MIT | ksyxis
+Lithium | mc26.3-0.26.4-fabric | LGPL-3.0-only | lithium
 Lithostitched | 2.0.6-fabric-26.3 | MIT | lithostitched
 MES - Moog's End Structures | 2.1.1 | LGPL-3.0-only | mes-moogs-end-structures
 MidnightLib | 1.10.0+26.3-fabric | MIT | midnightlib
 MNS - Moog's Nether Structures | 3.1.1 | LGPL-3.0-only | mns-moogs-nether-structures
 Moog's Structure Lib (moogs_structures) | 3.4.2-fabric-26.3 | LGPL-3.0-only | moogs-structure-lib
+More Culling | 1.9.2 | GPL-3.0-only | moreculling
 Mutant Monsters | 26.3.1 | AGPL-3.0-only | mutant-monsters
 MVS - Moog's Voyager Structures | 5.1.3 | MIT | moogs-voyager-structures
 Naturalist | 2.0.7+26.3-fabric | LicenseRef-Custom | naturalist
@@ -39,8 +51,11 @@ Real Working Villagers | 1.0.3 | MIT | real-working-villagers
 Repurposed Structures - Fabric | 7.8.5+26.3-fabric | LGPL-3.0-only | repurposed-structures-fabric
 Resourceful Config | 6.0.2 | MIT | resourceful-config
 Resourceful Lib | 6.0.1 | MIT | resourceful-lib
+Sodium | mc26.3-0.9.3-fabric | LicenseRef-Polyform-Shield-1.0.0 | sodium
+spark | 1.10.187-fabric | GPL-3.0-only | spark
 Structory | 1.3.18+26.3 | LicenseRef-Stardust-Labs-License | structory
 Structory: Towers | 1.0.19+26.3 | LicenseRef-Stardust-Labs-License | structory-towers
+Structure Layout Optimizer | 1.1.5+26.3-fabric | MIT | structure-layout-optimizer
 Tectonic | 3.0.32-fabric-26.3 | MIT | tectonic
 TerraBlender | 26.3.0.0.9 | LGPL-3.0-only | terrablender
 Terralith | 2.6.5+26.3 | LicenseRef-Stardust-Labs-License | terralith
@@ -54,3 +69,4 @@ VillagersTradingPlus | 1.1.0+mc26.3-fabric | GPL-3.0-only | villagerstradingplus
 Villages&Pillages | fabric-2.0.0+mc26.3 | LicenseRef-CC-BY-NC-ND-4.0 | villages-and-pillages
 Wilder Wild | 4.3.3-mc26.3-fabric | LicenseRef-FrozenBlock-Modding-Oasis-License | wilder-wild
 YetAnotherConfigLib (YACL) | 3.9.7+26.3-fabric | LGPL-3.0-or-later | yacl
+ZConfig | 1.0.0+26.x | MPL-2.0 | zconfig

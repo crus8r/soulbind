@@ -292,16 +292,18 @@ public class BookScreen extends Screen {
 		WordBank.SpellType type = WordBank.spellType(craftType);
 		if (type != null) {
 			for (WordBank.Slot slot : type.wordSlots) {
-				if (slot.required || slot.type.equals("command") || slot.type.equals("intention")) {
+				if (!slotTypes.contains(slot.type)) {
 					slotTypes.add(slot.type);
 					slotWords.add(null);
 				}
 			}
 		}
 		// The charge slot (Maxima, Minima and the rest) is always on show; it may be left empty.
-		if (!slotTypes.contains("charge")) {
-			slotTypes.add("charge");
-			slotWords.add(null);
+		for (String extra : new String[]{"charge", "attribute"}) {
+			if (!slotTypes.contains(extra)) {
+				slotTypes.add(extra);
+				slotWords.add(null);
+			}
 		}
 		activeSlot = 0;
 	}
@@ -320,13 +322,11 @@ public class BookScreen extends Screen {
 	}
 
 	private static boolean canAdd(String wordType) {
-		if (craftType.equals("exploration") && !wordType.equals("charge")) return false;
+		if (craftType.equals("exploration") && !wordType.equals("charge") && !wordType.equals("attribute")) return false;
 		int have = 0;
 		for (String t : slotTypes) if (t.equals(wordType)) have++;
 		if (wordType.equals("charge")) return have < 1; // charges do not count against the wand's word limit
-		int counted = 0;
-		for (String t : slotTypes) if (!t.equals("charge")) counted++;
-		return have < (wordType.equals("attribute") ? 2 : 1) && counted < ClientState.maxWords;
+		return have < (wordType.equals("attribute") ? 2 : 1); // empty slots cost nothing: the wand's limit is on the words actually used
 	}
 
 	private void craft(GuiGraphicsExtractor g) {
@@ -434,7 +434,9 @@ public class BookScreen extends Screen {
 		boolean ready = true;
 		for (int s = 0; s < slotTypes.size(); s++) if (slotWords.get(s) == null && required(slotTypes.get(s))) ready = false;
 		ready &= !chosen.isEmpty();
-		g.text(font(), chosen.size() + " / " + ClientState.maxWords + " words", sx, by + 36, chosen.size() > ClientState.maxWords ? BAD : DIM, false);
+		int counted = 0;
+		for (String id : chosen) if (!id.startsWith("charge:")) counted++;
+		g.text(font(), counted + " / " + ClientState.maxWords + " words", sx, by + 36, counted > ClientState.maxWords ? BAD : DIM, false);
 		button(g, sx + 62, by + 33, sw - 62, 16, "CRAFT  ✦ " + cost, ready, false, () -> {
 			ClientPlayNetworking.send(new OmniNet.CraftSpell(craftType, String.join(",", chosen)));
 			ClientState.say(true, "...");

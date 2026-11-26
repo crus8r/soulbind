@@ -68,7 +68,7 @@ public final class SpellCrafting {
 			}
 			// Sources and attributes are optional extras on any combat spell, as on the website's [+] row.
 			if (!allowed && !typeId.equals("exploration") && (word.type.equals("source") || word.type.equals("attribute") || word.type.equals("charge") || word.type.equals("intention"))) allowed = true;
-			if (!allowed && typeId.equals("exploration") && word.type.equals("charge")) allowed = true;
+			if (!allowed && typeId.equals("exploration") && (word.type.equals("charge") || word.type.equals("attribute"))) allowed = true;
 			if (!allowed) return capitalize(word.type) + " words cannot go in " + type.name.toLowerCase() + ".";
 		}
 		for (WordBank.Slot slot : type.wordSlots) {
@@ -154,6 +154,21 @@ public final class SpellCrafting {
 		if (spell.hasCharge("Minima")) spell.tier = Math.max(1, spell.tier - 1);
 		if (spell.hasCharge("Sparsus")) spell.tier = Math.min(5, spell.tier + 1); // wider: an environment spell's reach is its tier
 		spell.school = "Exploration";
+		if (intention == null && command != null && Terraform.effectFor(command, "wild") != null) {
+			// No intention: the command let loose, for its own sake.
+			String wild = Terraform.effectFor(command, "wild");
+			spell.toggle = wild;
+			spell.effect = Terraform.effectName(wild);
+			spell.description = Terraform.describe(wild, spell);
+			WordBank.Flavor wildFlavor = WordBank.flavor(base);
+			if (wildFlavor != null) {
+				spell.visual.color1 = wildFlavor.color;
+				spell.visual.color2 = wildFlavor.color2;
+				spell.visual.particles = wildFlavor.particle;
+				spell.code.element = wildFlavor.element;
+			}
+			return;
+		}
 		if (entry == null) {
 			spell.fizzle = true;
 			spell.toggle = "";

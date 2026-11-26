@@ -304,16 +304,24 @@ public class WorldgenTest implements FabricClientGameTest {
 			context.takeScreenshot("43-boss-fight");
 
 			// ---- defeat it: reward and record
+			String[] bossId = new String[1];
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				ServerLevel level = p.level();
 				BossDef def = Bosses.defOf(boss[0]);
+				bossId[0] = def.id;
 				// Some bodies shrug off the first blows (a wildfire's shields), so strike until it falls.
 				for (int blow = 0; blow < 12 && boss[0].isAlive(); blow++) {
 					boss[0].setInvulnerableTime(0);
 					boss[0].hurtServer(level, level.damageSources().playerAttack(p), 100000f);
 				}
 				check(!boss[0].isAlive(), "the boss can be killed");
+			});
+			context.waitTicks(15);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BossDef def = BossDef.ALL.get(bossId[0]);
 				check(PlayerStore.get(p).bosses.contains(def.id), "the victory is recorded in the book");
 				int scrolls = 0;
 				for (Entity e : level.getAllEntities()) {

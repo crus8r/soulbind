@@ -179,6 +179,9 @@ public final class Bosses {
 			if (mob.isRemoved() || !mob.isAlive()) {
 				boss.bar.removeAllPlayers();
 				it.remove();
+				// Some borrowed bodies die in their own way, without the usual death being announced. A boss that is dead is defeated all the same.
+				boolean dead = mob.getHealth() <= 0 || mob.getRemovalReason() == net.minecraft.world.entity.Entity.RemovalReason.KILLED;
+				if (dead && !mob.entityTags().contains(REWARDED)) after.add(() -> defeated(mob, boss.def));
 				continue;
 			}
 			ServerLevel level = (ServerLevel) mob.level();
@@ -523,6 +526,15 @@ public final class Bosses {
 		if (def == null) return;
 		Active active = ACTIVE.remove(entity.getUUID());
 		if (active != null) active.bar.removeAllPlayers();
+		if (entity.entityTags().contains(REWARDED)) return;
+		defeated(entity, def);
+	}
+
+	private static final String REWARDED = "omnispell_boss_rewarded";
+
+	/** The boss has fallen: scrolls, experience, and the victory written into the book of everyone near. */
+	private static void defeated(LivingEntity entity, BossDef def) {
+		entity.addTag(REWARDED);
 		ServerLevel level = (ServerLevel) entity.level();
 		int tier = def.tier;
 		drop(entity, WordScrollItem.ofRarity(Math.min(5, 2 + tier / 2)));

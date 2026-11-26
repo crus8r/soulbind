@@ -593,6 +593,20 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.setDeltaMovement(0, 0, 0);
 				p.removeAllEffects();
 				PlayerStore.get(p).pending = null;
+				// No intention: the command let loose. Air + Envelop is a wild bound.
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Air", "command:Envelop"));
+				com.omnispell.spell.Spell bound = PlayerStore.get(p).pending;
+				check(bound != null && "bound".equals(bound.toggle) && !bound.fizzle, "Air + Envelop with no intention is a wild bound (got " + (bound == null ? "nothing" : bound.toggle) + ")");
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, bound)) && p.getDeltaMovement().y > 0.8 && p.getDeltaMovement().horizontalDistance() > 0.8, "the bound flings the caster up and forward");
+				p.setDeltaMovement(0, 0, 0);
+				p.removeAllEffects();
+				PlayerStore.get(p).pending = null;
+				// A colour attribute tints the magic an environment spell builds with.
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Fire", "command:Fortify", "intention:Warding", "attribute:Blue"));
+				com.omnispell.spell.Spell blueWall = PlayerStore.get(p).pending;
+				check(blueWall != null && "raise_wall".equals(blueWall.toggle) && com.omnispell.spell.Terraform.magicBlock(blueWall) == net.minecraft.world.level.block.Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.BLUE), "a Blue attribute makes a fire wall of blue magic");
+				PlayerStore.get(p).pending = null;
+
 				// Nicknames and the archive.
 				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|Earth Tunnel");

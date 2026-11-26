@@ -31,19 +31,19 @@ public final class Terraform {
 	}
 
 	private static final String[] COMMANDS = {"launch", "envelop", "scatter", "form", "bind", "summon", "channel", "shift", "pulse", "grow"};
-	private static final String[] INTENTIONS = {"destruction", "protection", "discovery", "concealment", "manipulation", "traversal"};
-	/** What each kind of command does with each kind of intention. Rows follow COMMANDS, columns INTENTIONS. */
+	private static final String[] INTENTIONS = {"destruction", "protection", "discovery", "concealment", "manipulation", "traversal", "wild"};
+	/** What each kind of command does with each kind of intention. Rows follow COMMANDS, columns INTENTIONS. The last column is the command with no intention at all. */
 	private static final String[][] TABLE = {
-			/* launch  */ {"carve", "platform", "survey", "smoke_screen", "push", "grapple"},
-			/* envelop */ {"dry", "mend_land", "true_sight", "invisibility", "solidify", "phase"},
-			/* scatter */ {"crater", "calm", "illuminate", "decoy", "weather", "teleport"},
-			/* form    */ {"pit", "raise_wall", "prospect", "mirage", "golem", "bridge"},
-			/* bind    */ {"moat", "anchor", "track", "silent_step", "gather", "launch"},
-			/* summon  */ {"strike", "guardian", "scout", "phantom", "conjure", "mount"},
-			/* channel */ {"drill", "attune", "echo", "lull", "current", "stairs"},
-			/* shift   */ {"transmute", "ring", "augury", "polymorph", "path", "pillar"},
-			/* pulse   */ {"flatten", "dome", "reveal", "blackout", "field", "dash"},
-			/* grow    */ {"clear", "growth", "waymark", "thicket", "tree", "leap"},
+			/* launch  */ {"carve", "platform", "survey", "smoke_screen", "push", "grapple", "grapple"},
+			/* envelop */ {"dry", "mend_land", "true_sight", "invisibility", "solidify", "phase", "bound"},
+			/* scatter */ {"crater", "calm", "illuminate", "decoy", "weather", "teleport", "reveal"},
+			/* form    */ {"pit", "raise_wall", "prospect", "mirage", "golem", "bridge", "conjure"},
+			/* bind    */ {"moat", "anchor", "track", "silent_step", "gather", "launch", "gather"},
+			/* summon  */ {"strike", "guardian", "scout", "phantom", "conjure", "mount", "scout"},
+			/* channel */ {"drill", "attune", "echo", "lull", "current", "stairs", "current"},
+			/* shift   */ {"transmute", "ring", "augury", "polymorph", "path", "pillar", "transmute"},
+			/* pulse   */ {"flatten", "dome", "reveal", "blackout", "field", "dash", "dash"},
+			/* grow    */ {"clear", "growth", "waymark", "thicket", "tree", "leap", "growth"},
 	};
 
 	/** The effect of an environment spell: the command's kind and the intention's kind decide it. */
@@ -59,7 +59,7 @@ public final class Terraform {
 		return switch (toggle == null ? "" : toggle) {
 			case "carve", "drill", "crater", "pit", "moat", "flatten", "dry", "clear", "raise_wall", "ring", "dome", "platform", "mend_land",
 					"calm", "attune", "growth", "illuminate", "prospect", "thicket", "solidify", "weather", "gather", "conjure", "path", "tree",
-					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull" -> true;
+					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull", "bound" -> true;
 			default -> false;
 		};
 	}
@@ -106,6 +106,7 @@ public final class Terraform {
 			case "stairs" -> "Builds a stair of " + stuff + " climbing " + (carveLength(t) + 2) + " blocks the way you face.";
 			case "strike" -> "Calls " + bolt(spell) + " down where you look. It strikes everything within " + (2 + t) + " blocks and leaves its element's mark on the ground.";
 			case "field" -> "Lays a field of " + (spell.element == null ? "magic" : spell.element) + " where you look, " + ((2 + t) * 2 + 1) + " blocks across, for " + (6 + 3 * t) + " seconds: " + fieldEffect(spell.element) + ".";
+			case "bound" -> "A wild bound: flings you far and high the way you face, never quite the same way twice, and scatters whatever stood near you.";
 			case "launch" -> "Throws you " + (8 + 6 * t) + " blocks straight up, and sets you down gently.";
 			case "survey" -> "Points the way to the nearest village and tells you how far it is.";
 			case "echo" -> "Shows the chests, barrels, spawners and other workings hidden within " + (8 + 4 * t) + " blocks.";
@@ -227,7 +228,7 @@ public final class Terraform {
 
 	public static double cooldownSeconds(String toggle) {
 		return switch (toggle) {
-			case "carve", "drill", "platform", "pillar", "gather", "path", "stairs", "launch", "augury", "waymark" -> 6;
+			case "carve", "drill", "platform", "pillar", "gather", "path", "stairs", "launch", "augury", "waymark", "bound" -> 6;
 			case "attune", "weather", "calm", "dome", "ring", "thicket" -> 20;
 			default -> 10;
 		};
@@ -332,7 +333,7 @@ public final class Terraform {
 			BlockState existing = c.level.getBlockState(pos);
 			if (!existing.isAir() && !existing.canBeReplaced()) return;
 			if (real == null) {
-				if (TempBlocks.place(c.level, pos, TempBlocks.material(c.spell.element), 600 + 300 * tier)) changed++;
+				if (TempBlocks.place(c.level, pos, magic(c.spell), 600 + 300 * tier)) changed++;
 			} else {
 				c.level.setBlockAndUpdate(pos, real.defaultBlockState());
 				changed++;
@@ -344,7 +345,7 @@ public final class Terraform {
 			if (!existing.isAir() && !existing.canBeReplaced()) return;
 			if (!c.level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, new net.minecraft.world.phys.AABB(pos)).isEmpty()) return;
 			if (real == null) {
-				if (TempBlocks.place(c.level, pos, TempBlocks.material(c.spell.element), 600 + 300 * tier)) changed++;
+				if (TempBlocks.place(c.level, pos, magic(c.spell), 600 + 300 * tier)) changed++;
 			} else {
 				c.level.setBlockAndUpdate(pos, realState == null ? real.defaultBlockState() : realState);
 				changed++;
@@ -479,6 +480,27 @@ public final class Terraform {
 						}
 					});
 				}
+				job.changed++;
+			}
+			case "bound" -> {
+				Vec3 look = p.getLookAngle();
+				Vec3 flat = new Vec3(look.x, 0, look.z);
+				flat = flat.lengthSqr() < 0.01 ? Vec3.directionFromRotation(0, p.getYRot()) : flat.normalize();
+				var random = level.getRandom();
+				double wobble = (random.nextDouble() - 0.5) * 0.9; // the chaos: it never goes quite where you aimed
+				Vec3 side = new Vec3(-flat.z, 0, flat.x).scale(wobble);
+				double far = 1.0 + 0.25 * tier + random.nextDouble() * 0.5;
+				for (net.minecraft.world.entity.LivingEntity e : Targeting.around(p, p.position(), 4, false)) {
+					Vec3 away = e.position().subtract(p.position());
+					if (away.lengthSqr() > 0.01) e.push(away.normalize().x * 0.9, 0.4, away.normalize().z * 0.9);
+					e.syncVelocity = true;
+				}
+				p.setDeltaMovement(flat.x * far + side.x, 0.85 + 0.12 * tier + random.nextDouble() * 0.3, flat.z * far + side.z);
+				p.syncVelocity = true;
+				p.fallDistance = 0;
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOW_FALLING, 120 + 40 * tier, 0, false, false));
+				Fx.impact(level, p.position(), fx, tier);
+				level.playSound(null, p.blockPosition(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
 				job.changed++;
 			}
 			case "launch" -> {
@@ -702,7 +724,7 @@ public final class Terraform {
 						BlockState existing = level.getBlockState(pos);
 						if (existing.hasBlockEntity() || existing.getDestroySpeed(level, pos) < 0 || job.guard.tierNeeded(pos) > 0) continue;
 						if (block == null) {
-							if (existing.canBeReplaced() && TempBlocks.place(level, pos, TempBlocks.material(c.spell.element), 600 + 300 * tier)) job.changed++;
+							if (existing.canBeReplaced() && TempBlocks.place(level, pos, magic(c.spell), 600 + 300 * tier)) job.changed++;
 						} else {
 							level.setBlockAndUpdate(pos, (block == Blocks.DIRT ? Blocks.DIRT_PATH : block).defaultBlockState());
 							job.changed++;
@@ -906,7 +928,7 @@ public final class Terraform {
 							if (!liquid && !hollow) continue;
 							if (!level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, new net.minecraft.world.phys.AABB(pos)).isEmpty()) continue;
 							if (block == null) {
-								if (TempBlocks.place(level, pos, TempBlocks.material(c.spell.element), 600 + 300 * tier)) job.changed++;
+								if (TempBlocks.place(level, pos, magic(c.spell), 600 + 300 * tier)) job.changed++;
 							} else {
 								level.setBlockAndUpdate(pos, block.defaultBlockState());
 								job.changed++;
@@ -1065,6 +1087,28 @@ public final class Terraform {
 			caster.fallDistance = 0;
 			caster.syncVelocity = true;
 		}
+	}
+
+	/** The hardened magic a spell builds with when its base word has no real material: the element's colour, or a colour attribute's if the spell has one. */
+	public static Block magicBlock(Spell spell) {
+		return magic(spell);
+	}
+
+	static Block magic(Spell spell) {
+		for (String id : spell.words) {
+			net.minecraft.world.item.DyeColor dye = switch (id) {
+				case "attribute:Red" -> net.minecraft.world.item.DyeColor.RED;
+				case "attribute:Orange" -> net.minecraft.world.item.DyeColor.ORANGE;
+				case "attribute:Yellow" -> net.minecraft.world.item.DyeColor.YELLOW;
+				case "attribute:Green" -> net.minecraft.world.item.DyeColor.LIME;
+				case "attribute:Blue" -> net.minecraft.world.item.DyeColor.BLUE;
+				case "attribute:Indigo" -> net.minecraft.world.item.DyeColor.PURPLE;
+				case "attribute:Violet" -> net.minecraft.world.item.DyeColor.MAGENTA;
+				default -> null;
+			};
+			if (dye != null) return Blocks.STAINED_GLASS.pick(dye);
+		}
+		return TempBlocks.material(spell.element);
 	}
 
 	/** Where each player last set a waymark: realm|x|y|z. Kept until the server stops. */
