@@ -85,7 +85,7 @@ public final class Guide {
 				"Essence is what a new spell is made from. You only spend it when crafting.",
 				"Draw it from an Arcane Well: use the well, wait for the surge (a chime and a burst of light), then use the well again before the surge fades. Too early or too late and it slips away.",
 				"When your essence is full, hold a glass bottle at the well. Three catches fill it into an Arcane Potion, which restores essence anywhere. Potions stack to 16.",
-				"Until wells are found in the world, one can be built: stone bricks around an amethyst shard (top middle) and a water bucket (centre)."));
+				"Wells stand in arcane shrines across the world. One can also be built: stone bricks around an amethyst shard (top middle) and a water bucket (centre)."));
 		s.put("Waypoints", List.of(
 				"Waypoints come in pairs. Place both ends, then use either one to travel to the other.",
 				"Recipe (makes a pair): an ender pearl on top; amethyst shard, stone bricks, amethyst shard in the middle row; three stone bricks along the bottom.",
@@ -94,6 +94,14 @@ public final class Guide {
 				"Travel costs Phase mana: 1 within 500 blocks, 2 within 2,000, 3 within 8,000, 4 beyond. With no Phase mana left, an ender pearl pays instead.",
 				"Crossing between worlds always takes an ender pearl.",
 				"Breaking a waypoint returns it, still bonded to its partner. A lone waypoint from an odd stack has no partner and cannot be placed."));
+		s.put("Shrines and lairs", List.of(
+				"Arcane shrines stand in the open across the world: a stone platform, four amethyst-crowned pillars, and an arcane well at the centre. Draw your essence there.",
+				"Boss lairs are white domes of snow and ice, like great igloos, with a single sealed door.",
+				"The door's material tells you how dangerous the lair is: hay, then wood, stone, iron, gold, diamond, and netherite for the worst of them. Break the door and the block is yours.",
+				"Inside is a dark seal. Step close and the boss breaks out. It has a boss bar, an element it resists and one it is weak to, and tricks of its own.",
+				"Each boss drops word scrolls, rarer for harder lairs. Your first victories also teach new kinds of spell: Enchantment, Illusion, Charm, then Conjuration.",
+				"The Bosses tab keeps count.",
+				"Razza is not in this world. When the Ender Dragon is dead, take a wand to its egg. The egg is not used up, so bring your friends."));
 		s.put("Dark magic", List.of(
 				"Spells made with forbidden words are dark magic. Each cast adds corruption.",
 				"The higher your corruption, the more likely a dark spell fizzles or turns on you. It fades slowly with time."));

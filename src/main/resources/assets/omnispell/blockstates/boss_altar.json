@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "spent=false": {
+      "model": "omnispell:block/boss_altar"
+    },
+    "spent=true": {
+      "model": "omnispell:block/boss_altar_spent"
+    }
+  }
+}

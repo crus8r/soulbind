@@ -154,6 +154,23 @@ public final class Casting {
 		cooldowns.put(id, new Cooldown(cd.start, Math.max(now, cd.ready - ticks)));
 	}
 
+	/** Silence: every spell the player has on cooldown waits longer, and ready spells get a short wait. */
+	public static void lengthenCooldowns(ServerPlayer player, int ticks) {
+		Map<String, Cooldown> cooldowns = COOLDOWNS.computeIfAbsent(player.getUUID(), k -> new HashMap<>());
+		long now = Tasks.now();
+		ItemStack wand = WandItem.heldWand(player);
+		if (!wand.isEmpty()) {
+			for (int i = 0; i < WandItem.SLOTS; i++) {
+				Spell spell = WandItem.spell(wand, i);
+				if (spell == null) continue;
+				Cooldown cd = cooldowns.get(spell.id);
+				long ready = Math.max(now, cd == null ? now : cd.ready) + ticks;
+				cooldowns.put(spell.id, new Cooldown(now, ready));
+			}
+		}
+		PlayerStore.syncVitals(player);
+	}
+
 	/** For the HUD: for each wand slot, [ticks left, total ticks]. */
 	public static JsonArray cooldownsJson(ServerPlayer player) {
 		JsonArray array = new JsonArray();

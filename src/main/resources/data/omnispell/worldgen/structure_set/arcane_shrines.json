@@ -1,0 +1,14 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 734102911,
+    "spacing": 22,
+    "separation": 9
+  },
+  "structures": [
+    {
+      "structure": "omnispell:arcane_shrine",
+      "weight": 1
+    }
+  ]
+}

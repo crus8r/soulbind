@@ -1,0 +1,38 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 1190445571,
+    "spacing": 30,
+    "separation": 12
+  },
+  "structures": [
+    {
+      "structure": "omnispell:boss_lair_0",
+      "weight": 30
+    },
+    {
+      "structure": "omnispell:boss_lair_1",
+      "weight": 24
+    },
+    {
+      "structure": "omnispell:boss_lair_2",
+      "weight": 18
+    },
+    {
+      "structure": "omnispell:boss_lair_3",
+      "weight": 12
+    },
+    {
+      "structure": "omnispell:boss_lair_4",
+      "weight": 8
+    },
+    {
+      "structure": "omnispell:boss_lair_5",
+      "weight": 5
+    },
+    {
+      "structure": "omnispell:boss_lair_6",
+      "weight": 3
+    }
+  ]
+}

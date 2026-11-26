@@ -656,32 +656,59 @@ public class BookScreen extends Screen {
 	// ------------------------------------------------------------------ bosses
 
 	private void bosses(GuiGraphicsExtractor g) {
-		int x = px + 16, y = py + 36, w = pw - 32;
-		g.text(font(), "FOES DEFEATED", x, y, DIM, false);
-		y += 14;
-		String[][] known = {
-				{"wither", "The Wither", "Built from soul sand and three skulls. Guards a word of ruin."},
-				{"warden", "The Warden", "Sleeps beneath the deep dark. Guards a word of the unseen."},
-				{"ender_dragon", "The Ender Dragon", "Circles the End. Guards one of the rarest words."},
-		};
-		for (String[] boss : known) {
-			boolean done = ClientState.bosses.contains(boss[0]);
-			g.fill(x, y, x + w, y + 26, INSET);
-			g.outline(x, y, w, 26, done ? GOOD : LINE);
-			g.text(font(), done ? "✔" : "·", x + 6, y + 9, done ? GOOD : DIM, false);
-			g.text(font(), boss[1], x + 20, y + 4, done ? 0xFFFFFFFF : TEXT, false);
-			g.text(font(), fit(boss[2], w - 26), x + 20, y + 15, DIM, false);
-			y += 30;
-		}
-		// Razza stands apart.
+		int x = px + 10, top = py + 30, w = pw - 20, bottom = py + ph - 16;
+		g.enableScissor(px + 4, top, px + pw - 4, bottom);
+		int y = top + 2 - detailScroll * 10;
+
+		// Razza stands apart, at the top.
 		boolean razza = ClientState.bosses.contains("razza");
-		y += 4;
-		g.fill(x, y, x + w, y + 34, 0xFF1A1020);
-		g.outline(x, y, w, 34, razza ? GOLD : 0xFF6A3A8A);
-		g.outline(x + 1, y + 1, w - 2, 32, razza ? 0xFF8A6A20 : 0xFF2A1838);
-		g.text(font(), razza ? "✔" : "?", x + 6, y + 13, razza ? GOLD : 0xFFC080FF, false);
-		g.text(font(), "Razza, the Unbound", x + 20, y + 6, razza ? GOLD : 0xFFE0B0FF, false);
-		g.text(font(), razza ? "The seals are broken." : "He believes his seals are permanent. He is not here. Not yet.", x + 20, y + 19, DIM, false);
+		g.fill(x, y, x + w, y + 30, 0xFF1A1020);
+		g.outline(x, y, w, 30, razza ? GOLD : 0xFF6A3A8A);
+		g.outline(x + 1, y + 1, w - 2, 28, razza ? 0xFF8A6A20 : 0xFF2A1838);
+		g.text(font(), razza ? "✔" : "?", x + 6, y + 11, razza ? GOLD : 0xFFC080FF, false);
+		g.text(font(), "Razza, the Unbound", x + 20, y + 5, razza ? GOLD : 0xFFE0B0FF, false);
+		g.text(font(), fit(razza ? "The seals are broken." : ClientState.bosses.contains("ender_dragon")
+				? "The dragon is dead. Take a wand to its egg." : "He is not here. Not until the dragon falls.", w - 26), x + 20, y + 17, DIM, false);
+		y += 36;
+
+		g.text(font(), "LAIRS  ·  the door tells you what waits inside", x, y, DIM, false);
+		y += 12;
+		int col = (w - 4) / 2;
+		int i = 0;
+		for (com.omnispell.boss.BossDef def : com.omnispell.boss.BossDef.ALL.values()) {
+			if (def.tier >= 7) continue;
+			boolean done = ClientState.bosses.contains(def.id);
+			int bx = x + (i % 2) * (col + 4);
+			int by = y + (i / 2) * 24;
+			g.fill(bx, by, bx + col, by + 21, INSET);
+			g.outline(bx, by, col, 21, done ? GOOD : LINE);
+			g.text(font(), done ? "✔" : "·", bx + 5, by + 6, done ? GOOD : DIM, false);
+			g.text(font(), fit(done ? def.name : "Unknown", col - 20), bx + 16, by + 2, done ? 0xFFFFFFFF : DIM, false);
+			g.text(font(), fit(com.omnispell.boss.BossDef.TIER_NAMES[def.tier] + " door" + (done ? " · " + def.lesson : ""), col - 20), bx + 16, by + 11, done ? DIM : 0xFF5A6480, false);
+			i++;
+		}
+		y += ((i + 1) / 2) * 24 + 6;
+
+		g.text(font(), "GREAT FOES", x, y, DIM, false);
+		y += 12;
+		String[][] known = {
+				{"wither", "The Wither", "Guards a word of ruin."},
+				{"warden", "The Warden", "Guards a word of the unseen."},
+				{"ender_dragon", "The Ender Dragon", "Guards one of the rarest words."},
+		};
+		int third = (w - 8) / 3;
+		for (int k = 0; k < known.length; k++) {
+			boolean done = ClientState.bosses.contains(known[k][0]);
+			int bx = x + k * (third + 4);
+			g.fill(bx, y, bx + third, y + 21, INSET);
+			g.outline(bx, y, third, 21, done ? GOOD : LINE);
+			g.text(font(), (done ? "✔ " : "· ") + known[k][1], bx + 4, y + 2, done ? 0xFFFFFFFF : TEXT, false);
+			g.text(font(), fit(known[k][2], third - 8), bx + 4, y + 11, DIM, false);
+		}
+		y += 26;
+		g.disableScissor();
+		int contentHeight = y + detailScroll * 10 - top;
+		if (contentHeight <= bottom - top && detailScroll > 0) detailScroll--;
 	}
 
 	// ------------------------------------------------------------------ input

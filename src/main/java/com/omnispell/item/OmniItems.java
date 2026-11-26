@@ -30,6 +30,12 @@ public final class OmniItems {
 					.pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE).noLootTable());
 	public static final Item WAYPOINT_ITEM = register("waypoint", p -> new com.omnispell.waypoint.WaypointItem(WAYPOINT, p), new Item.Properties().useBlockDescriptionPrefix().stacksTo(2));
 
+	public static final Block BOSS_ALTAR = registerBlock("boss_altar", com.omnispell.boss.BossAltarBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_BLACK).strength(-1.0f, 3600000.0f).sound(SoundType.DEEPSLATE)
+					.lightLevel(state -> state.getValue(com.omnispell.boss.BossAltarBlock.SPENT) ? 0 : 12)
+					.pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE).noLootTable());
+	public static final Item BOSS_ALTAR_ITEM = register("boss_altar", p -> new BlockItem(BOSS_ALTAR, p), new Item.Properties().useBlockDescriptionPrefix());
+
 	private OmniItems() {
 	}
 

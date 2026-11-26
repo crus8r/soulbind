@@ -102,12 +102,40 @@ public class OmnispellClientTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (System.getenv("OMNISPELL_WORLDGEN") != null) return; // the worldgen test runs alone
 		var realGenerator = SpellGenerator.transport;
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			TestServerContext server = world.getServer();
 			server.runCommand("time set noon");
 			server.runCommand("gamerule spawn_mobs false");
 			context.waitTicks(40);
+
+			// ---- structure building mode: build, save, screenshot, stop
+			if (System.getenv("OMNISPELL_BUILD_STRUCTURES") != null) {
+				server.runOnServer(s -> StructureBuilder.buildAll(player(s).level(), player(s).blockPosition()));
+				context.waitTicks(20);
+				server.runOnServer(s -> {
+					ServerPlayer p = player(s);
+					BlockPos at = p.blockPosition();
+					p.teleportTo(p.level(), at.getX() + 14.5, at.getY() + 3, at.getZ() - 1.5, java.util.Set.of(), 0f, 10f, true);
+				});
+				server.runCommand("gamemode spectator @a");
+				context.waitTicks(30);
+				context.takeScreenshot("structure-shrine");
+				server.runOnServer(s -> {
+					ServerPlayer p = player(s);
+					p.teleportTo(p.level(), p.getX() + 78, p.getY() + 14, p.getZ() - 24, java.util.Set.of(), 0f, 25f, true);
+				});
+				context.waitTicks(40);
+				context.takeScreenshot("structure-lairs");
+				server.runOnServer(s -> {
+					ServerPlayer p = player(s);
+					p.teleportTo(p.level(), p.getX() - 60.5 + 6, p.getY() - 14, p.getZ() + 24 + 5, java.util.Set.of(), 0f, 5f, true);
+				});
+				context.waitTicks(40);
+				context.takeScreenshot("structure-lair-door");
+				return;
+			}
 
 			// ---- optional: one real request to the Omnispell generator (set OMNISPELL_LIVE=1).
 			// "Fire" alone is a spell the website already remembers, so no AI is used.

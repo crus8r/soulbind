@@ -58,6 +58,7 @@ public class Omnispell implements ModInitializer {
 		OmniCommands.register();
 		registerMessages();
 		registerWaypointMessages();
+		registerRazza();
 		registerEvents();
 		LOG.info("Omnispell ready: {} words of power", WordBank.obtainableCount());
 	}
@@ -115,6 +116,36 @@ public class Omnispell implements ModInitializer {
 		});
 	}
 
+	/**
+	 * Razza is summoned at the dragon's egg: once the Ender Dragon is dead, use a
+	 * wand on the egg. The egg is not used up.
+	 */
+	private static void registerRazza() {
+		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+			if (!level.getBlockState(hit.getBlockPos()).is(net.minecraft.world.level.block.Blocks.DRAGON_EGG)) return net.minecraft.world.InteractionResult.PASS;
+			if (!WandItem.isWand(player.getItemInHand(hand))) return net.minecraft.world.InteractionResult.PASS;
+			if (!(player instanceof ServerPlayer serverPlayer)) return net.minecraft.world.InteractionResult.SUCCESS;
+			net.minecraft.server.level.ServerLevel serverLevel = serverPlayer.level();
+			if (!PlayerStore.get(serverPlayer).bosses.contains("ender_dragon")) {
+				serverPlayer.sendOverlayMessage(net.minecraft.network.chat.Component.literal("The egg is silent. Its mother still lives in your memory."));
+				return net.minecraft.world.InteractionResult.SUCCESS;
+			}
+			for (net.minecraft.world.entity.Entity e : serverLevel.getAllEntities()) {
+				com.omnispell.boss.BossDef def = com.omnispell.boss.Bosses.defOf(e);
+				if (def != null && def.id.equals("razza") && e.isAlive()) {
+					serverPlayer.sendOverlayMessage(net.minecraft.network.chat.Component.literal("He is already here."));
+					return net.minecraft.world.InteractionResult.SUCCESS;
+				}
+			}
+			net.minecraft.world.phys.Vec3 at = net.minecraft.world.phys.Vec3.atBottomCenterOf(hit.getBlockPos().above(2));
+			com.omnispell.boss.Bosses.spawn(serverLevel, at, com.omnispell.boss.BossDef.ALL.get("razza"));
+			for (ServerPlayer other : serverLevel.players()) {
+				other.sendSystemMessage(net.minecraft.network.chat.Component.literal("The seals break. Razza, the Unbound, has been called to account.").withStyle(net.minecraft.ChatFormatting.DARK_PURPLE));
+			}
+			return net.minecraft.world.InteractionResult.SUCCESS;
+		});
+	}
+
 	private static void registerEvents() {
 		ServerPlayerEvents.JOIN.register(player -> {
 			PlayerStore.get(player);
@@ -135,25 +166,35 @@ public class Omnispell implements ModInitializer {
 		});
 		ServerPlayerEvents.ALLOW_DEATH.register((player, source, amount) -> Modifiers.allowDeath(player));
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register(Modifiers::allowDamage);
-		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> Modifiers.afterDamage(entity, source, damageTaken));
+		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
+			Modifiers.afterDamage(entity, source, damageTaken);
+			com.omnispell.boss.Bosses.afterDamage(entity, source, damageTaken);
+		});
+		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.boss.Bosses::onDeath);
 
 		// A conjured creature left behind by a crash or restart is removed when its chunk loads.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
 			if (Summons.isStray(entity)) Tasks.later(1, entity::discard);
+			com.omnispell.boss.Bosses.onEntityLoad(entity);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved
 			com.omnispell.waypoint.Waypoints.unload();
+			com.omnispell.boss.Bosses.clear();
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.save(player);
 		});
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			Tasks.tick();
 			int tick = server.getTickCount();
-			if (tick % 10 == 0) MobControl.tick();
+			if (tick % 10 == 0) {
+				MobControl.tick();
+				com.omnispell.boss.Bosses.tick();
+			}
 			if (tick % 20 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 					Mana.regenerate(player);
+					com.omnispell.boss.BossAltarBlock.wakeNear(player);
 					Modifiers.everySecond(player);
 				}
 			}

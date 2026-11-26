@@ -210,6 +210,27 @@ image('waypoint_stone', ['................', '....ssssssss....', '...slllllllls.
 image('waypoint_gem', ['................'] * 5 + ['....cccccccc....', '....bbbbbbbb....'] + ['................'] * 9,
       {'c': (255, 255, 255, 255), 'b': (170, 170, 170, 255)})
 
+# Boss seal: dark stone with a glowing sigil, dark when spent.
+SEAL = [
+    'ssssssssssssssss',
+    'sddddddddddddds.'[:15] + 's',
+    'sdllllllllllllds'[:16],
+    'sdlddddrrdddddls'[:16],
+    'sdlddrrppprddlds'[:16],
+    'sdldrpddddprdlds',
+    'sdldrpdrrdprdlds',
+    'sdlrpddrprddplds'[:16],
+    'sdlrpddprrddplds'[:16],
+    'sdldrpdrrdprdlds',
+    'sdldrpddddprdlds',
+    'sdlddrrppprddlds'[:16],
+    'sdlddddrrdddddls'[:16],
+    'sdllllllllllllds'[:16],
+    'sdddddddddddddds',
+    'ssssssssssssssss']
+image('boss_altar', SEAL, {'s': (20, 18, 28, 255), 'd': (44, 40, 56, 255), 'l': (66, 60, 82, 255), 'r': (200, 60, 60, 255), 'p': (255, 150, 90, 255)}, 'block')
+image('boss_altar_spent', SEAL, {'s': (20, 18, 28, 255), 'd': (44, 40, 56, 255), 'l': (66, 60, 82, 255), 'r': (58, 52, 70, 255), 'p': (74, 68, 88, 255)}, 'block')
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -244,6 +265,63 @@ write(os.path.join(ASSETS, 'items', 'waypoint.json'), {'model': {
     'tints': [{'type': 'minecraft:constant', 'value': -1},
               {'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xB0B0B8}]}})
 
+altar_variants = {}
+for spent in ('false', 'true'):
+    model = 'boss_altar_spent' if spent == 'true' else 'boss_altar'
+    write(os.path.join(ASSETS, 'models', 'block', model + '.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': f'omnispell:block/{model}'}})
+    altar_variants[f'spent={spent}'] = {'model': f'omnispell:block/{model}'}
+write(os.path.join(ASSETS, 'blockstates', 'boss_altar.json'), {'variants': altar_variants})
+write(os.path.join(ASSETS, 'items', 'boss_altar.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/boss_altar'}})
+
+# ---------------------------------------------------------------- worldgen
+# Biomes where surface structures may stand: land biomes, vanilla and (optionally) other mods' by convention tags.
+LAND = ['#minecraft:is_forest', '#minecraft:is_taiga', '#minecraft:is_savanna', '#minecraft:is_hill', '#minecraft:is_mountain',
+        '#minecraft:is_badlands', '#minecraft:is_jungle', 'minecraft:plains', 'minecraft:sunflower_plains', 'minecraft:snowy_plains',
+        'minecraft:desert', 'minecraft:meadow', 'minecraft:swamp', 'minecraft:cherry_grove', 'minecraft:ice_spikes']
+LAND += [{'id': t, 'required': False} for t in ('#c:is_plains', '#c:is_forest', '#c:is_desert', '#c:is_snowy', '#c:is_swamp', '#c:is_magical')]
+write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_structure', 'surface.json'), {'replace': False, 'values': LAND})
+
+def structure(name, weight_unused=None):
+    write(os.path.join(DATA, 'worldgen', 'template_pool', name + '.json'), {
+        'elements': [{'weight': 1, 'element': {'element_type': 'minecraft:legacy_single_pool_element', 'location': f'omnispell:{name}',
+                                               'processors': {'processors': []}, 'projection': 'rigid'}}],
+        'fallback': 'minecraft:empty'})
+    write(os.path.join(DATA, 'worldgen', 'structure', name + '.json'), {
+        'type': 'minecraft:jigsaw', 'biomes': '#omnispell:has_structure/surface',
+        'max_distance_from_center': 80, 'project_start_to_heightmap': 'WORLD_SURFACE_WG', 'size': 1,
+        'spawn_overrides': {}, 'start_height': {'absolute': -1}, 'start_pool': f'omnispell:{name}',
+        'step': 'surface_structures', 'terrain_adaptation': 'beard_thin', 'use_expansion_hack': False})
+
+structure('arcane_shrine')
+write(os.path.join(DATA, 'worldgen', 'structure_set', 'arcane_shrines.json'), {
+    'placement': {'type': 'minecraft:random_spread', 'salt': 734102911, 'spacing': 22, 'separation': 9},
+    'structures': [{'structure': 'omnispell:arcane_shrine', 'weight': 1}]})
+LAIR_WEIGHTS = [30, 24, 18, 12, 8, 5, 3]   # hay is common, netherite is a rare find
+for tier in range(7):
+    structure(f'boss_lair_{tier}')
+write(os.path.join(DATA, 'worldgen', 'structure_set', 'boss_lairs.json'), {
+    'placement': {'type': 'minecraft:random_spread', 'salt': 1190445571, 'spacing': 30, 'separation': 12},
+    'structures': [{'structure': f'omnispell:boss_lair_{t}', 'weight': LAIR_WEIGHTS[t]} for t in range(7)]})
+
+def chest_table(name, items):
+    write(os.path.join(DATA, 'loot_table', 'chests', name + '.json'), {
+        'type': 'minecraft:chest',
+        'pools': [{'rolls': {'type': 'minecraft:uniform', 'min': 3, 'max': 6},
+                   'entries': [{'type': 'minecraft:item', 'name': i, 'weight': w} for i, w in items]}]})
+chest_table('arcane_shrine', [('minecraft:amethyst_shard', 10), ('minecraft:glass_bottle', 10), ('minecraft:lapis_lazuli', 8),
+                              ('minecraft:book', 6), ('minecraft:glowstone_dust', 5), ('minecraft:ender_pearl', 2), ('omnispell:arcane_potion', 3)])
+LAIR_LOOT = [
+    [('minecraft:wheat', 10), ('minecraft:bone', 8), ('minecraft:string', 8), ('minecraft:amethyst_shard', 5), ('omnispell:arcane_potion', 3)],
+    [('minecraft:bone', 8), ('minecraft:amethyst_shard', 8), ('minecraft:copper_ingot', 8), ('minecraft:iron_ingot', 4), ('omnispell:arcane_potion', 4)],
+    [('minecraft:iron_ingot', 8), ('minecraft:amethyst_shard', 8), ('minecraft:lapis_lazuli', 8), ('minecraft:gold_ingot', 4), ('omnispell:arcane_potion', 4)],
+    [('minecraft:iron_ingot', 10), ('minecraft:gold_ingot', 8), ('minecraft:ender_pearl', 4), ('minecraft:emerald', 5), ('omnispell:arcane_potion', 5)],
+    [('minecraft:gold_ingot', 10), ('minecraft:emerald', 8), ('minecraft:ender_pearl', 6), ('minecraft:diamond', 3), ('omnispell:arcane_potion', 5)],
+    [('minecraft:diamond', 6), ('minecraft:emerald', 8), ('minecraft:ender_pearl', 6), ('minecraft:echo_shard', 3), ('omnispell:arcane_potion', 6)],
+    [('minecraft:diamond', 8), ('minecraft:echo_shard', 5), ('minecraft:netherite_scrap', 3), ('minecraft:ender_pearl', 6), ('omnispell:arcane_potion', 6)],
+]
+for tier, items in enumerate(LAIR_LOOT):
+    chest_table(f'boss_lair_{tier}', items)
+
 # ---------------------------------------------------------------- names
 lang = {
     'item.omnispell.wand': 'Wand',
@@ -252,6 +330,7 @@ lang = {
     'item.omnispell.arcane_potion': 'Arcane Potion',
     'block.omnispell.arcane_well': 'Arcane Well',
     'block.omnispell.waypoint': 'Waypoint',
+    'block.omnispell.boss_altar': 'Boss Seal',
     'enchantment.omnispell.reservoir': 'Reservoir',
     'enchantment.omnispell.wellspring': 'Wellspring',
     'enchantment.omnispell.alacrity': 'Alacrity',

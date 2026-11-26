@@ -78,6 +78,9 @@ public final class OmniLoot {
 	/** Lowest and highest scroll rarity for a chest, from where it is. Works for other mods' chests by name too. */
 	private static int[] chestRarity(String path) {
 		if (has(path, "end_city", "ancient_city")) return new int[]{4, 5};
+		if (has(path, "boss_lair_5", "boss_lair_6")) return new int[]{4, 5};
+		if (has(path, "boss_lair_3", "boss_lair_4")) return new int[]{3, 4};
+		if (has(path, "boss_lair", "shrine")) return new int[]{2, 3};
 		if (has(path, "stronghold", "bastion", "woodland_mansion", "trial_chambers", "nether_bridge", "fortress", "boss", "vault")) return new int[]{3, 4};
 		if (has(path, "pyramid", "temple", "outpost", "ruined_portal", "treasure", "shipwreck", "underwater_ruin", "igloo", "dungeon", "mineshaft", "tower", "castle", "crypt")) return new int[]{2, 3};
 		return new int[]{1, 2};
