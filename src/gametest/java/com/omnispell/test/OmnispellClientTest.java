@@ -932,6 +932,18 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					check(silkDrops.stream().anyMatch(d -> d.is(com.omnispell.item.OmniItems.ARCANE_WELL_ITEM)), "with Silk Touch it comes away whole");
 				}
 
+				// Air flings and the other movement spells pay Phase mana.
+				{
+					com.omnispell.spell.Spell fling = new com.omnispell.spell.Spell();
+					fling.type = "exploration";
+					fling.toggle = "bound";
+					com.omnispell.spell.Spell up = new com.omnispell.spell.Spell();
+					up.type = "exploration";
+					up.toggle = "launch";
+					check(fling.isExploration() && com.omnispell.spell.Casting.manaCost(fling) > 0 && com.omnispell.spell.Casting.poolOf(fling) == com.omnispell.player.ManaPool.PHASE
+							&& com.omnispell.spell.Casting.manaCost(up) > 0 && com.omnispell.spell.Casting.poolOf(up) == com.omnispell.player.ManaPool.PHASE, "a wild bound and a launch cost Phase mana");
+				}
+
 				// New wand cores.
 				{
 					var cores = com.omnispell.item.WandParts.CORES;
@@ -1175,6 +1187,66 @@ public class OmnispellClientTest implements FabricClientGameTest {
 						+ (weapon ? "Deals 30 fire damage when thrown." : "Heals 25 HP.") + "\",\"tier\":3,\"type\":\"" + (weapon ? "offensive" : "healing") + "\",\"effect_code\":" + code + "}}";
 				return CompletableFuture.completedFuture(WordBank.GSON.fromJson(json, JsonObject.class));
 			};
+			// Rare pulling and sinking effects: quicksand, vacuum, black hole.
+			BlockPos[] pit = new BlockPos[1];
+			net.minecraft.world.entity.animal.cow.Cow[] sinker = new net.minecraft.world.entity.animal.cow.Cow[2];
+			double[] sinkY = new double[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				PlayerStore.get(p).essence = 500;
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Earth", "command:Open", "intention:Malice", "charge:Maxima (Amplify power)"));
+				com.omnispell.spell.Spell quick = PlayerStore.get(p).pending;
+				check(quick != null && "quicksand".equals(quick.toggle) && quick.description.contains("gravel"), "Earth + Open + Malice is quicksand: " + (quick == null ? "nothing" : quick.description));
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Silk", "command:Open", "intention:Malice", "charge:Maxima (Amplify power)"));
+				com.omnispell.spell.Spell vac = PlayerStore.get(p).pending;
+				check(vac != null && "vacuum".equals(vac.toggle), "Silk + Open + Malice is a vacuum (" + (vac == null ? "nothing" : vac.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Void", "command:Sever", "intention:Malice"));
+				com.omnispell.spell.Spell hole = PlayerStore.get(p).pending;
+				check(hole != null && "black_hole".equals(hole.toggle), "Void + Sever + Malice opens a black hole (" + (hole == null ? "nothing" : hole.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				check(com.omnispell.spell.Rifts.forEntry("stone-launch-destruction") == null && com.omnispell.spell.Rifts.forEntry("stone-envelop-protection") == null
+						&& com.omnispell.spell.Rifts.forEntry("void-summon-destruction") == null, "and the common pairings are untouched (Earth + Sever + Malice still carves, Void + Summon still strikes)");
+
+				// An arena of dirt, then quicksand under a cow.
+				BlockPos c0 = p.blockPosition().offset(0, 0, -30);
+				pit[0] = c0;
+				for (BlockPos pos : BlockPos.betweenClosed(c0.offset(-6, -2, -6), c0.offset(6, -1, 6))) level.setBlockAndUpdate(pos, Blocks.DIRT.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(c0.offset(-6, 0, -6), c0.offset(6, 4, 6))) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				var cow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+				cow.snapTo(c0.getX() + 0.5, c0.getY(), c0.getZ() + 0.5, 0f, 0f);
+				cow.setNoAi(true);
+				cow.setOnGround(true);
+				level.addFreshEntity(cow);
+				sinker[0] = cow;
+				sinkY[0] = cow.getY();
+				com.omnispell.spell.Cast qc = new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), quick);
+				int turned = com.omnispell.spell.Rifts.gravel(level, c0.below(), 2, 120);
+				int caught = com.omnispell.spell.Rifts.sinkArea(qc, Vec3.atBottomCenterOf(c0), 2, 60, "stone", Blocks.GRAVEL.defaultBlockState());
+				check(turned >= 9 && level.getBlockState(c0.below()).is(Blocks.GRAVEL) && caught == 1, "quicksand turns " + turned + " blocks of ground to gravel and catches the cow (" + caught + ")");
+				// A black hole beside a second cow.
+				var cow2 = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+				cow2.snapTo(c0.getX() + 5.5, c0.getY(), c0.getZ() + 0.5, 0f, 0f);
+				level.addFreshEntity(cow2);
+				sinker[1] = cow2;
+				com.omnispell.spell.Rifts.blackHole(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hole), Vec3.atBottomCenterOf(c0.offset(1, 0, 0)), 2, 1.0, 1.0, 0x8020C0);
+			});
+			context.waitTicks(25);
+			server.runOnServer(s -> {
+				check(sinker[0].isAlive() && sinker[0].getY() < sinkY[0] - 0.4, "the cow sinks into the quicksand (down " + String.format("%.2f", sinkY[0] - sinker[0].getY()) + ")");
+				double d = sinker[1].position().distanceTo(Vec3.atBottomCenterOf(pit[0].offset(1, 0, 0)));
+				check(d < 3.5, "the black hole drags the other cow in (" + String.format("%.1f", d) + " blocks from its heart)");
+			});
+			context.waitTicks(110);
+			server.runOnServer(s -> {
+				ServerLevel level = player(s).level();
+				check(!sinker[0].isAlive() || sinker[0].getY() >= sinkY[0] - 0.1, "the ground lets the cow go again");
+				check(level.getBlockState(pit[0].below()).is(Blocks.DIRT), "and the gravel turns back to dirt");
+				for (var cow : sinker) if (cow.isAlive()) cow.discard();
+			});
 			BlockPos[] vat = new BlockPos[1];
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
@@ -1577,6 +1649,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				BlockPos b = site[0].offset(0, 0, 40);
 				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-8, -1, -8), b.offset(8, -1, 8))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState());
 				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-8, 0, -8), b.offset(8, 4, 8))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				// Other job sites nearby (the forest ruin's barrels) would compete for the villager.
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-32, -4, -32), b.offset(32, 10, 32))) {
+					if (net.minecraft.world.entity.ai.village.poi.PoiTypes.forState(level.getBlockState(pos)).isPresent()) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				}
 				BlockPos villageWell = com.omnispell.world.Arcanist.placeWell(level, b);
 				check(villageWell != null && level.getBlockState(villageWell).is(OmniItems.ARCANE_WELL), "a village well finds a place in the open");
 				var villager = EntityTypes.VILLAGER.create(level, EntitySpawnReason.COMMAND);

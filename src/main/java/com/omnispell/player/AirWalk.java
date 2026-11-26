@@ -44,7 +44,12 @@ public final class AirWalk {
 			return;
 		}
 		player.fallDistance *= 0.2; // like landing on hay: most of the fall is forgiven, not all of it
+		// The air hardens at once: a fast fall stops here instead of slipping past the first step.
+		net.minecraft.world.phys.Vec3 v = player.getDeltaMovement();
+		player.setDeltaMovement(v.x, Math.max(0, v.y), v.z);
+		player.syncVelocity = true;
 		WALKING.add(player.getUUID());
+		TempBlocks.place(player.level(), BlockPos.containing(player.getX(), player.getY() - 0.2, player.getZ()), step(), 12);
 		player.level().playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 1.8f);
 	}
 
@@ -80,6 +85,8 @@ public final class AirWalk {
 			}
 			Vec3 motion = player.getDeltaMovement();
 			TempBlocks.place(level, under, step(), 12);
+			// Falling fast: also harden the air where the feet will be next tick.
+			if (motion.y < -0.3) TempBlocks.place(level, BlockPos.containing(player.getX(), player.getY() + motion.y - 0.2, player.getZ()), step(), 12);
 			// One more where they are heading, so the next stride has something to land on.
 			BlockPos ahead = BlockPos.containing(player.getX() + Math.signum(motion.x) * 0.8, player.getY() - 0.2, player.getZ() + Math.signum(motion.z) * 0.8);
 			if (!ahead.equals(under) && motion.horizontalDistanceSqr() > 0.0004) TempBlocks.place(level, ahead, step(), 12);

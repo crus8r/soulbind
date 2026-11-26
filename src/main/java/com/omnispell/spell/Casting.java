@@ -169,7 +169,8 @@ public final class Casting {
 		return switch (toggle) {
 			case "force_field", "barrier_wall", "armor", "deflect", "anchor", "ward_element", "ring", "dome", "raise_wall", "solidify" -> com.omnispell.player.ManaPool.BARRIER;
 			case "heal", "nourish", "salve", "growth", "mend_land", "thicket", "clear", "calm" -> com.omnispell.player.ManaPool.RESTORATION;
-			case "dash", "leap", "grapple", "tether", "current", "mount", "gust", "blink", "shade", "decoy", "mirage", "phantom", "smoke_screen", "blackout", "bridge", "platform" -> com.omnispell.player.ManaPool.PHASE;
+			case "bound", "launch", "dash", "leap", "grapple", "tether", "current", "mount", "gust", "blink", "shade", "decoy", "mirage", "phantom", "smoke_screen", "blackout", "bridge", "platform" -> com.omnispell.player.ManaPool.PHASE;
+			case "black_hole", "vacuum", "vortex" -> com.omnispell.player.ManaPool.SPIRIT;
 			case "reveal", "scout", "true_sight", "track", "charm", "restraint", "entangle", "polymorph", "transmute", "prospect", "glimmer", "illuminate", "weather", "attune" -> com.omnispell.player.ManaPool.SPIRIT;
 			default -> com.omnispell.player.ManaPool.FORCE;
 		};
@@ -184,6 +185,22 @@ public final class Casting {
 
 	/** What a cast costs up front. Only attack spells have a fixed price; the other kinds pay as their effects are used. */
 	public static double manaCost(Spell spell) {
+		if (spell != null && spell.isExploration()) {
+			// Exploration spells mostly pay as they go. Those that move you, or tear at space, pay up front.
+			double cost = switch (spell.toggle == null ? "" : spell.toggle) {
+				case "bound", "launch" -> 1.5;
+				case "dash", "leap", "grapple", "tether" -> 1.0;
+				case "current", "mount" -> 1.5;
+				case "vortex" -> 12;
+				case "vacuum" -> 15;
+				case "black_hole" -> 30;
+				case "sink" -> 12;
+				case "quicksand" -> 15;
+				default -> 0;
+			};
+			if (infinity(spell)) cost *= com.omnispell.player.Mana.INFINITY_DISCOUNT;
+			return cost;
+		}
 		if (spell == null || !"attack".equals(spell.type)) return 0;
 		double cost = 4 + 3 * Math.max(1, Math.min(5, spell.tier));
 		if (spell.hasCharge("Minima")) cost *= 0.6;

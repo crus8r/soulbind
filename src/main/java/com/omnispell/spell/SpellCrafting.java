@@ -210,6 +210,16 @@ public final class SpellCrafting {
 		spell.visual.motion = entry.motion;
 		spell.visual.intensity = Math.max(1, Math.min(5, entry.intensity));
 		String effect = Terraform.effectFor(commandName, intentionName, command, intention);
+		String rift = Rifts.forEntry(entry.id);
+		if (rift != null) {
+			// A rare pairing whose own words describe a pull, a vacuum or sinking ground: it does just that.
+			spell.toggle = rift;
+			spell.fizzle = false;
+			spell.siphon = false;
+			spell.description = entry.description + " " + Rifts.describe(rift, spell.tier);
+			spell.effect = Rifts.label(rift);
+			effect = null;
+		}
 		if (effect != null && !effect.equals(entry.toggle)) {
 			spell.toggle = effect;
 			spell.fizzle = false;
