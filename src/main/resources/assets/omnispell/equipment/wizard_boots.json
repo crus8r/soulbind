@@ -1,0 +1,15 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "omnispell:wizard_boots",
+        "dyeable": {
+          "color_when_undyed": -4642566
+        }
+      },
+      {
+        "texture": "omnispell:wizard_boots_trim"
+      }
+    ]
+  }
+}

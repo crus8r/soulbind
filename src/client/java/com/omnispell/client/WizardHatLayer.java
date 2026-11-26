@@ -32,7 +32,7 @@ public final class WizardHatLayer extends RenderLayer<HumanoidRenderState, Human
 	public static final ModelLayerLocation LAYER = new ModelLayerLocation(Omnispell.id("wizard_hat"), "main");
 	private static final Identifier BASE = Omnispell.id("textures/entity/wizard_hat.png");
 	private static final Identifier TRIM = Omnispell.id("textures/entity/wizard_hat_trim.png");
-	public static final int UNDYED = 0xFF4031A6;
+	public static final int UNDYED = 0xFFB928FA; // the same purple as the robe, so an undyed set matches
 	private static Model<Object> model;
 
 	public WizardHatLayer(RenderLayerParent<HumanoidRenderState, HumanoidModel<HumanoidRenderState>> parent) {

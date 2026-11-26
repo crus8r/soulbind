@@ -69,8 +69,10 @@ public final class OmniItems {
 			.rarity(net.minecraft.world.item.Rarity.EPIC));
 	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.item.equipment.EquipmentAsset> ROBE_ASSET =
 			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_robe"));
-	public static final Item WIZARD_ROBE = register("wizard_robe", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.CHEST));
-	public static final Item WIZARD_BOOTS = register("wizard_boots", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.FEET));
+	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.item.equipment.EquipmentAsset> BOOTS_ASSET =
+			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_boots"));
+	public static final Item WIZARD_ROBE = register("wizard_robe", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.CHEST, ROBE_ASSET));
+	public static final Item WIZARD_BOOTS = register("wizard_boots", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.FEET, BOOTS_ASSET));
 	public static final Item ARCANE_FOCUS = register("arcane_focus", Item::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR_EGG = register("familiar_egg", com.omnispell.familiar.FamiliarEggItem::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR = register("familiar", com.omnispell.familiar.FamiliarItem::new, new Item.Properties().stacksTo(1));
@@ -79,10 +81,10 @@ public final class OmniItems {
 	}
 
 	/** Robe or boots: no armour, no durability, dyeable, enchantable with the mana enchantments. */
-	private static Item.Properties attire(net.minecraft.world.entity.EquipmentSlot slot) {
+	private static Item.Properties attire(net.minecraft.world.entity.EquipmentSlot slot, net.minecraft.resources.ResourceKey<net.minecraft.world.item.equipment.EquipmentAsset> asset) {
 		return new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
 				.component(net.minecraft.core.component.DataComponents.EQUIPPABLE, net.minecraft.world.item.equipment.Equippable.builder(slot)
-						.setAsset(ROBE_ASSET).setEquipSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER).setDamageOnHurt(false).build())
+						.setAsset(asset).setEquipSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER).setDamageOnHurt(false).build())
 				.component(net.minecraft.core.component.DataComponents.ENCHANTABLE, new net.minecraft.world.item.enchantment.Enchantable(15));
 	}
 

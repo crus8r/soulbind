@@ -4,7 +4,7 @@
 Run from the repository root:  python3 tools/gen_assets.py
 Wand woods and cores are read from WandParts.java so there is one list to edit.
 """
-import json, os, re
+import io, json, os, re
 from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'src', 'main', 'resources')
@@ -331,14 +331,18 @@ def focus(x, y):
 tex('arcane_focus', focus, 'item')
 # The Wizard's Hat: a tall cone with a wide brim (grey, tinted by its dye) and a gold band and stars (untinted).
 def hat_cone(x, y):
-    if y >= 12 and 0 <= x < 16 and y <= 13: return (200, 200, 200, 255) if y == 12 else (150, 150, 150, 255)   # brim
-    half = (y + 1) * 0.42                                                                                     # cone widens downward
-    tip_x = 9 - y * 0.25                                                                                       # and leans a little
-    if y < 12 and abs(x - tip_x) <= half: return tuple(int(c) for c in mix((230, 230, 230), (170, 170, 170), (x - tip_x + half) / (2 * half + 0.01))[:3]) + (255,)
+    if y == 12 and 0 <= x < 16: return (255, 255, 255, 255)                     # brim, top
+    if y == 13 and 0 <= x < 16: return (176, 176, 176, 255)                     # brim, underside
+    half = (y + 1) * 0.42
+    tip_x = 9 - y * 0.25
+    if y < 12 and abs(x - tip_x) <= half:
+        return (255, 255, 255, 255) if x <= tip_x - half * 0.2 else (214, 214, 214, 255)   # lit side and shaded side
     return (0, 0, 0, 0)
 def hat_band(x, y):
-    if y in (10, 11) and abs(x - 6.5) <= 4.6: return (236, 196, 84, 255)
-    if (x, y) in ((8, 4), (6, 7), (9, 8)): return (255, 240, 170, 255)
+    if y == 12 and x in (0, 15): return (236, 196, 84, 255)
+    if y == 10 and abs(x - 6.5) <= 4.6: return (176, 130, 44, 255)
+    if y == 11 and abs(x - 6.5) <= 4.6: return (226, 214, 255, 255) if x == 6 else (236, 196, 84, 255)
+    if (x, y) in ((8, 4), (6, 7)): return (226, 214, 255, 255)
     return (0, 0, 0, 0)
 tex('wizard_hat', hat_cone, 'item')
 # Robe and boots icons: a grey shape the dye tints, with a gold hem drawn over it.
@@ -346,7 +350,7 @@ ROBE = ['................', '...gg......gg...', '..gggg....gggg..', '.gggggggggg
         '....gggggggg....', '...gggggggggg...', '...gggggggggg...', '..gggggggggggg..', '..gggggggggggg..', '..tttttttttttt..', '................', '................']
 BOOTS = ['................', '................', '................', '..tttt....tttt..', '..gggg....gggg..', '..gggg....gggg..', '..gggg....gggg..', '..gggg....gggg..',
          '..gggg....gggg..', '..gggg....ggggg.', '.ggggg...gggggg.', 'gggggg...gggggg.', 'gggggg...gggggg.', 'tttttt...tttttt.', '................', '................']
-for name, rows in (('wizard_robe', ROBE), ('wizard_boots', BOOTS)):
+for name, rows in (('wizard_robe', ROBE),):
     image(name, rows, {'g': (215, 215, 215, 255)})
     image(name + '_trim', rows, {'t': (236, 196, 84, 255)})
 # Worn: one armour sheet (64x32) for robe and boots. The body and arms are the robe; the lower legs are the boots.
@@ -391,7 +395,44 @@ EQUIP = os.path.join(ASSETS, 'textures', 'entity', 'equipment')
 ENT = os.path.join(ASSETS, 'textures', 'entity')
 split_robe(os.path.join(THIRD, 'humanoid', 'arcane.png'), os.path.join(ENT, 'wizard_robe_upper.png'), os.path.join(ENT, 'wizard_robe_upper_trim.png'))
 split_robe(os.path.join(THIRD, 'humanoid_leggings', 'arcane.png'), os.path.join(ENT, 'wizard_robe_lower.png'), os.path.join(ENT, 'wizard_robe_lower_trim.png'))
-# The game's own armour drawing shows nothing for the robe and boots: WizardRobeLayer draws them, with their own shapes.
+# ----- The Wizard's Boots: the netherite boots, recoloured. The dark metal becomes a grey base the dye colours;
+# the brightest edges turn gold and the lowest row becomes a dark sole.
+import colorsys
+def game_file(path):
+    import zipfile as _z, glob as _g
+    jar = sorted(_g.glob(os.path.expanduser('~/.gradle/caches/fabric-loom/*/minecraft-merged.jar')))[-1]
+    with _z.ZipFile(jar) as z:
+        return z.read(path)
+def recolour_boots(img, sole_row):
+    base = Image.new('RGBA', img.size)
+    trim = Image.new('RGBA', img.size)
+    values = sorted(colorsys.rgb_to_hsv(*(c / 255 for c in img.getpixel((x, y))[:3]))[2] for y in range(img.height) for x in range(img.width) if img.getpixel((x, y))[3] > 127)
+    bright, lo, hi = values[int(len(values) * 0.96)], values[0], values[-1]
+    for y in range(img.height):
+        for x in range(img.width):
+            r_, g_, b_, a_ = img.getpixel((x, y))
+            if a_ < 128: continue
+            v = colorsys.rgb_to_hsv(r_ / 255, g_ / 255, b_ / 255)[2]
+            if sole_row(x, y): trim.putpixel((x, y), (46, 34, 26, 255))
+            elif v >= bright: trim.putpixel((x, y), (236, 196, 84, 255) if (x + y) % 3 else (176, 130, 44, 255))
+            else:
+                grey = int(255 * (0.5 + 0.5 * (v - lo) / max(0.01, hi - lo)))
+                base.putpixel((x, y), (grey, grey, grey, 255))
+    return base, trim
+worn = Image.open(io.BytesIO(game_file('assets/minecraft/textures/entity/equipment/humanoid/netherite.png'))).convert('RGBA')
+legs = Image.new('RGBA', worn.size)
+legs.paste(worn.crop((0, 16, 16, 32)), (0, 16))   # boots draw only from the legs' part of the sheet
+boots_base, boots_trim = recolour_boots(legs, lambda x, y: y == 31)
+os.makedirs(os.path.join(EQUIP, 'humanoid'), exist_ok=True)
+boots_base.save(os.path.join(EQUIP, 'humanoid', 'wizard_boots.png'))
+boots_trim.save(os.path.join(EQUIP, 'humanoid', 'wizard_boots_trim.png'))
+icon = Image.open(io.BytesIO(game_file('assets/minecraft/textures/item/netherite_boots.png'))).convert('RGBA')
+lowest = max(y for y in range(16) for x in range(16) if icon.getpixel((x, y))[3] > 127)
+BOOTS_ICON = recolour_boots(icon, lambda x, y: y == lowest)   # saved after the older pixel-art icons are written below
+write(os.path.join(ASSETS, 'equipment', 'wizard_boots.json'), {'layers': {'humanoid': [
+    {'texture': 'omnispell:wizard_boots', 'dyeable': {'color_when_undyed': -4642566}},
+    {'texture': 'omnispell:wizard_boots_trim'}]}})
+# The game's own armour drawing shows nothing for the robe: WizardRobeLayer draws it, with its own shape.
 write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {'humanoid': [{'texture': 'omnispell:wizard_hat_none'}]}})
 tex('wizard_hat_band', hat_band, 'item')
 # Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
@@ -400,19 +441,25 @@ def box_uv(u, v, w, h, d):
 HAT_BOXES = {'brim': (0, 0, 14, 1, 14), 'cone': (0, 15, 9, 4, 9), 'mid': (0, 29, 7, 4, 7), 'upper': (28, 29, 5, 4, 5), 'top': (0, 41, 3, 4, 3), 'tip': (14, 41, 1, 3, 1)}
 base = Image.new('RGBA', (64, 64))
 trim = Image.new('RGBA', (64, 64))
+GOLD_, GOLD_EDGE, LILAC = (236, 196, 84, 255), (176, 130, 44, 255), (226, 214, 255, 255)
 for name, (u, v, w, h, d) in HAT_BOXES.items():
     for face, (fu, fv, fw, fh) in box_uv(u, v, w, h, d).items():
         for yy in range(fv, fv + fh):
             for xx in range(fu, fu + fw):
-                g = 205 + int(40 * noise(xx, yy, 83)) - (25 if name == 'brim' and face == 'bottom' else 0)
+                col = xx - fu
+                if face == 'top': g = 255
+                elif face == 'bottom': g = 150
+                else:
+                    front = d <= col < d + w
+                    back = col >= 2 * d + w
+                    g = 255 if front and (col - d) in (1, 2) else 236 if front else 196 if back else 218   # flat shading, a highlight down the front
                 base.putpixel((xx, yy), (g, g, g, 255))
-                if name == 'cone' and face == 'sides' and yy >= fv + fh - 2: trim.putpixel((xx, yy), (236, 196, 84, 255))       # the band
-                elif name in ('mid', 'upper') and face == 'sides' and noise(xx, yy, 89) > 0.9: trim.putpixel((xx, yy), (255, 240, 170, 255))  # stars
-                elif name == 'brim' and face == 'sides': trim.putpixel((xx, yy), (214, 170, 60, 255))                          # a gold edge
-# The hat counts as worn armour, so the game does not paste its flat icon onto the head;
-# but the armour layers are empty, as WizardHatLayer draws the real hat.
-Image.new('RGBA', (64, 32)).save(os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', 'wizard_hat_none.png')) if os.makedirs(os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid'), exist_ok=True) is None else None
-write(os.path.join(ASSETS, 'equipment', 'wizard_hat.json'), {'layers': {'humanoid': [{'texture': 'omnispell:wizard_hat_none'}]}})
+                row = yy - fv
+                if name == 'cone' and face == 'sides' and row == fh - 1: trim.putpixel((xx, yy), LILAC if col % 4 == 1 else GOLD_)
+                elif name == 'cone' and face == 'sides' and row == fh - 2: trim.putpixel((xx, yy), GOLD_EDGE)
+                elif name == 'brim' and face == 'sides': trim.putpixel((xx, yy), GOLD_)
+                elif name == 'tip': trim.putpixel((xx, yy), GOLD_)
+                elif name == 'upper' and face == 'sides' and row == 1 and col % 5 == 2: trim.putpixel((xx, yy), LILAC)
 for img, name in ((base, 'wizard_hat'), (trim, 'wizard_hat_trim')):
     path = os.path.join(ASSETS, 'textures', 'entity', name + '.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -516,6 +563,8 @@ write(os.path.join(ASSETS, 'items', 'familiar.json'), {'model': {
               {'type': 'minecraft:constant', 'value': -1}]}})
 flat_item('arcane_focus', ['arcane_focus'])
 flat_item('wizard_hat', ['wizard_hat', 'wizard_hat_band'])
+BOOTS_ICON[0].save(os.path.join(ASSETS, 'textures', 'item', 'wizard_boots.png'))
+BOOTS_ICON[1].save(os.path.join(ASSETS, 'textures', 'item', 'wizard_boots_trim.png'))
 for piece in ('wizard_robe', 'wizard_boots'):
     flat_item(piece, [piece, piece + '_trim'])
     write(os.path.join(ASSETS, 'items', piece + '.json'), {'model': {
@@ -523,7 +572,7 @@ for piece in ('wizard_robe', 'wizard_boots'):
         'tints': [{'type': 'minecraft:dye', 'default': -4642566}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'wizard_hat.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/wizard_hat',
-    'tints': [{'type': 'minecraft:dye', 'default': -12570246}, {'type': 'minecraft:constant', 'value': -1}]}})
+    'tints': [{'type': 'minecraft:dye', 'default': -4642566}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'arcane_focus.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:item/arcane_focus'}})
 flat_item('brew', ['brew_bottle', 'brew_liquid'])
 write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {

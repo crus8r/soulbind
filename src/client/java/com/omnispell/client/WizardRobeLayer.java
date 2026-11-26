@@ -108,8 +108,5 @@ public final class WizardRobeLayer extends RenderLayer<HumanoidRenderState, Huma
 			draw(robe, UPPER, UPPER_TRIM, pose, collector, light, state, color);
 			if (state.legsEquipment == null || state.legsEquipment.isEmpty()) draw(skirt, LOWER, LOWER_TRIM, pose, collector, light, state, color);
 		}
-		if (state.feetEquipment != null && state.feetEquipment.is(OmniItems.WIZARD_BOOTS)) {
-			draw(boots, UPPER, UPPER_TRIM, pose, collector, light, state, color(state.feetEquipment));
-		}
 	}
 }

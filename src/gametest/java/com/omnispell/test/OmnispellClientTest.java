@@ -1403,16 +1403,22 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.takeScreenshot("31b-hat-in-inventory");
 			context.runOnClient(c -> c.gui.setScreen(null));
 			server.runOnServer(s -> {
-				ItemStack robe = new ItemStack(OmniItems.WIZARD_ROBE);
-				robe.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x5E7C16));
-				ItemStack boots = new ItemStack(OmniItems.WIZARD_BOOTS);
-				boots.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x5E7C16));
-				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, robe);
-				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, boots);
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(OmniItems.WIZARD_HAT)); // undyed first
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(OmniItems.WIZARD_ROBE));
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(OmniItems.WIZARD_BOOTS));
 			});
 			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
 			context.waitTicks(10);
 			context.takeScreenshot("31c-hat-third-person");
+			server.runOnServer(s -> {
+				for (var slot : new net.minecraft.world.entity.EquipmentSlot[]{net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.FEET}) {
+					ItemStack piece = player(s).getItemBySlot(slot).copy();
+					piece.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x5E7C16));
+					player(s).setItemSlot(slot, piece);
+				}
+			});
+			context.waitTicks(10);
+			context.takeScreenshot("31d-attire-dyed");
 			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
 			server.runOnServer(s -> {
 				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, ItemStack.EMPTY);
