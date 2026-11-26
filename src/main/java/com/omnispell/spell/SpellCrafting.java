@@ -241,17 +241,23 @@ public final class SpellCrafting {
 		data.spells.add(spell);
 		// Fill the first free slot of the held wand, so a new spell is usable straight away.
 		ItemStack wand = WandItem.heldWand(player);
+		int placed = -1;
 		if (!wand.isEmpty()) {
 			for (int i = 0; i < WandItem.SLOTS; i++) {
 				if (WandItem.spell(wand, i) == null) {
 					WandItem.setSpell(wand, i, spell);
+					WandItem.select(wand, i); // the new spell is the one a left-click casts
+					placed = i;
 					break;
 				}
 			}
 		}
 		PlayerStore.save(player);
 		PlayerStore.syncState(player);
-		tell(player, true, spell.name + " is now in your spellbook.");
+		PlayerStore.syncVitals(player);
+		if (wand.isEmpty()) tell(player, true, spell.name + " is in your spellbook. Hold a wand and set it to a slot in the Spellbook tab.");
+		else if (placed < 0) tell(player, false, spell.name + " is in your spellbook, but your wand's five slots are full. Set it to a slot in the Spellbook tab.");
+		else tell(player, true, spell.name + " is in your spellbook and on your wand, slot " + (placed + 1) + ".");
 	}
 
 	public static void discardPending(ServerPlayer player) {
