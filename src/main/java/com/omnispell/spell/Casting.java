@@ -119,6 +119,7 @@ public final class Casting {
 		if (infinity(spell)) com.omnispell.player.Mana.DISCOUNT.set(com.omnispell.player.Mana.INFINITY_DISCOUNT);
 		try {
 			done = spell.isExploration() ? ExploreEffects.cast(cast) : Weapons.cast(cast) || CombatEffects.cast(cast);
+			if (done && spell.isExploration()) Wonders.afterCast(cast); // a spell may carry a second working
 		} catch (Exception e) {
 			Omnispell.LOG.error("Spell {} failed", spell.id, e);
 			cast.failure = "The spell unravels. (An error was logged.)";
@@ -170,7 +171,7 @@ public final class Casting {
 			case "force_field", "barrier_wall", "armor", "deflect", "anchor", "ward_element", "ring", "dome", "raise_wall", "solidify" -> com.omnispell.player.ManaPool.BARRIER;
 			case "heal", "nourish", "salve", "growth", "mend_land", "thicket", "clear", "calm" -> com.omnispell.player.ManaPool.RESTORATION;
 			case "bound", "launch", "dash", "leap", "grapple", "tether", "current", "mount", "gust", "blink", "shade", "decoy", "mirage", "phantom", "smoke_screen", "blackout", "bridge", "platform" -> com.omnispell.player.ManaPool.PHASE;
-			case "black_hole", "vacuum", "vortex" -> com.omnispell.player.ManaPool.SPIRIT;
+			case "black_hole", "vacuum", "vortex", "sky_beam" -> com.omnispell.player.ManaPool.SPIRIT;
 			case "reveal", "scout", "true_sight", "track", "charm", "restraint", "entangle", "polymorph", "transmute", "prospect", "glimmer", "illuminate", "weather", "attune" -> com.omnispell.player.ManaPool.SPIRIT;
 			default -> com.omnispell.player.ManaPool.FORCE;
 		};
@@ -194,6 +195,7 @@ public final class Casting {
 				case "vortex" -> 12;
 				case "vacuum" -> 15;
 				case "black_hole" -> 30;
+				case "sky_beam" -> 12;
 				case "sink" -> 12;
 				case "quicksand" -> 15;
 				default -> 0;

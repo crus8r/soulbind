@@ -220,6 +220,15 @@ public final class SpellCrafting {
 			spell.effect = Rifts.label(rift);
 			effect = null;
 		}
+		String wonder = Wonders.primary(entry.id);
+		if (wonder != null) {
+			spell.toggle = wonder;
+			spell.fizzle = false;
+			spell.siphon = false;
+			spell.description = entry.description + " " + Wonders.describe(wonder, spell.tier);
+			spell.effect = Wonders.label(wonder).replaceFirst("^(An? )", "");
+			effect = null;
+		}
 		if (effect != null && !effect.equals(entry.toggle)) {
 			spell.toggle = effect;
 			spell.fizzle = false;
@@ -235,7 +244,8 @@ public final class SpellCrafting {
 			spell.visual.color2 = flavor.color2;
 			spell.visual.particles = flavor.particle;
 			spell.code.element = flavor.element;
-		}
+		}		String extras = Wonders.describeExtras(spell);
+		if (!extras.isEmpty()) spell.description = (spell.description == null ? "" : spell.description) + extras;
 	}
 
 	private static void finish(ServerPlayer player, Spell spell, boolean stable) {

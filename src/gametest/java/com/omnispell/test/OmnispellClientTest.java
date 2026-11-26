@@ -1256,6 +1256,69 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(level.getBlockState(pit[0].below()).is(Blocks.DIRT), "and the gravel turns back to dirt");
 				for (var cow : sinker) if (cow.isAlive()) cow.discard();
 			});
+			// Great workings: every one is cast for real beside a cow, which must come to harm.
+			String[][] wonders = {
+					{"inferno", "base:Fire", "command:Envelop"}, {"sky_beam", "base:Light", "command:Summon"}, {"meteor", "base:Fire", "command:Release"},
+					{"solar_flare", "base:Light", "command:Agitate"}, {"geyser", "base:Water", "command:Summon"}, {"tidal_wave", "base:Water", "command:Grow"},
+					{"ice_spikes", "base:Ice", "command:Grow"}, {"blizzard", "base:Ice", "command:Envelop"}, {"earthquake", "base:Earth", "command:Agitate"},
+					{"bloodletting", "base:Blood", "command:Bind"}, {"tendrils", "base:Shadow", "command:Grow"}, {"chain_lightning", "base:Thunder", "command:Release"}};
+			net.minecraft.world.entity.animal.cow.Cow[] marks = new net.minecraft.world.entity.animal.cow.Cow[wonders.length];
+			Vec3[] homeAt = new Vec3[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos home = p.blockPosition();
+				homeAt[0] = p.position();
+				// Which spells carry which: the table, the tier gate and the book.
+				com.omnispell.spell.Spell low = new com.omnispell.spell.Spell();
+				low.type = "exploration";
+				low.words.addAll(java.util.List.of("base:Fire", "command:Grow", "intention:Malice"));
+				low.tier = 2;
+				com.omnispell.spell.Spell high = new com.omnispell.spell.Spell();
+				high.type = "exploration";
+				high.words.addAll(low.words);
+				high.tier = 3;
+				check(com.omnispell.spell.Wonders.extras(low).isEmpty() && com.omnispell.spell.Wonders.describeExtras(low).contains("tier 3")
+						&& com.omnispell.spell.Wonders.extras(high).contains("inferno"), "Fire + Grow + Malice gains an inferno from tier 3, and the book says so below it");
+				com.omnispell.spell.Spell common = new com.omnispell.spell.Spell();
+				common.type = "exploration";
+				common.words.addAll(java.util.List.of("base:Earth", "command:Sever", "intention:Malice"));
+				common.tier = 5;
+				check(com.omnispell.spell.Wonders.extras(common).isEmpty(), "a plain tunnel spell carries no extra working, even at tier 5");
+				for (int i = 0; i < wonders.length; i++) {
+					BlockPos spot = home.offset(-24 + (i % 4) * 16, 0, 50 + (i / 4) * 16);
+					for (BlockPos pos : BlockPos.betweenClosed(spot.offset(-6, -1, -6), spot.offset(6, -1, 6))) level.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+					for (BlockPos pos : BlockPos.betweenClosed(spot.offset(-6, 0, -6), spot.offset(6, 6, 6))) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+					p.teleportTo(level, spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+					var cow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+					cow.snapTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 4.5, 0f, 0f);
+					cow.setNoAi(true);
+					cow.setOnGround(true);
+					level.addFreshEntity(cow);
+					marks[i] = cow;
+					p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, cow.getBoundingBox().getCenter());
+					com.omnispell.spell.Spell sp = new com.omnispell.spell.Spell();
+					sp.type = "exploration";
+					sp.words.addAll(java.util.List.of(wonders[i][1], wonders[i][2], "intention:Malice"));
+					sp.tier = 5;
+					sp.element = com.omnispell.data.WordBank.word(wonders[i][1]).explore;
+					com.omnispell.spell.Cast wc = new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sp);
+					check(com.omnispell.spell.Wonders.cast(wc, wonders[i][0]), wonders[i][0] + " is cast");
+				}
+			});
+			context.waitTicks(50);
+			server.runOnServer(s -> {
+				for (int i = 0; i < wonders.length; i++) {
+					var cow = marks[i];
+					boolean killed = cow.isRemoved() && cow.getRemovalReason() == net.minecraft.world.entity.Entity.RemovalReason.KILLED;
+					boolean harmed = killed || (!cow.isRemoved() && (cow.getHealth() < cow.getMaxHealth() || cow.hasEffect(MobEffects.BLINDNESS)));
+					check(harmed, wonders[i][0] + " reached the cow (health " + cow.getHealth() + (killed ? ", killed" : cow.isRemoved() ? ", unloaded" : "") + ")");
+					if (cow.isAlive()) cow.discard();
+				}
+				ServerPlayer p = player(s);
+				p.teleportTo(p.level(), homeAt[0].x, homeAt[0].y, homeAt[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
 			BlockPos[] vat = new BlockPos[1];
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
