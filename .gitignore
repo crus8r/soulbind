@@ -3,3 +3,6 @@ build/
 .idea/
 run/
 *.iml
+pack/mods/
+pack/try/
+pack/*.mrpack

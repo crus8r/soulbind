@@ -1,0 +1,49 @@
+Aerial Hell | 0.7.9 | CC-BY-NC-SA-4.0 | aerial-hell
+Antarchy | 2.4.7+26.3-fabric | LicenseRef-All-Rights-Reserved | antarchy
+Anthology: Time & Space API | 1.0.9+26.3-fabric | LicenseRef-All-Rights-Reserved | anthology
+AntOS Computer | Quests + Guidebook | 1.7.0 | LicenseRef-All-Rights-Reserved | antos
+Architectury API | 22.1.7+fabric | LGPL-3.0-only | architectury-api
+Better Archeology | 26.3.x-1.3.9 | MIT | better-archeology
+Biomes O' Plenty | 26.3.0.0.7 | LicenseRef-All-Rights-Reserved | biomes-o-plenty
+ChoiceTheorem's Overhauled Village | 4.2.2a | CC-BY-NC-ND-4.0 | ct-overhaul-village
+Cloth Config API | 26.3.161+fabric | LGPL-3.0-only | cloth-config
+Collective | 26.3.0-8.88-fabric+forge+neo | LicenseRef-All-Rights-Reserved | collective
+Cristel Lib | fabric-26.3-3.1.13 | CC-BY-NC-ND-4.0 | cristel-lib
+Dungeons and Taverns | 6.2.0+mod | LicenseRef-All-Rights-Reserved | dungeons-and-taverns
+Explorify | v1.6.6 | LicenseRef-All-Rights-Reserved | explorify
+Fabric API | 0.166.2+26.3 | Apache-2.0 | fabric-api
+Forge Config API Port | 26.3.1 | MPL-2.0 | forge-config-api-port
+Friends&Foes (Fabric/Quilt) | fabric-5.0.5+mc26.3 | CC-BY-NC-ND-4.0 | friends-and-foes
+FrozenLib | 3.0.3-mc26.3-fabric | GPL-3.0-only | frozenlib
+Geckolib | 5.5.7 | MIT | geckolib
+GlitchCore | 26.3.0.0.5 | LicenseRef-All-Rights-Reserved | glitchcore
+Integrated API | 1.9.2 | AGPL-3.0-only | integrated-api
+Lithostitched | 2.0.6-fabric-26.3 | MIT | lithostitched
+MES - Moog's End Structures | 2.1.1 | LGPL-3.0-only | mes-moogs-end-structures
+MidnightLib | 1.10.0+26.3-fabric | MIT | midnightlib
+MNS - Moog's Nether Structures | 3.1.1 | LGPL-3.0-only | mns-moogs-nether-structures
+Moog's Structure Lib (moogs_structures) | 3.4.2-fabric-26.3 | LGPL-3.0-only | moogs-structure-lib
+Mutant Monsters | 26.3.1 | AGPL-3.0-only | mutant-monsters
+MVS - Moog's Voyager Structures | 5.1.3 | MIT | moogs-voyager-structures
+Naturalist | 2.0.7+26.3-fabric | LicenseRef-Custom | naturalist
+Nyctophobia | 2.0.0+mc26.3 | GPL-3.0-only | nyctophobia
+Promenade | 6.0.2+fabric | LicenseRef-Polyform-Shield-1.0.0 | promenade
+Puzzles Lib | 26.3.19 | MPL-2.0 | puzzles-lib
+Real Working Villagers | 1.0.3 | MIT | real-working-villagers
+Repurposed Structures - Fabric | 7.8.5+26.3-fabric | LGPL-3.0-only | repurposed-structures-fabric
+Resourceful Config | 6.0.2 | MIT | resourceful-config
+Resourceful Lib | 6.0.1 | MIT | resourceful-lib
+Sizeable Foliage | 1.4.0 | LicenseRef-All-Rights-Reserved | sizeable-foliage
+Structory | 1.3.18+26.3 | LicenseRef-Stardust-Labs-License | structory
+Structory: Towers | 1.0.19+26.3 | LicenseRef-Stardust-Labs-License | structory-towers
+Tectonic | 3.0.32-fabric-26.3 | MIT | tectonic
+TerraBlender | 26.3.0.0.9 | LGPL-3.0-only | terrablender
+Terralith | 2.6.5+26.3 | LicenseRef-Stardust-Labs-License | terralith
+Towns and Towers | 1.13.13 | CC-BY-NC-SA-4.0 | towns-and-towers
+Useless Reptile | 0.15.0+26.3 | LicenseRef-All-Rights-Reserved | useless-reptile
+Variants&Ventures | fabric-1.0.30+mc26.3 | LicenseRef-CC-BY-NC-ND-4.0 | variants-and-ventures
+Villager Names | 26.3.0-9.0-fabric+forge+neo | LicenseRef-All-Rights-Reserved | villager-names-serilum
+VillagersPlus | 4.1.0+mc26.3-fabric | GPL-3.0-only | villagersplus
+VillagersTradingPlus | 1.1.0+mc26.3-fabric | GPL-3.0-only | villagerstradingplus
+Wilder Wild | 4.3.3-mc26.3-fabric | LicenseRef-FrozenBlock-Modding-Oasis-License | wilder-wild
+YetAnotherConfigLib (YACL) | 3.9.7+26.3-fabric | LGPL-3.0-or-later | yacl

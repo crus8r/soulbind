@@ -13,7 +13,6 @@
     "minecraft:snowy_plains",
     "minecraft:desert",
     "minecraft:meadow",
-    "minecraft:swamp",
     "minecraft:cherry_grove",
     "minecraft:ice_spikes",
     {
@@ -29,15 +28,131 @@
       "required": false
     },
     {
-      "id": "#c:is_snowy",
-      "required": false
-    },
-    {
-      "id": "#c:is_swamp",
+      "id": "#c:is_snowy_plains",
       "required": false
     },
     {
       "id": "#c:is_magical",
+      "required": false
+    },
+    {
+      "id": "#c:is_birch_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_dark_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_flower_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_floral",
+      "required": false
+    },
+    {
+      "id": "#c:is_old_growth",
+      "required": false
+    },
+    {
+      "id": "#c:is_savanna",
+      "required": false
+    },
+    {
+      "id": "#c:is_jungle",
+      "required": false
+    },
+    {
+      "id": "#c:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#c:is_hill",
+      "required": false
+    },
+    {
+      "id": "#c:is_badlands",
+      "required": false
+    },
+    {
+      "id": "#c:is_plateau",
+      "required": false
+    },
+    {
+      "id": "#c:is_windswept",
+      "required": false
+    },
+    {
+      "id": "#c:is_wasteland",
+      "required": false
+    },
+    {
+      "id": "#c:is_dead",
+      "required": false
+    },
+    {
+      "id": "#c:is_dense_vegetation/overworld",
+      "required": false
+    },
+    {
+      "id": "#c:is_sparse_vegetation/overworld",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/coniferous",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/deciduous",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/jungle",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/savanna",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/oak",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/birch",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/spruce",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/acacia",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/cherry",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/dark_oak",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/jungle",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/pale_oak",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/poplar",
+      "required": false
+    },
+    {
+      "id": "#c:primary_wood_type/bamboo",
       "required": false
     }
   ]

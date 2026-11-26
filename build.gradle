@@ -34,6 +34,17 @@ fabricApi {
 	}
 }
 
+// Set OMNISPELL_PACK_DIR to a folder of mod jars (pack/mods) to run the tests with the whole content pack loaded.
+afterEvaluate {
+	def packDir = System.getenv("OMNISPELL_PACK_DIR")
+	if (packDir) {
+		loom.runs.matching { it.name == "clientGameTest" }.configureEach {
+			vmArg "-Dfabric.addMods=${file(packDir).absolutePath}"
+			vmArg "-Xmx6G"
+		}
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"

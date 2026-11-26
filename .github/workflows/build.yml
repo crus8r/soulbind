@@ -17,11 +17,14 @@ jobs:
         with:
           gradle-version: 9.7.1
       - run: gradle build
+      # The content pack: Omnispell plus its companion mods, as one file for the Modrinth app or Prism Launcher.
+      # It only lists each mod's own download, so a Modrinth outage must not fail the build.
+      - run: python3 tools/make_pack.py || echo "pack not built"
       - uses: actions/upload-artifact@v4
         with:
           name: omnispell
           path: build/libs/*.jar
       # Publishes the jar on the repository's Releases page as a direct download.
-      - run: gh release create "build-${{ github.run_number }}" build/libs/*.jar --title "Omnispell build ${{ github.run_number }}" --notes "Automatic build."
+      - run: gh release create "build-${{ github.run_number }}" build/libs/*.jar $(ls pack/*.mrpack 2>/dev/null) --title "Omnispell build ${{ github.run_number }}" --notes "Automatic build."
         env:
           GH_TOKEN: ${{ github.token }}

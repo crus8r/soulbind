@@ -324,8 +324,16 @@ write(os.path.join(ASSETS, 'items', 'alchemy_cauldron.json'), {'model': {'type':
 # Biomes where surface structures may stand: land biomes, vanilla and (optionally) other mods' by convention tags.
 LAND = ['#minecraft:is_forest', '#minecraft:is_taiga', '#minecraft:is_savanna', '#minecraft:is_hill', '#minecraft:is_mountain',
         '#minecraft:is_badlands', '#minecraft:is_jungle', 'minecraft:plains', 'minecraft:sunflower_plains', 'minecraft:snowy_plains',
-        'minecraft:desert', 'minecraft:meadow', 'minecraft:swamp', 'minecraft:cherry_grove', 'minecraft:ice_spikes']
-LAND += [{'id': t, 'required': False} for t in ('#c:is_plains', '#c:is_forest', '#c:is_desert', '#c:is_snowy', '#c:is_swamp', '#c:is_magical')]
+        'minecraft:desert', 'minecraft:meadow', 'minecraft:cherry_grove', 'minecraft:ice_spikes']
+# Other mods file their biomes under these shared tags. All of them are land; none includes oceans, rivers or beaches.
+SHARED = ['is_plains', 'is_forest', 'is_desert', 'is_snowy_plains', 'is_magical', 'is_birch_forest', 'is_dark_forest', 'is_flower_forest',
+          'is_floral', 'is_old_growth', 'is_savanna', 'is_jungle', 'is_taiga', 'is_hill', 'is_badlands', 'is_plateau', 'is_windswept',
+          'is_wasteland', 'is_dead', 'is_dense_vegetation/overworld', 'is_sparse_vegetation/overworld',
+          'is_tree/coniferous', 'is_tree/deciduous', 'is_tree/jungle', 'is_tree/savanna',
+          'primary_wood_type/oak', 'primary_wood_type/birch', 'primary_wood_type/spruce', 'primary_wood_type/acacia',
+          'primary_wood_type/cherry', 'primary_wood_type/dark_oak', 'primary_wood_type/jungle', 'primary_wood_type/pale_oak',
+          'primary_wood_type/poplar', 'primary_wood_type/bamboo']
+LAND += [{'id': '#c:' + t, 'required': False} for t in SHARED]
 write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_structure', 'surface.json'), {'replace': False, 'values': LAND})
 
 def structure(name, weight_unused=None):

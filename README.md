@@ -4,9 +4,11 @@ Craft your own spells from words of power, in a normal Minecraft world. Based on
 Omnispell web game. The Soul Bind mod is built in: everything Soul Bind did still works,
 and its description is kept below.
 
-**Status: first milestone.** Wands, the Book of Words, word scrolls, spell crafting,
-casting, mana, arcane essence and wells work. Waypoints, potions, runes, bosses,
-structures and realms are not built yet.
+**Status: playable, still growing.** Built: wands, the Book of Words, word scrolls,
+spell crafting and casting, mana, arcane essence, waypoints, potion brewing, arcane
+shrines and boss lairs that generate in the world, eleven lair bosses and Razza, and a
+content pack of companion mods. Not built yet: runes and charms, familiars, the sky and
+enchanted-forest realms, and villager trades for scrolls.
 
 ## Install
 
@@ -20,8 +22,11 @@ replaces it.
 - Open the book (right-click it, or press `G`). On the **Craft** tab pick a kind of
   spell, click a slot, click a word. Craft costs arcane essence. Save the result and it
   goes on the wand you are holding.
-- Hold the wand and press `Z X C V B` to cast its five spells, or right-click for the
-  selected one. `H` shows or hides the mana display. All keys can be changed.
+- Hold the wand: a bar of five squares appears above your health, each showing its key
+  (`Z X C V B` at first). Press a key once to see the spell's name, again to cast. A grey
+  cover drains off the square as the spell's cooldown runs. Keys are changed in the
+  book's Spellbook tab, where double-tap can also be switched off. Right-click casts the
+  selected spell. `H` shows or hides the mana display.
 - **Combat spells** (attack, defense, enchantment, illusion, charm, conjuration) are
   written by the Omnispell website's spell generator, unchanged. The same words always
   give the same spell. Each new combination is requested once and then remembered.
@@ -37,8 +42,27 @@ replaces it.
   enchantments.
 - **Arcane essence** is drawn from an Arcane Well: use it, wait for the surge, use it
   again. With essence full and a glass bottle in hand, three catches make an Arcane Potion.
+  Wells stand in **arcane shrines** that generate across the land.
+- **Boss lairs** are igloo-like domes. The door's block shows the tier: hay, wood, stone,
+  iron, gold, diamond, netherite. Step near the seal inside and the boss wakes. Bosses
+  drop word scrolls and unlock new kinds of spell. **Razza** is called by using a wand
+  on the dragon egg after the Ender Dragon is dead.
+- **Potions** are brewed in an Alchemy Cauldron (cauldron + blaze rod + amethyst shard):
+  blaze powder to charge it, a liquid (water, honey, milk, lava, dragon's breath), up to
+  three ingredients and two catalysts, a heat source underneath, then a glass bottle.
+  The Omnispell potioneer decides the result; a recipe always gives the same potion.
+- **Waypoints** are crafted in pairs. Place both and use either to travel to the other.
 
 The book's Guide tab explains all of this in the game.
+
+## The content pack
+
+`pack/mods.txt` lists the companion mods (structures, villages, terrain, biomes,
+creatures, a sky dimension). `python3 tools/make_pack.py` turns it into
+`pack/omnispell-pack.mrpack`, which the Modrinth app and Prism Launcher can install in
+one step; each release on GitHub includes it. The pack only points at each mod's own
+download. Mods that crashed with Minecraft 26.3 in testing are listed at the bottom of
+`pack/mods.txt` with the reason. Omnispell works with or without the pack.
 
 ## Settings
 
@@ -54,10 +78,18 @@ are then made by simple built-in rules.
 
 ## Building and testing
 
-`./gradlew build` makes the jar in `build/libs/` (JDK 25). `tools/run_client_test.sh`
-starts a real game in a virtual display and plays through the mod, saving screenshots to
-`build/run/clientGameTest/screenshots`. `python3 tools/gen_assets.py` regenerates the
-textures, recipes and names.
+`./gradlew build` makes the jar in `build/libs/` (JDK 25).
+
+- `tools/run_client_test.sh` starts a real game in a virtual display and plays through
+  the mod, saving screenshots to `build/run/clientGameTest/screenshots`.
+- `OMNISPELL_WORLDGEN=1 tools/run_client_test.sh` checks that shrines and lairs generate
+  in a normal world and that a lair's boss wakes; `OMNISPELL_WORLDGEN=survey` visits
+  sixteen sites and reports how each sits in the terrain.
+- `OMNISPELL_PACK_DIR=pack/mods` in front of either runs it with the whole content pack.
+- `OMNISPELL_LIVE=1` adds one real request to the spell generator.
+- `python3 tools/gen_assets.py` regenerates textures, recipes, names and world data.
+- `tools/build_structures.sh` rebuilds the structure files from
+  `src/gametest/java/com/omnispell/test/StructureBuilder.java`.
 
 ---
 

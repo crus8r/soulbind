@@ -1,0 +1,51 @@
+# The Omnispell content pack. One Modrinth slug per line.
+# Rebuild with: python3 tools/make_pack.py
+
+fabric-api
+
+# --- structures and dungeons
+dungeons-and-taverns
+moogs-voyager-structures
+repurposed-structures-fabric
+explorify
+structory
+structory-towers
+mes-moogs-end-structures
+mns-moogs-nether-structures
+better-archeology
+
+# --- villages and villagers
+towns-and-towers
+ct-overhaul-village
+villagersplus
+villager-names-serilum
+real-working-villagers
+
+# --- terrain and biomes
+terralith
+tectonic
+biomes-o-plenty
+promenade
+wilder-wild
+nyctophobia
+
+# --- creatures and bosses
+mutant-monsters
+friends-and-foes
+variants-and-ventures
+naturalist
+useless-reptile
+antarchy
+antos              # needed by Antarchy
+anthology          # needed by Antarchy
+integrated-api     # needed by Antarchy
+sizeable-foliage   # needed by Antarchy
+geckolib           # needed by Antarchy
+
+# --- sky realm
+aerial-hell
+
+# --- tried and left out (2026-11-26)
+# the-graveyard-fabric   crashes on start with Minecraft 26.3 ("overrides final method Mob.isSunBurnTick")
+# adventurez              crashes the server when its deer spawns ("Can't find attribute minecraft:tempt_range")
+# betternether, betterend   their library (World Weaver) crashed at start next to the other mods in testing
