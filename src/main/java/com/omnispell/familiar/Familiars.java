@@ -91,11 +91,11 @@ public final class Familiars {
 	private static final String DATA_PREFIX = "omnifam|";
 
 	static {
-		species("griffin", "Griffin", Stat.SWIFTNESS, 1.3, "antarchy:manticore", "naturalist:vulture", "minecraft:parrot");
+		species("griffin", "Griffin", Stat.SWIFTNESS, 1.3, "naturalist:vulture", "minecraft:parrot");
 		species("phoenix", "Phoenix", Stat.SPIRIT, 1.0, "naturalist:bird", "minecraft:parrot");
 		species("drake", "Drake", Stat.POWER, 1.1, "uselessreptile:river_pikehorn", "naturalist:lizard", "minecraft:ocelot");
 		species("wisp", "Wisp", Stat.SPIRIT, 0.8, "friendsandfoes:glare", "minecraft:bee");
-		species("stag", "Stag", Stat.SWIFTNESS, 1.2, "naturalist:deer", "antarchy:ouranwood_deer", "minecraft:fox");
+		species("stag", "Stag", Stat.SWIFTNESS, 1.2, "naturalist:deer", "minecraft:fox");
 		species("kodama", "Kodama", Stat.SPIRIT, 0.8, "aerialhell:kodama", "minecraft:fox");
 		species("direwolf", "Direwolf", Stat.POWER, 1.25, "minecraft:wolf");
 		species("tortoise", "Tortoise", Stat.VITALITY, 1.1, "naturalist:tortoise", "minecraft:turtle");

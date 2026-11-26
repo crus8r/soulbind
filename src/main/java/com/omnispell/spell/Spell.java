@@ -15,6 +15,8 @@ import java.util.List;
 public final class Spell {
 	public String id;            // spell type + sorted word ids: the same words always give the same spell
 	public String name;          // the incantation
+	public String nickname;      // what the player calls it, if they have named it
+	public boolean archived;     // kept, but out of the way in the spellbook
 	public String type;          // attack, defense, enchantment, illusion, charm, conjuration, exploration
 	public List<String> words = new ArrayList<>();
 	public int tier = 1;
@@ -62,6 +64,11 @@ public final class Spell {
 	}
 
 	/** True if the spell uses the charge whose name starts with this (Maxima, Minima, Rapidus, Duratus, Focalis). */
+	/** The name to show: the player's own name for the spell if it has one, otherwise its incantation. */
+	public String label() {
+		return nickname == null || nickname.isBlank() ? name : nickname;
+	}
+
 	public boolean hasCharge(String name) {
 		for (String id : words) {
 			if (id.startsWith("charge:" + name)) return true;

@@ -104,6 +104,8 @@ public class Omnispell implements ModInitializer {
 				case "discard" -> SpellCrafting.discardPending(player);
 				case "forget" -> SpellCrafting.forget(player, payload.arg());
 				case "equip" -> SpellCrafting.equip(player, payload.arg());
+				case "rename" -> SpellCrafting.rename(player, payload.arg());
+				case "archive" -> SpellCrafting.archive(player, payload.arg());
 				case "select" -> {
 					ItemStack wand = WandItem.heldWand(player);
 					try {

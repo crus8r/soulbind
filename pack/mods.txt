@@ -35,12 +35,6 @@ friends-and-foes
 variants-and-ventures
 naturalist
 useless-reptile
-antarchy
-antos              # needed by Antarchy
-anthology          # needed by Antarchy
-integrated-api     # needed by Antarchy
-sizeable-foliage   # needed by Antarchy
-geckolib           # needed by Antarchy
 
 # --- sky realm
 aerial-hell
@@ -59,6 +53,24 @@ ecologics                  # creatures
 natures-compass
 explorers-compass
 
+# --- performance
+sodium                     # much faster rendering
+lithium                    # faster game logic (mobs, physics, chunks)
+ferrite-core               # less memory
+entityculling              # skips drawing creatures and chests you cannot see
+moreculling
+immediatelyfast            # faster HUD and text
+krypton                    # lighter networking for multiplayer
+c2me-fabric                # chunk generation on several cores: the heavy terrain mods need it
+structure-layout-optimizer # faster generation of large structures
+zfastnoise                 # faster terrain noise
+ksyxis                     # faster world loading
+badoptimizations
+dynamic-fps                # eases off when the window is in the background
+alternate-current          # faster redstone
+clumps                     # merges experience orbs
+spark                      # /spark profiler: shows what is causing lag
+
 # --- playing together
 e4mc                       # Open to LAN gives a public address friends can join: no port forwarding, no server to run
 
@@ -67,3 +79,4 @@ e4mc                       # Open to LAN gives a public address friends can join
 # adventurez              crashes the server when its deer spawns ("Can't find attribute minecraft:tempt_range")
 # betternether, betterend   their library (World Weaver) crashed at start next to the other mods in testing
 # formations (+ overworld, nether)   marked for 26.3 but built against old class names; crashes on start
+# antarchy (+ antos, anthology, integrated-api, sizeable-foliage, geckolib)   removed at the owner's request: its AntOS library puts phones and computers in chests, and the mod has portal guns and other modern tech

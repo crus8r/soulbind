@@ -90,14 +90,14 @@ public final class Casting {
 		Map<String, Cooldown> cooldowns = COOLDOWNS.computeIfAbsent(player.getUUID(), k -> new HashMap<>());
 		Cooldown cd = cooldowns.get(spell.id);
 		if (cd != null && cd.ready > now) {
-			player.sendOverlayMessage(Component.literal(spell.name + " — " + String.format("%.1fs", (cd.ready - now) / 20.0)).withStyle(ChatFormatting.GRAY));
+			player.sendOverlayMessage(Component.literal(spell.label() + " — " + String.format("%.1fs", (cd.ready - now) / 20.0)).withStyle(ChatFormatting.GRAY));
 			return;
 		}
 
 		double cost = manaCost(spell);
 		com.omnispell.player.ManaPool pool = poolOf(spell);
 		if (cost > 0 && pool != null && !player.getAbilities().instabuild && com.omnispell.player.Mana.available(player, pool) < cost) {
-			player.sendOverlayMessage(Component.literal("Not enough " + pool.label + " mana for " + spell.name + " (" + (int) Math.ceil(cost) + " needed).").withStyle(ChatFormatting.GRAY));
+			player.sendOverlayMessage(Component.literal("Not enough " + pool.label + " mana for " + spell.label() + " (" + (int) Math.ceil(cost) + " needed).").withStyle(ChatFormatting.GRAY));
 			return;
 		}
 

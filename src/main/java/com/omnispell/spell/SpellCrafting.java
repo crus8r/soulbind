@@ -233,6 +233,45 @@ public final class SpellCrafting {
 		tell(player, true, "Discarded. " + refund + " essence returned.");
 	}
 
+	/** Gives a spell the player's own name ("id|name"; an empty name takes it away), in the spellbook and on every wand carried. */
+	public static void rename(ServerPlayer player, String arg) {
+		int bar = arg.lastIndexOf('|'); // a spell's id has bars of its own, so the name is whatever follows the last one
+		if (bar < 0) return;
+		String id = arg.substring(0, bar);
+		String name = arg.substring(bar + 1).strip();
+		if (name.length() > 32) name = name.substring(0, 32);
+		Spell spell = PlayerStore.get(player).spell(id);
+		if (spell == null) return;
+		spell.nickname = name.isEmpty() ? null : name;
+		refreshWands(player, spell);
+		PlayerStore.save(player);
+		PlayerStore.syncState(player);
+		PlayerStore.syncVitals(player);
+		tell(player, true, name.isEmpty() ? spell.name + " goes by its own name again." : spell.name + " is now called " + name + ".");
+	}
+
+	/** Puts a spell away, or brings it back. An archived spell is kept and still works on a wand; it is only out of the list. */
+	public static void archive(ServerPlayer player, String id) {
+		Spell spell = PlayerStore.get(player).spell(id);
+		if (spell == null) return;
+		spell.archived = !spell.archived;
+		refreshWands(player, spell);
+		PlayerStore.save(player);
+		PlayerStore.syncState(player);
+		tell(player, true, spell.label() + (spell.archived ? " is archived." : " is back in your spellbook."));
+	}
+
+	private static void refreshWands(ServerPlayer player, Spell spell) {
+		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+			ItemStack stack = player.getInventory().getItem(i);
+			if (!WandItem.isWand(stack)) continue;
+			for (int slot = 0; slot < WandItem.SLOTS; slot++) {
+				Spell there = WandItem.spell(stack, slot);
+				if (there != null && there.id.equals(spell.id)) WandItem.setSpell(stack, slot, spell);
+			}
+		}
+	}
+
 	public static void forget(ServerPlayer player, String spellId) {
 		PlayerData data = PlayerStore.get(player);
 		if (data.spells.removeIf(s -> s.id.equals(spellId))) {
@@ -269,7 +308,7 @@ public final class SpellCrafting {
 		}
 		WandItem.setSpell(wand, slot, spell);
 		PlayerStore.syncVitals(player);
-		tell(player, true, spell == null ? "Slot " + (slot + 1) + " cleared." : spell.name + " set to slot " + (slot + 1) + ".");
+		tell(player, true, spell == null ? "Slot " + (slot + 1) + " cleared." : spell.label() + " set to slot " + (slot + 1) + ".");
 	}
 
 	private static String capitalize(String s) {

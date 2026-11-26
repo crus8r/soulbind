@@ -41,6 +41,7 @@ public class BookScreen extends Screen {
 	private static int activeSlot = 0;
 	private static String dictFilter = "base";
 	private static String selectedSpell;
+	private static boolean showArchived;
 	private static String guideSection = "Getting started";
 	private static String loreSection = "Enchantments";
 
@@ -204,7 +205,8 @@ public class BookScreen extends Screen {
 		g.text(font(), "✦ " + ClientState.essence, px + pw - 44, py + 10, 0xFF7FD4FF, false);
 		g.horizontalLine(px + 4, px + pw - 5, py + 25, LINE);
 
-		search.visible = tab == 0 || (tab == 1 && ClientState.pending == null);
+		search.visible = tab == 0 || tab == 2 || (tab == 1 && ClientState.pending == null);
+		search.setHint(Component.literal(tab == 2 ? "Nickname..." : "Search words..."));
 
 		switch (tab) {
 			case 0 -> dictionary(g);
@@ -505,7 +507,7 @@ public class BookScreen extends Screen {
 
 	/** Draws a spell's name, tier line, description and effect. Returns the y below the text. */
 	private int spellDetails(GuiGraphicsExtractor g, Spell spell, int x, int y, int w, int maxY) {
-		g.text(font(), fit(spell.name, w), x, y, SpellLook.tierColor(spell.tier), false);
+		g.text(font(), fit(spell.nickname == null || spell.nickname.isBlank() ? spell.name : spell.nickname + "  (" + spell.name + ")", w), x, y, SpellLook.tierColor(spell.tier), false);
 		y += 12;
 		String typeName = WordBank.spellType(spell.type) == null ? spell.type : WordBank.spellType(spell.type).name.replace(" Spells", "");
 		String line = "Tier " + spell.tier + " · " + typeName + (spell.school == null || spell.school.isBlank() || spell.isExploration() ? "" : " · " + spell.school);
@@ -540,8 +542,20 @@ public class BookScreen extends Screen {
 	// ------------------------------------------------------------------ spellbook
 
 	private void spellbook(GuiGraphicsExtractor g) {
-		List<Spell> spells = ClientState.spells;
-		int lx = px + 8, lw = 150, top = py + 32, bottom = py + ph - 74, rh = 13;
+		int archivedCount = 0;
+		List<Spell> spells = new ArrayList<>();
+		for (Spell spell : ClientState.spells) {
+			if (spell.archived) archivedCount++;
+			if (spell.archived == showArchived) spells.add(spell);
+		}
+		if (showArchived && archivedCount == 0) showArchived = false;
+		int lx = px + 8, lw = 150, top = py + 32, bottom = py + ph - 74 - 14, rh = 13;
+		int shelved = archivedCount;
+		button(g, lx, bottom + 1, lw, 12, showArchived ? "Back to spellbook" : "Archived (" + shelved + ")", showArchived || shelved > 0, showArchived, () -> {
+			showArchived = !showArchived;
+			selectedSpell = null;
+			listScroll = 0;
+		});
 		g.fill(lx, top - 2, lx + lw, bottom, INSET);
 		int rows = (bottom - top) / rh;
 		listScroll = Math.max(0, Math.min(listScroll, Math.max(0, spells.size() - rows)));
@@ -559,9 +573,10 @@ public class BookScreen extends Screen {
 			if (isSelected || over(lx, cy - 1, lw, rh)) g.fill(lx, cy - 1, lx + lw, cy + rh - 1, isSelected ? 0xFF2A3E78 : 0xFF222C4A);
 			g.fill(lx + 2, cy + 1, lx + 9, cy + 8, 0xFF000000 | SpellLook.color(spell));
 			g.text(font(), SpellLook.glyph(spell), lx + 12, cy + 1, DIM, false);
-			g.text(font(), fit(spell.name, lw - 26), lx + 21, cy + 1, SpellLook.tierColor(spell.tier), false);
+			g.text(font(), fit(spell.label(), lw - 26), lx + 21, cy + 1, SpellLook.tierColor(spell.tier), false);
 			hit(lx, cy - 1, lw, rh, () -> {
 				selectedSpell = spell.id;
+				search.setValue(spell.nickname == null ? "" : spell.nickname);
 				detailScroll = 0;
 			});
 		}
@@ -570,19 +585,25 @@ public class BookScreen extends Screen {
 		ItemStack wand = minecraft.player == null ? ItemStack.EMPTY : WandItem.heldWand(minecraft.player);
 		if (selected != null) {
 			Spell shown = selected;
-			spellDetails(g, shown, dx, top, dw, bottom - 22);
-			int by = bottom - 18;
+			// Naming: type in the box at the top right, then press Name. An empty box takes the name away.
+			button(g, px + pw - 128 - 40, py + 30, 36, 14, "Name", true, false, () -> send("rename", shown.id + "|" + search.getValue().replace("|", " ")));
+			spellDetails(g, shown, dx, top + 18, dw, bottom + 14 - 22);
+			int by = bottom + 14 - 18;
 			if (!wand.isEmpty()) {
-				g.text(font(), "Set to slot:", dx, by + 4, DIM, false);
+				g.text(font(), "Slot:", dx, by + 4, DIM, false);
 				for (int s = 0; s < WandItem.SLOTS; s++) {
 					int slot = s;
 					Spell there = WandItem.spell(wand, s);
 					boolean here = there != null && there.id.equals(shown.id);
-					button(g, dx + 62 + s * 18, by, 16, 15, String.valueOf(s + 1), true, here, () -> send("equip", slot + ":" + (here ? "" : shown.id)));
+					button(g, dx + 26 + s * 18, by, 16, 15, String.valueOf(s + 1), true, here, () -> send("equip", slot + ":" + (here ? "" : shown.id)));
 				}
 			} else {
-				g.text(font(), "Hold a wand to equip spells.", dx, by + 4, DIM, false);
+				g.text(font(), "Hold a wand to equip.", dx, by + 4, DIM, false);
 			}
+			button(g, dx + dw - 44 - 52, by, 48, 15, shown.archived ? "Restore" : "Archive", true, false, () -> {
+				send("archive", shown.id);
+				selectedSpell = null;
+			});
 			button(g, dx + dw - 44, by, 44, 15, "Forget", true, false, () -> {
 				send("forget", shown.id);
 				selectedSpell = null;
@@ -617,11 +638,11 @@ public class BookScreen extends Screen {
 			boolean isSel = s == WandItem.selected(wand);
 			g.fill(sx, wy + 13, sx + sw, wy + 41, INSET);
 			g.outline(sx, wy + 13, sw, 28, isSel ? ACCENT : LINE);
-			g.text(font(), spell == null ? "—" : fit(spell.name, sw - 6), sx + 3, wy + 16, spell == null ? DIM : SpellLook.tierColor(spell.tier), false);
+			g.text(font(), spell == null ? "—" : fit(spell.label(), sw - 6), sx + 3, wy + 16, spell == null ? DIM : SpellLook.tierColor(spell.tier), false);
 			hit(sx, wy + 13, sw, 14, () -> send("select", String.valueOf(slot)), () -> send("equip", slot + ":"));
 			if (spell != null && over(sx, wy + 13, sw, 14)) {
 				tooltip = new ArrayList<>();
-				tooltip.add(Component.literal(spell.name));
+				tooltip.add(Component.literal(spell.label()));
 				tooltip.add(Component.literal("Click to select · Right-click to clear").withStyle(net.minecraft.ChatFormatting.GRAY));
 			}
 			// The key for this slot: click, then press the key you want.

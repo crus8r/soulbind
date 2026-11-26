@@ -593,6 +593,17 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.setDeltaMovement(0, 0, 0);
 				p.removeAllEffects();
 				PlayerStore.get(p).pending = null;
+				// Nicknames and the archive.
+				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);
+				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|Earth Tunnel");
+				check("Earth Tunnel".equals(PlayerStore.get(p).spell(carveSpell.id).label()) && "Earth Tunnel".equals(WandItem.spell(p.getMainHandItem(), 0).label()), "a spell can be given a nickname, and the wand shows it too");
+				com.omnispell.spell.SpellCrafting.archive(p, carveSpell.id);
+				check(PlayerStore.get(p).spell(carveSpell.id).archived && WandItem.spell(p.getMainHandItem(), 0) != null, "a spell can be archived and still sits on its wand");
+				com.omnispell.spell.SpellCrafting.archive(p, carveSpell.id);
+				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|");
+				check(!PlayerStore.get(p).spell(carveSpell.id).archived && carveSpell.name.equals(PlayerStore.get(p).spell(carveSpell.id).label()), "and restored, and un-named");
+				wand = p.getMainHandItem();
+
 				// Fire magic cooks; Sparsus exists and is rare.
 				check(com.omnispell.OmniLoot.cooked(Items.BEEF) == Items.COOKED_BEEF && com.omnispell.OmniLoot.cooked(Items.SALMON) == Items.COOKED_SALMON
 						&& com.omnispell.OmniLoot.cooked(Items.POTATO) == Items.BAKED_POTATO && com.omnispell.OmniLoot.cooked(Items.BONE) == null, "raw food has a cooked form and other drops do not");

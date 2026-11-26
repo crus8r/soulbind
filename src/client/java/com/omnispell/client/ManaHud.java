@@ -78,7 +78,7 @@ public final class ManaHud {
 		if (!ClientState.hideName && slot >= 0 && slot < WandItem.SLOTS && age >= 0 && age < 50) {
 			Spell spell = WandItem.spell(wand, slot);
 			int alpha = age < 35 ? 255 : Math.max(16, 255 - (int) ((age - 35) * 16));
-			String text = spell == null ? "Empty" : spell.name;
+			String text = spell == null ? "Empty" : spell.label();
 			int color = spell == null ? 0x8090B0 : (SpellLook.tierColor(spell.tier) & 0xFFFFFF);
 			int cx = x0 + (WandItem.SLOTS * (SQUARE + GAP) - GAP) / 2;
 			int tw = font.width(text);

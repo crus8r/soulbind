@@ -28,6 +28,7 @@ import java.util.List;
  */
 public class WandItem extends Item {
 	public static final int SLOTS = 5;
+	private static final java.util.Map<String, Spell> PARSED = new java.util.concurrent.ConcurrentHashMap<>();
 	private static final String WOOD = "omni_wood";
 	private static final String CORE = "omni_core";
 	private static final String SELECTED = "omni_selected";
@@ -61,7 +62,7 @@ public class WandItem extends Item {
 		int selected = selected(stack);
 		for (int i = 0; i < SLOTS; i++) {
 			Spell spell = spell(stack, i);
-			String text = (i + 1) + ". " + (spell == null ? "—" : spell.name);
+			String text = (i + 1) + ". " + (spell == null ? "—" : spell.label());
 			boolean isSelected = i == selected;
 			lines.add(Component.literal(text).withStyle(s -> s.withColor(isSelected ? ChatFormatting.AQUA : ChatFormatting.BLUE).withItalic(false)));
 		}
@@ -97,8 +98,14 @@ public class WandItem extends Item {
 	public static Spell spell(ItemStack stack, int slot) {
 		String json = tag(stack).getStringOr(SPELL + slot, "");
 		if (json.isEmpty()) return null;
+		// The spell bar asks for every slot on every frame, so the parsed spells are remembered.
+		Spell known = PARSED.get(json);
+		if (known != null) return known;
 		try {
-			return WordBank.GSON.fromJson(json, Spell.class);
+			Spell parsed = WordBank.GSON.fromJson(json, Spell.class);
+			if (PARSED.size() > 400) PARSED.clear();
+			PARSED.put(json, parsed);
+			return parsed;
 		} catch (Exception e) {
 			return null;
 		}
@@ -121,7 +128,7 @@ public class WandItem extends Item {
 		if (next >= SLOTS) next = -1; // after the last slot comes "none": the wand's plain bolt
 		select(stack, next);
 		Spell spell = next < 0 ? null : spell(stack, next);
-		player.sendOverlayMessage(Component.literal(next < 0 ? "No spell selected: left-click throws a bolt" : "Slot " + (next + 1) + ": " + (spell == null ? "empty" : spell.name)));
+		player.sendOverlayMessage(Component.literal(next < 0 ? "No spell selected: left-click throws a bolt" : "Slot " + (next + 1) + ": " + (spell == null ? "empty" : spell.label())));
 	}
 
 	public static ItemStack heldWand(Player player) {

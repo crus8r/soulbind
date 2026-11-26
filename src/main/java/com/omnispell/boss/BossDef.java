@@ -77,7 +77,7 @@ public final class BossDef {
 				.body("naturalist:bear", 1.25).body("naturalist:boar", 1.8).body("minecraft:polar_bear", 1.3)
 				.attacks("thorns", "charge", "thorn_volley"));
 		add(new BossDef("mistveil_serpent", "Mistveil Serpent", 1, "shadow", "light", "Manage what afflicts you.")
-				.body("antarchy:basilisk", 1.0).body("naturalist:snake", 3.0).body("minecraft:cave_spider", 2.4)
+				.body("naturalist:snake", 3.0).body("minecraft:cave_spider", 2.4)
 				.attacks("poison_cloud", "vanish"));
 		add(new BossDef("ironbark_guardian", "Ironbark Guardian", 1, "nature", "fire", "Break a shield with sustained damage.")
 				.body("aerialhell:aerial_tree_mimic", 1.2).body("variantsandventures:thicket", 1.7).body("minecraft:zombie", 1.8)
@@ -95,7 +95,7 @@ public final class BossDef {
 				.body("mutantmonsters:mutant_enderman", 1.0).body("aerialhell:shadow_automaton", 1.4).body("minecraft:wither_skeleton", 1.7)
 				.attacks("silence", "void_grasp"));
 		add(new BossDef("plagueborn_hydra", "Plagueborn Hydra", 4, "nature", "fire", "One foe may become many.")
-				.body("antarchy:emperor_scorpion", 1.0).body("naturalist:komodo_dragon", 2.0).body("minecraft:zoglin", 1.6)
+				.body("naturalist:jungle_scorpion", 3.5).body("naturalist:komodo_dragon", 2.0).body("minecraft:zoglin", 1.6)
 				.attacks("poison_cloud", "acid_spit", "split"));
 		add(new BossDef("celestial_arbiter", "Celestial Arbiter", 4, "light", "shadow", "Patience: do not strike a mirror.")
 				.body("aerialhell:lunatic_priest", 1.2).body("friendsandfoes:iceologer", 1.5).body("minecraft:evoker", 1.6)
