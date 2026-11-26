@@ -44,7 +44,7 @@ public final class SpellGenerator {
 	/** The request body the website sends to generate-spell. */
 	static JsonObject request(Spell spell, String discoverer) {
 		JsonObject body = new JsonObject();
-		body.addProperty("spellName", spell.name);
+		body.addProperty("spellName", Spell.websiteName(spell.words));
 		body.addProperty("spellType", spell.type);
 		JsonArray words = new JsonArray();
 		JsonArray spellings = new JsonArray();

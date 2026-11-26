@@ -45,6 +45,13 @@ public class ArcaneWellBlock extends Block {
 
 	private static final Map<UUID, Session> SESSIONS = new HashMap<>();
 
+	/** True while this player's surge is active: the moment to use the well again. */
+	public static boolean surging(ServerPlayer player) {
+		Session session = SESSIONS.get(player.getUUID());
+		long now = Tasks.now();
+		return session != null && now >= session.surgeAt && now <= session.surgeAt + WINDOW_TICKS;
+	}
+
 	public ArcaneWellBlock(Properties properties) {
 		super(properties);
 	}

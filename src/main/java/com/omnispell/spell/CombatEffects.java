@@ -363,15 +363,14 @@ public final class CombatEffects {
 		wolf.tame(player);
 		wolf.setCustomName(Component.literal(name));
 		wolf.setCustomNameVisible(true);
-		wolf.addTag(Summons.TAG);
 		AttributeInstance attack = wolf.getAttribute(Attributes.ATTACK_DAMAGE);
 		if (attack != null) attack.setBaseValue(Math.max(2.0, damage * cast.scale * cast.damageBonus(cast.spell.code.element)));
 		AttributeInstance health = wolf.getAttribute(Attributes.MAX_HEALTH);
 		if (health != null) health.setBaseValue(12 + cast.spell.tier * 6);
 		wolf.setHealth(wolf.getMaxHealth());
 		wolf.addEffect(new MobEffectInstance(MobEffects.GLOWING, cast.turns(turns), 0, false, false));
+		Summons.track(wolf, cast.turns(turns)); // before it enters the world, or it would be taken for a stray
 		cast.level.addFreshEntity(wolf);
-		Summons.track(wolf, cast.turns(turns));
 		Fx.play(cast.level, cast.spell.visual, Targeting.hand(player), wolf.position());
 		LivingEntity target = Targeting.entity(player, cast.range);
 		if (target != null && target != wolf) wolf.setTarget(target);

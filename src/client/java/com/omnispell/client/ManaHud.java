@@ -30,7 +30,7 @@ public final class ManaHud {
 		// ----- mana reserves, left side -----
 		int x = 6;
 		int y = h / 2 - 34;
-		g.fill(x - 3, y - 13, x + 86, y + 5 * 11 + 2, 0x90101420);
+		g.fill(x - 3, y - 13, x + 106, y + 5 * 11 + 2, 0x90101420);
 		g.text(font, "✦ " + ClientState.essence + " / " + ClientState.essenceCap, x, y - 10, 0xFF7FD4FF, true);
 		ManaPool[] pools = ManaPool.values();
 		for (int i = 0; i < pools.length; i++) {

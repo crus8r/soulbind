@@ -292,9 +292,9 @@ public final class ExploreEffects {
 				stand.setCustomNameVisible(true);
 				stand.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.PLAYER_HEAD));
 				stand.addEffect(new MobEffectInstance(MobEffects.GLOWING, 600, 0, false, false));
-				level.addFreshEntity(stand);
 				int ticks = (int) (300 * lasting);
 				Summons.track(stand, ticks);
+				level.addFreshEntity(stand);
 				for (LivingEntity e : Targeting.around(p, at, 16 * Math.sqrt(power), false)) {
 					if (e instanceof Mob mob && mob.getTarget() == p) MobControl.apply(p, e, "decoy", ticks, stand);
 					else if (e instanceof Monster) MobControl.apply(p, e, "decoy", ticks, stand);
@@ -423,8 +423,8 @@ public final class ExploreEffects {
 				horse.setCustomName(Component.literal((flavor == null ? "Conjured" : capitalize(flavor.adj)) + " Steed"));
 				AttributeInstance speed = horse.getAttribute(Attributes.MOVEMENT_SPEED);
 				if (speed != null) speed.setBaseValue(0.28 + 0.02 * tier);
-				level.addFreshEntity(horse);
 				Summons.track(horse, (int) (1800 * lasting * power));
+				level.addFreshEntity(horse);
 				p.startRiding(horse);
 				Fx.helix(level, p.position(), 2.5, 1.0, color, extra);
 				yield true;
@@ -536,8 +536,8 @@ public final class ExploreEffects {
 				golem.setHealth(golem.getMaxHealth());
 				AttributeInstance attack = golem.getAttribute(Attributes.ATTACK_DAMAGE);
 				if (attack != null) attack.setBaseValue(5 + tier * 2 * power);
-				level.addFreshEntity(golem);
 				Summons.track(golem, (int) ((400 + tier * 100) * lasting));
+				level.addFreshEntity(golem);
 				LivingEntity target = Targeting.entity(p, c.range);
 				if (target != null && target != golem) golem.setTarget(target);
 				Fx.helix(level, golem.position(), 2.8, 1.0, color, extra);
@@ -561,9 +561,10 @@ public final class ExploreEffects {
 				Mob sheep = EntityTypes.SHEEP.create(level, EntitySpawnReason.MOB_SUMMONED);
 				if (sheep == null) yield true;
 				sheep.snapTo(where.x, where.y, where.z, 0, 0);
+				int sheepTicks = (int) (300 * lasting * power);
+				Summons.track(sheep, sheepTicks + 2);
 				level.addFreshEntity(sheep);
-				sheep.addTag(Summons.TAG);
-				Tasks.later((int) (300 * lasting * power), () -> {
+				Tasks.later(sheepTicks, () -> {
 					if (sheep.isRemoved()) return; // it died as a sheep
 					Vec3 at = sheep.position();
 					sheep.discard();

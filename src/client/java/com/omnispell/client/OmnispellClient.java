@@ -73,10 +73,18 @@ public class OmnispellClient implements ClientModInitializer {
 		}
 	}
 
+	/** True if the player carries the book, loose or inside a bundle. */
 	private static boolean hasBook(Minecraft client) {
 		Inventory inventory = client.player.getInventory();
 		for (int i = 0; i < inventory.getContainerSize(); i++) {
-			if (inventory.getItem(i).is(OmniItems.GRIMOIRE)) return true;
+			net.minecraft.world.item.ItemStack stack = inventory.getItem(i);
+			if (stack.is(OmniItems.GRIMOIRE)) return true;
+			net.minecraft.world.item.component.BundleContents contents = stack.get(net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS);
+			if (contents != null) {
+				for (net.minecraft.world.item.ItemStackTemplate inside : contents.items()) {
+					if (inside.item().value() == OmniItems.GRIMOIRE) return true;
+				}
+			}
 		}
 		return client.player.getAbilities().instabuild;
 	}

@@ -62,6 +62,32 @@ public class BookScreen extends Screen {
 		if (slotTypes.isEmpty()) resetSlots();
 	}
 
+	/** Opens the book on a given tab (0 Dictionary, 1 Craft, 2 Spellbook, 3 Guide, 4 Bosses). */
+	public static BookScreen onTab(int index) {
+		tab = Math.max(0, Math.min(TABS.length - 1, index));
+		return new BookScreen();
+	}
+
+	/** Fills the Craft tab with a formula. Used by the automated tests and handy for "craft again". */
+	public static void preset(String spellType, List<String> wordIds) {
+		craftType = spellType;
+		resetSlots();
+		for (String id : wordIds) {
+			Word word = WordBank.word(id);
+			if (word == null) continue;
+			int slot = -1;
+			for (int s = 0; s < slotTypes.size(); s++) {
+				if (slotTypes.get(s).equals(word.type) && slotWords.get(s) == null) slot = s;
+			}
+			if (slot < 0) {
+				slotTypes.add(word.type);
+				slotWords.add(null);
+				slot = slotTypes.size() - 1;
+			}
+			slotWords.set(slot, id);
+		}
+	}
+
 	private static Font font() {
 		return Minecraft.getInstance().font;
 	}
@@ -72,7 +98,7 @@ public class BookScreen extends Screen {
 		ph = Math.min(236, height - 20);
 		px = (width - pw) / 2;
 		py = (height - ph) / 2;
-		search = new EditBox(font(), px + pw - 150, py + 30, 140, 14, Component.literal("Search"));
+		search = new EditBox(font(), px + pw - 128, py + 30, 120, 14, Component.literal("Search"));
 		search.setHint(Component.literal("Search words..."));
 		search.setMaxLength(32);
 		search.setResponder(text -> listScroll = 0);
@@ -189,6 +215,7 @@ public class BookScreen extends Screen {
 	// ------------------------------------------------------------------ dictionary
 
 	private void dictionary(GuiGraphicsExtractor g) {
+		search.setY(py + 30);
 		int x = px + 8, y = py + 30;
 		int bw = 37;
 		List<String> filters = WordBank.WORD_TYPES;
@@ -286,20 +313,26 @@ public class BookScreen extends Screen {
 			return;
 		}
 		// Spell type chips
+		search.setY(py + 48);
 		int x = px + 8, y = py + 30;
 		int i = 0;
+		int chipW = (pw - 16 - 6 * 2) / 7;
 		for (WordBank.SpellType type : WordBank.spellTypes()) {
 			boolean unlocked = ClientState.spellTypes.contains(type.id);
-			String name = type.name.replace(" Spells", "");
-			int w = 34;
-			int bx = x + i * (w + 2);
-			button(g, bx, y, w, 14, name.length() > 6 ? name.substring(0, 5) + "." : name, unlocked, craftType.equals(type.id), () -> {
+			String name = switch (type.id) {
+				case "enchantment" -> "Enchant";
+				case "conjuration" -> "Conjure";
+				case "exploration" -> "Explore";
+				default -> type.name.replace(" Spells", "");
+			};
+			int bx = x + i * (chipW + 2);
+			button(g, bx, y, chipW, 14, name, unlocked, craftType.equals(type.id), () -> {
 				craftType = type.id;
 				resetSlots();
 				listScroll = 0;
 				addMenu = false;
 			});
-			if (over(bx, y, w, 14)) {
+			if (over(bx, y, chipW, 14)) {
 				tooltip = new ArrayList<>();
 				tooltip.add(Component.literal(type.name));
 				tooltip.add(Component.literal(type.description).withStyle(net.minecraft.ChatFormatting.GRAY));
@@ -309,7 +342,7 @@ public class BookScreen extends Screen {
 		}
 
 		// Formula slots, left column
-		int sx = px + 8, sy = py + 50, sw = 150, sh = 18;
+		int sx = px + 8, sy = py + 50, sw = 150, sh = 17;
 		for (int s = 0; s < slotTypes.size(); s++) {
 			int index = s;
 			String wordType = slotTypes.get(s);
@@ -386,12 +419,12 @@ public class BookScreen extends Screen {
 		});
 
 		// Word list for the active slot, right column
-		int lx = px + 166, lw = pw - 174, top = py + 50, bottom = py + ph - 28;
+		int lx = px + 166, lw = pw - 174, top = py + 68, bottom = py + ph - 28;
 		g.fill(lx, top - 2, lx + lw, bottom, INSET);
 		if (slotTypes.isEmpty()) return;
 		activeSlot = Math.max(0, Math.min(activeSlot, slotTypes.size() - 1));
 		String wordType = slotTypes.get(activeSlot);
-		g.text(font(), label(wordType) + " words", lx, py + 34, typeColor(wordType), false);
+		g.text(font(), label(wordType) + " words", lx, py + 51, typeColor(wordType), false);
 
 		String query = search.getValue().trim().toLowerCase();
 		List<Word> fits = new ArrayList<>();
@@ -446,7 +479,8 @@ public class BookScreen extends Screen {
 		y = spellDetails(g, spell, x, y + 14, w, py + ph - 50);
 		int bw = 110, by = py + ph - 44;
 		button(g, px + pw / 2 - bw - 6, by, bw, 18, "Save to Spellbook", true, true, () -> send("save", ""));
-		button(g, px + pw / 2 + 6, by, bw, 18, "Discard (½ essence back)", true, false, () -> send("discard", ""));
+		button(g, px + pw / 2 + 6, by, bw, 18, "Discard", true, false, () -> send("discard", ""));
+		g.centeredText(font(), "Discarding returns half the essence.", px + pw / 2, by + 22, DIM);
 	}
 
 	/** Draws a spell's name, tier line, description and effect. Returns the y below the text. */

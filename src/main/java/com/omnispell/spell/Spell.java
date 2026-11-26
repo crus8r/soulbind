@@ -75,13 +75,50 @@ public final class Spell {
 		return type + "|" + String.join(",", sorted);
 	}
 
-	public static String incantation(List<String> wordIds) {
+	/** The incantation as the website writes it: the chosen spellings separated by spaces. */
+	public static String websiteName(List<String> wordIds) {
 		StringBuilder sb = new StringBuilder();
 		for (String id : wordIds) {
 			Word word = WordBank.word(id);
 			if (word == null) continue;
 			if (!sb.isEmpty()) sb.append(' ');
 			sb.append(word.spelling);
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * The incantation as shown in the game. Some words are written as endings
+	 * ("-strix") or beginnings ("transloc-"); those fuse with the word beside them.
+	 */
+	public static String incantation(List<String> wordIds) {
+		List<String> parts = new ArrayList<>();
+		List<String> waiting = new ArrayList<>(); // beginnings looking for a word to lead
+		for (String id : wordIds) {
+			Word word = WordBank.word(id);
+			if (word == null) continue;
+			String spelling = word.spelling;
+			String bare = spelling.replace("-", "");
+			if (spelling.endsWith("-")) {
+				waiting.add(bare);
+			} else if (spelling.startsWith("-") && !parts.isEmpty()) {
+				parts.set(parts.size() - 1, parts.get(parts.size() - 1) + bare.toLowerCase());
+			} else if (!waiting.isEmpty()) {
+				parts.add(waiting.remove(0) + bare.toLowerCase());
+			} else {
+				parts.add(bare);
+			}
+		}
+		// A beginning with nothing after it leads the first word instead.
+		for (String lead : waiting) {
+			if (parts.isEmpty()) parts.add(lead);
+			else parts.set(0, lead + parts.get(0).toLowerCase());
+		}
+		StringBuilder sb = new StringBuilder();
+		for (String part : parts) {
+			if (part.isEmpty()) continue;
+			if (!sb.isEmpty()) sb.append(' ');
+			sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
 		}
 		return sb.toString();
 	}

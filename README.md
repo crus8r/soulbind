@@ -1,4 +1,67 @@
-# Soul Bind (Fabric, Minecraft 26.3)
+# Omnispell (Fabric, Minecraft 26.3)
+
+Craft your own spells from words of power, in a normal Minecraft world. Based on the
+Omnispell web game. The Soul Bind mod is built in: everything Soul Bind did still works,
+and its description is kept below.
+
+**Status: first milestone.** Wands, the Book of Words, word scrolls, spell crafting,
+casting, mana, arcane essence and wells work. Waypoints, potions, runes, bosses,
+structures and realms are not built yet.
+
+## Install
+
+Put `omnispell-<version>.jar` in your `mods` folder next to Fabric API. Everyone who
+plays needs it (it adds screens and key binds). Remove the old `soulbind` jar: Omnispell
+replaces it.
+
+## How it plays
+
+- A new player's Soul Bind bundle holds a **starter wand** and the **Book of Words**.
+- Open the book (right-click it, or press `G`). On the **Craft** tab pick a kind of
+  spell, click a slot, click a word. Craft costs arcane essence. Save the result and it
+  goes on the wand you are holding.
+- Hold the wand and press `Z X C V B` to cast its five spells, or right-click for the
+  selected one. `H` shows or hides the mana display. All keys can be changed.
+- **Combat spells** (attack, defense, enchantment, illusion, charm, conjuration) are
+  written by the Omnispell website's spell generator, unchanged. The same words always
+  give the same spell. Each new combination is requested once and then remembered.
+- **Exploration spells** (bridges, teleports, invisibility and about forty other
+  effects) come from Omnispell's fixed table: base + command + intention decide the effect.
+- **Words** come from Word Scrolls in structure chests and, rarely, from hostile mobs.
+  A scroll always teaches a word you do not know. The Wither, the Warden and the Ender
+  Dragon each drop a scroll of their own.
+- **Wands** are crafted: plank, core, plank of the same wood in a vertical line.
+  The wood sets mana bonuses, the core sets how many words a spell may hold.
+- **Mana** has five reserves (Barrier, Restoration, Control, Mirror, Phase). Their size
+  comes from the wand's wood, your armor material, and the Reservoir and Wellspring
+  enchantments.
+- **Arcane essence** is drawn from an Arcane Well: use it, wait for the surge, use it
+  again. With essence full and a glass bottle in hand, three catches make an Arcane Potion.
+
+The book's Guide tab explains all of this in the game.
+
+## Settings
+
+`config/omnispell.json` is written on first run. It holds the generator's address and
+the balance numbers (how long a "turn" is, damage scale, essence costs, scroll chances).
+Set `useGenerator` to `false` to play without any internet connection: combat spells
+are then made by simple built-in rules.
+
+## Operator commands
+
+`/omnispell kit`, `words all`, `word <name>`, `types`, `essence <n>`, `mana`,
+`scroll <1-5>`, `wand <wood> <core>`, `reset`.
+
+## Building and testing
+
+`./gradlew build` makes the jar in `build/libs/` (JDK 25). `tools/run_client_test.sh`
+starts a real game in a virtual display and plays through the mod, saving screenshots to
+`build/run/clientGameTest/screenshots`. `python3 tools/gen_assets.py` regenerates the
+textures, recipes and names.
+
+---
+
+# Soul Bind
 
 A balanced alternative to keepInventory. Keep weapons/tools/armor at the cost of some durability, and keep items by storing them in a bundle/shulker box/ender chest enchanted with Soul Bind.
 
@@ -47,7 +110,7 @@ When you die, soul-bound items stay in the same slots:
 - **Enchanted bundles.** About 3% of the chests that can hold a Soul Bind book also
   hold a bundle with Soul Bind or Unbreaking (I-III).
 - **Starter bundle.** Every player gets one Soul Bind II + Unbreaking II bundle the
-  first time they join.
+  first time they join. With Omnispell it holds a starter wand and the Book of Words.
 - **Wayfinder.** A common, cheap enchantment for helmets and filled maps. Sneak while
   holding a map and a short dotted trail points toward the map's target (its marked
   X or icon, or its center if it has none).
