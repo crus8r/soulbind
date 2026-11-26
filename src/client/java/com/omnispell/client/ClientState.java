@@ -23,8 +23,10 @@ public final class ClientState {
 	public static int essence;
 	public static int essenceCap = 100;
 	public static double corruption;
-	public static double[] mana = new double[5];
-	public static double[] manaMax = {1, 1, 1, 1, 1};
+	public static double[] mana = new double[com.omnispell.player.ManaPool.values().length];
+	public static double[] manaMax = {1, 1, 1, 1, 1, 1};
+	/** The client tick at which each reserve was last drawn on, for the flash on its bar. */
+	public static long[] manaSpentAt = new long[com.omnispell.player.ManaPool.values().length];
 	public static long[] cooldownLeft = new long[5];
 	public static long[] cooldownTotal = {1, 1, 1, 1, 1};
 	public static int selected = -1;
@@ -71,7 +73,8 @@ public final class ClientState {
 		corruption = json.get("corruption").getAsDouble();
 		JsonArray m = json.getAsJsonArray("mana");
 		JsonArray mm = json.getAsJsonArray("manaMax");
-		for (int i = 0; i < 5 && i < m.size(); i++) {
+		for (int i = 0; i < mana.length && i < m.size(); i++) {
+			if (m.get(i).getAsDouble() < mana[i] - 0.4) manaSpentAt[i] = clientTick;
 			mana[i] = m.get(i).getAsDouble();
 			manaMax[i] = Math.max(0.001, mm.get(i).getAsDouble());
 		}

@@ -32,7 +32,7 @@ public final class ManaHud {
 		int h = g.guiHeight();
 
 		spellBar(g, client, font, wand, w, h);
-		if (ClientSettings.get().showMana) mana(g, font, h);
+		mana(g, font, h, ClientSettings.get().showMana);
 	}
 
 	/** Left edge and top of the spell bar: directly above the hearts (and the armor row, when there is one). */
@@ -57,6 +57,8 @@ public final class ManaHud {
 			Spell spell = WandItem.spell(wand, i);
 			g.fill(x, y0, x + SQUARE, y0 + SQUARE, 0xC0101420);
 			if (spell != null) g.fill(x + 1, y0 + SQUARE - 3, x + SQUARE - 1, y0 + SQUARE - 1, 0xFF000000 | SpellLook.color(spell));
+			ManaPool pool = com.omnispell.spell.Casting.poolOf(spell);
+			if (pool != null) g.fill(x + SQUARE - 5, y0 + 1, x + SQUARE - 1, y0 + 5, 0xFF000000 | pool.color); // which reserve this spell draws on
 			String key = keyLabel(i);
 			g.centeredText(font, key, x + SQUARE / 2, y0 + 3, spell == null ? 0xFF4A5268 : 0xFFE8ECF8);
 			if (spell != null) {
@@ -95,23 +97,31 @@ public final class ManaHud {
 		return compact.length() <= 3 ? compact : compact.substring(0, 2);
 	}
 
-	private static void mana(GuiGraphicsExtractor g, Font font, int h) {
+	/** The mana panel. With the panel switched off, a reserve still shows for a moment whenever it is drawn on. */
+	private static void mana(GuiGraphicsExtractor g, Font font, int h, boolean all) {
 		int x = 6;
-		int y = h / 2 - 34;
-		g.fill(x - 3, y - 13, x + 106, y + 5 * 11 + 2, 0x90101420);
-		g.text(font, "✦ " + ClientState.essence + " / " + ClientState.essenceCap, x, y - 10, 0xFF7FD4FF, true);
 		ManaPool[] pools = ManaPool.values();
+		int y = h / 2 - pools.length * 11 / 2;
+		if (all) {
+			g.fill(x - 3, y - 13, x + 106, y + pools.length * 11 + 2, 0x90101420);
+			g.text(font, "✦ " + ClientState.essence + " / " + ClientState.essenceCap, x, y - 10, 0xFF7FD4FF, true);
+		}
 		for (int i = 0; i < pools.length; i++) {
+			long sinceSpent = ClientState.clientTick - ClientState.manaSpentAt[i];
+			boolean flashing = ClientState.manaSpentAt[i] > 0 && sinceSpent >= 0 && sinceSpent < 12;
+			boolean recent = ClientState.manaSpentAt[i] > 0 && sinceSpent >= 0 && sinceSpent < 50;
+			if (!all && !recent) continue;
 			int by = y + i * 11;
+			if (!all) g.fill(x - 3, by, x + 106, by + 10, 0x90101420);
 			float fraction = (float) Math.max(0, Math.min(1, ClientState.mana[i] / ClientState.manaMax[i]));
 			int color = 0xFF000000 | pools[i].color;
 			g.fill(x, by + 2, x + 40, by + 8, 0xFF1B2030);
 			g.fill(x, by + 2, x + Math.round(40 * fraction), by + 8, fraction < 0.2f ? 0xFFB03030 : color);
-			g.outline(x - 1, by + 1, 42, 8, 0xFF3A4260);
-			g.text(font, pools[i].label, x + 45, by + 1, fraction <= 0.01f ? 0xFF8A5050 : 0xFFC8D0E0, false);
+			g.outline(x - 1, by + 1, 42, 8, flashing ? 0xFFFFFFFF : 0xFF3A4260);
+			g.text(font, pools[i].label, x + 45, by + 1, flashing ? 0xFFFFFFFF : fraction <= 0.01f ? 0xFF8A5050 : 0xFFC8D0E0, false);
 		}
-		if (ClientState.corruption >= 1) {
-			g.text(font, "Corruption " + (int) ClientState.corruption + "%", x, y + 5 * 11 + 5, ClientState.corruption >= 50 ? 0xFFFF5555 : 0xFFC080FF, true);
+		if (all && ClientState.corruption >= 1) {
+			g.text(font, "Corruption " + (int) ClientState.corruption + "%", x, y + pools.length * 11 + 5, ClientState.corruption >= 50 ? 0xFFFF5555 : 0xFFC080FF, true);
 		}
 	}
 

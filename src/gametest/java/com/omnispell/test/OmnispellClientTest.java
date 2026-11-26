@@ -87,7 +87,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 	}
 
 	/** Presses a spell key twice: the first press shows the name, the second casts. */
+	private static TestServerContext SERVER;
+
 	private static void cast(ClientGameTestContext context, int slot) {
+		// Attack spells cost Force mana; the play-through is not about running dry.
+		if (SERVER != null) SERVER.runOnServer(s -> PlayerStore.get(player(s)).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 60);
 		context.getInput().pressKey(OmnispellClient.CAST[slot]);
 		context.waitTicks(3);
 		context.getInput().pressKey(OmnispellClient.CAST[slot]);
@@ -106,6 +110,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 		var realGenerator = SpellGenerator.transport;
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			TestServerContext server = world.getServer();
+			SERVER = server;
 			server.runCommand("time set noon");
 			server.runCommand("gamerule spawn_mobs false");
 			context.waitTicks(40);
@@ -549,10 +554,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
 				p.setYRot(180f);
 				p.setXRot(0f);
-				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.MIRROR.ordinal()] = 6;
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 6;
 				com.omnispell.spell.Casting.primary(p, wand);
 				check(z.getHealth() < z.getMaxHealth(), "left-click with an empty slot throws an arcane bolt (zombie health " + z.getHealth() + ")");
-				check(Math.abs(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.MIRROR.ordinal()] - 1) < 0.01, "a bolt costs 5 Mirror mana");
+				check(Math.abs(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] - 1) < 0.01, "a bolt costs 5 Force mana");
 				z.discard();
 
 				// A coloured strike: Void + Summon + Malice calls purple lightning on what you look at.
@@ -590,6 +595,43 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < 41, "the ward costs Barrier mana to hold");
 				p.stopUsingItem();
 
+				// Attack spells are paid for in Force mana.
+				com.omnispell.spell.Spell attack = null;
+				for (com.omnispell.spell.Spell known : PlayerStore.get(p).spells) if ("attack".equals(known.type)) attack = known;
+				check(attack != null && com.omnispell.spell.Casting.manaCost(attack) == 4 + 3 * attack.tier, "an attack spell has a Force cost");
+				ItemStack costWand = WandItem.create("oak", "nether_star");
+				WandItem.setSpell(costWand, 0, attack);
+				p.getInventory().setItem(6, costWand);
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 60;
+				com.omnispell.spell.Casting.cast(p, costWand, 0);
+				double left = PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()];
+				check(Math.abs(left - (60 - com.omnispell.spell.Casting.manaCost(attack))) < 0.01, "casting it spent " + (60 - left) + " Force mana");
+				p.getInventory().setItem(6, ItemStack.EMPTY);
+
+				// Villagers sell scrolls: the trades are in the game's trade lists.
+				var trades = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.VILLAGER_TRADE);
+				check(trades.get(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.VILLAGER_TRADE, com.omnispell.Omnispell.id("librarian/1/scroll_common"))).isPresent()
+						&& trades.get(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.VILLAGER_TRADE, com.omnispell.Omnispell.id("librarian/5/scroll_ancient"))).isPresent(), "librarians have word scroll trades");
+				var librarianOne = trades.get(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.VILLAGER_TRADE, net.minecraft.resources.Identifier.withDefaultNamespace("librarian/level_1")));
+				check(librarianOne.isPresent() && librarianOne.get().stream().anyMatch(h -> h.getRegisteredName().equals("omnispell:librarian/1/scroll_common")), "a novice librarian can offer a common scroll");
+
+				// The forest's ruin and nest build, and their chests hold what they should.
+				BlockPos ruinAt = b.offset(0, 0, 30);
+				for (BlockPos pos : BlockPos.betweenClosed(ruinAt.offset(-8, -1, -8), ruinAt.offset(24, -1, 8))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState());
+				check(com.omnispell.world.ForestFeatures.Ruin.INSTANCE.place(level, level.getChunkSource().getGenerator(), level.getRandom(), ruinAt), "a forest ruin builds");
+				check(com.omnispell.world.ForestFeatures.Nest.INSTANCE.place(level, level.getChunkSource().getGenerator(), level.getRandom(), ruinAt.offset(16, 0, 0)), "a familiar nest builds");
+				int chests = 0, eggs = 0, pillars = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(ruinAt.offset(-8, -1, -8), ruinAt.offset(24, 8, 8))) {
+					if (level.getBlockState(pos).is(OmniItems.FAEWOOD_LOG)) pillars++;
+					if (level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity box) {
+						chests++;
+						box.unpackLootTable(p);
+						for (int i = 0; i < box.getContainerSize(); i++) if (com.omnispell.familiar.Familiars.isEgg(box.getItem(i))) eggs++;
+					}
+				}
+				check(chests == 2 && pillars >= 12, "the ruin has its pillars and both have their boxes (" + chests + " boxes, " + pillars + " logs)");
+				check(eggs >= 1, "the nest holds a familiar egg (" + eggs + ")");
+
 				// Shift-click in the inventory sends a wand to the off hand, as it does a shield.
 				p.getInventory().setItem(6, WandItem.create("birch", "flint"));
 				p.inventoryMenu.quickMoveStack(p, 36 + 6);
@@ -609,7 +651,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			// Sneak + right-click passes the wand to the other hand; a bolt with no mana left does nothing.
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
-				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.MIRROR.ordinal()] = 0;
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 0;
 				p.setXRot(-60f);
 			});
 			context.getInput().holdKey(options -> options.keyShift);

@@ -32,7 +32,7 @@ public final class Casting {
 	}
 
 	private static final Map<UUID, Long> BOLT_READY = new HashMap<>();
-	/** Mirror mana per bolt: a full starting reserve is twelve bolts, then about one every ten seconds. */
+	/** Force mana per bolt: a full starting reserve is twelve bolts, then about one every ten seconds. */
 	public static final double BOLT_COST = 5.0;
 
 	/**
@@ -50,13 +50,13 @@ public final class Casting {
 			return;
 		}
 		if (BOLT_READY.getOrDefault(player.getUUID(), 0L) > now) return;
-		// The bolt is a convenience, not a free weapon: each one is paid for from the Mirror reserve.
-		if (!player.getAbilities().instabuild && com.omnispell.player.Mana.available(player, com.omnispell.player.ManaPool.MIRROR) < BOLT_COST) {
-			player.sendOverlayMessage(Component.literal("Not enough Mirror mana for a bolt.").withStyle(ChatFormatting.GRAY));
+		// The bolt is a convenience, not a free weapon: each one is paid for from the Force reserve.
+		if (!player.getAbilities().instabuild && com.omnispell.player.Mana.available(player, com.omnispell.player.ManaPool.FORCE) < BOLT_COST) {
+			player.sendOverlayMessage(Component.literal("Not enough Force mana for a bolt.").withStyle(ChatFormatting.GRAY));
 			BOLT_READY.put(player.getUUID(), now + 12);
 			return;
 		}
-		if (!player.getAbilities().instabuild) com.omnispell.player.Mana.spend(player, com.omnispell.player.ManaPool.MIRROR, BOLT_COST);
+		if (!player.getAbilities().instabuild) com.omnispell.player.Mana.spend(player, com.omnispell.player.ManaPool.FORCE, BOLT_COST);
 		BOLT_READY.put(player.getUUID(), now + 12);
 		ServerLevel level = player.level();
 		com.omnispell.item.WandParts.Core core = com.omnispell.item.WandParts.core(WandItem.core(wand));
@@ -88,6 +88,13 @@ public final class Casting {
 			return;
 		}
 
+		double cost = manaCost(spell);
+		com.omnispell.player.ManaPool pool = poolOf(spell);
+		if (cost > 0 && pool != null && !player.getAbilities().instabuild && com.omnispell.player.Mana.available(player, pool) < cost) {
+			player.sendOverlayMessage(Component.literal("Not enough " + pool.label + " mana for " + spell.name + " (" + (int) Math.ceil(cost) + " needed).").withStyle(ChatFormatting.GRAY));
+			return;
+		}
+
 		Cast cast = new Cast(player, wand, spell);
 		if (spell.dark && !corruption(cast)) {
 			setCooldown(cast, cooldowns, now, 1.0);
@@ -109,6 +116,7 @@ public final class Casting {
 			player.level().playSound(null, player.blockPosition(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5f, 1.6f);
 			return;
 		}
+		if (cost > 0 && pool != null && !player.getAbilities().instabuild) com.omnispell.player.Mana.spend(player, pool, cost);
 		setCooldown(cast, cooldowns, now, cast.cooldownFactor);
 		String screen = spell.visual.screenEffect;
 		if (screen != null && !screen.equals("none")) {
@@ -119,6 +127,34 @@ public final class Casting {
 	}
 
 	/** The website's cooldown in turns for a spell of this tier and type. */
+	/** The reserve a spell mostly draws on. Shown as a coloured pip on its square. Null for spells that only have a cooldown. */
+	public static com.omnispell.player.ManaPool poolOf(Spell spell) {
+		if (spell == null || spell.type == null) return null;
+		if (spell.isExploration()) {
+			return switch (spell.toggle == null ? "" : spell.toggle) {
+				case "invisibility", "fade", "camouflage", "silent_step", "teleport", "phase" -> com.omnispell.player.ManaPool.PHASE;
+				case "stun", "trap", "golem", "guardian" -> com.omnispell.player.ManaPool.CONTROL;
+				default -> null;
+			};
+		}
+		if (spell.type.equals("attack")) return com.omnispell.player.ManaPool.FORCE;
+		return switch (spell.code.type == null ? "" : spell.code.type) {
+			case "heal" -> com.omnispell.player.ManaPool.RESTORATION;
+			case "shield" -> com.omnispell.player.ManaPool.BARRIER;
+			case "debuff", "status" -> com.omnispell.player.ManaPool.CONTROL;
+			case "damage" -> com.omnispell.player.ManaPool.FORCE;
+			default -> null;
+		};
+	}
+
+	/** What a cast costs up front. Only attack spells have a fixed price; the other kinds pay as their effects are used. */
+	public static double manaCost(Spell spell) {
+		if (spell == null || !"attack".equals(spell.type)) return 0;
+		double cost = 4 + 3 * Math.max(1, Math.min(5, spell.tier));
+		if (spell.hasCharge("Minima")) cost *= 0.6;
+		return cost;
+	}
+
 	static double cooldownTurns(Spell spell) {
 		int tier = spell.tier;
 		double cd = tier <= 1 ? 0 : tier <= 2 ? 1 : tier <= 4 ? 2 : 3;
@@ -142,6 +178,7 @@ public final class Casting {
 			double turns = cooldownTurns(spell);
 			turns -= Modifiers.value(player, "cooldown_reduction") + Modifiers.value(player, "mana_efficiency");
 			seconds = Math.max(0, turns) * Omnispell.CONFIG.turnSeconds;
+			if (spell.type.equals("attack")) seconds *= 0.7; // attack spells are paid for in Force mana now, so they come back sooner
 		}
 		seconds *= 1.0 - Math.min(60.0, cast.core.haste + com.omnispell.player.Mana.alacrityPercent(player)) / 100.0;
 		seconds *= factor;

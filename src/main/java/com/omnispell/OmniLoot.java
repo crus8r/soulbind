@@ -35,6 +35,11 @@ public final class OmniLoot {
 			String path = colon < 0 ? name : name.substring(colon + 1);
 			if (!path.startsWith("chests/") && !path.contains("/chests/")) return;
 			Entity opener = context.getOptional(LootContextParams.THIS_ENTITY);
+			if (path.contains("familiar_nest")) {
+				drops.add(com.omnispell.familiar.Familiars.randomEgg(context.getRandom()));
+				if (context.getRandom().nextInt(3) == 0) drops.add(com.omnispell.familiar.Familiars.randomEgg(context.getRandom()));
+				return;
+			}
 			double chance = Omnispell.CONFIG.scrollChestChance * bias(opener);
 			RandomSource random = context.getRandom();
 			int[] range = chestRarity(path);
@@ -80,7 +85,7 @@ public final class OmniLoot {
 	private static int[] chestRarity(String path) {
 		if (has(path, "end_city", "ancient_city")) return new int[]{4, 5};
 		if (has(path, "boss_lair_5", "boss_lair_6")) return new int[]{4, 5};
-		if (has(path, "boss_lair_3", "boss_lair_4")) return new int[]{3, 4};
+		if (has(path, "boss_lair_3", "boss_lair_4", "forest_ruin")) return new int[]{3, 4};
 		if (has(path, "boss_lair", "shrine")) return new int[]{2, 3};
 		if (has(path, "stronghold", "bastion", "woodland_mansion", "trial_chambers", "nether_bridge", "fortress", "boss", "vault")) return new int[]{3, 4};
 		if (has(path, "pyramid", "temple", "outpost", "ruined_portal", "treasure", "shipwreck", "underwater_ruin", "igloo", "dungeon", "mineshaft", "tower", "castle", "crypt")) return new int[]{2, 3};

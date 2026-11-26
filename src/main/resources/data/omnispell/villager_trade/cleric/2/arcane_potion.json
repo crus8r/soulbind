@@ -1,0 +1,12 @@
+{
+  "gives": {
+    "id": "omnispell:arcane_potion"
+  },
+  "max_uses": 8,
+  "reputation_discount": 0.05,
+  "xp": 10,
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 4
+  }
+}

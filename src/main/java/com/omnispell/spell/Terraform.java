@@ -637,7 +637,7 @@ public final class Terraform {
 				} else if (element.equals("fire")) {
 					for (BlockPos pos : BlockPos.betweenClosed(at.offset(-tier, 0, -tier), at.offset(tier, 0, tier))) {
 						double d = Math.sqrt(pos.distSqr(at));
-						if (d > tier - 0.5 && d <= tier + 0.5 && !level.getBlockState(pos.below()).canBeReplaced()) job.place(pos, Blocks.FIRE, null);
+						if (d > tier - 0.5 && d <= tier + 0.5 && !level.getBlockState(pos.below()).canBeReplaced()) { if (level.getBlockState(pos).canBeReplaced()) { flame(level, pos.immutable(), tier); job.changed++; } }
 					}
 				} else if (element.equals("ice")) {
 					for (BlockPos pos : BlockPos.betweenClosed(at.offset(-tier - 1, -1, -tier - 1), at.offset(tier + 1, 1, tier + 1))) {
@@ -854,6 +854,27 @@ public final class Terraform {
 		return true;
 	}
 
+	/** How likely a spell's flame is to be left to burn and spread: 5% at tier 1, 15% at tier 5. */
+	public static double wildfireChance(int tier) {
+		return 0.05 + 0.025 * (Math.max(1, Math.min(5, tier)) - 1);
+	}
+
+	/**
+	 * Magic fire. Most of it is tame: it burns for a few seconds and then goes
+	 * out, taking with it anything it lit next to itself. Now and then, more
+	 * often for stronger spells, one flame is left wild.
+	 */
+	static void flame(ServerLevel level, BlockPos pos, int tier) {
+		BlockPos at = pos.immutable();
+		level.setBlockAndUpdate(at, Blocks.FIRE.defaultBlockState());
+		if (level.getRandom().nextDouble() < wildfireChance(tier)) return;
+		Tasks.later(50 + level.getRandom().nextInt(40), () -> {
+			for (BlockPos near : BlockPos.betweenClosed(at.offset(-1, -1, -1), at.offset(1, 1, 1))) {
+				if (level.getBlockState(near).is(Blocks.FIRE)) level.removeBlock(near, false);
+			}
+		});
+	}
+
 	/** The element's mark on the ground a spell has touched. */
 	private static void ground(ServerLevel level, java.util.List<BlockPos> touched, String element, int tier, String toggle) {
 		var random = level.getRandom();
@@ -871,7 +892,7 @@ public final class Terraform {
 			}
 			switch (element) {
 				case "fire" -> {
-					if (floor && random.nextInt(6) == 0) level.setBlockAndUpdate(pos, Blocks.FIRE.defaultBlockState());
+					if (floor && random.nextInt(6) == 0) flame(level, pos, tier);
 					for (Direction d : Direction.values()) {
 						BlockPos near = pos.relative(d);
 						BlockState state = level.getBlockState(near);

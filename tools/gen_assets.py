@@ -698,6 +698,55 @@ write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_abandoned_cauldron.js
     'omnispell:gloamwood', 'omnispell:glowcap_glade', 'omnispell:palewood',
     {'id': '#c:is_swamp', 'required': False}, {'id': '#c:is_magical', 'required': False}, {'id': '#c:is_spooky', 'required': False},
     {'id': '#c:is_mushroom', 'required': False}, {'id': '#c:is_dead', 'required': False}]})
+# ----- the Enchanted Forest's ruins and nests
+for name, chance in (('forest_ruin', 28), ('familiar_nest', 40)):
+    write(os.path.join(DATA, 'worldgen', 'feature', name + '.json'), {'type': f'omnispell:{name}'})
+    write(os.path.join(DATA, 'worldgen', 'placed_feature', name + '.json'), {
+        'feature': f'omnispell:{name}',
+        'placement': [{'type': 'minecraft:rarity_filter', 'chance': chance}, {'type': 'minecraft:in_square'},
+                      {'type': 'minecraft:heightmap', 'heightmap': 'WORLD_SURFACE_WG'}, {'type': 'minecraft:biome'}]})
+write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'is_enchanted_forest.json'), {'replace': False, 'values': [
+    'omnispell:faewood_grove', 'omnispell:gloamwood', 'omnispell:glowcap_glade', 'omnispell:palewood', 'omnispell:ancient_spires']})
+def pool_table(name, rolls, items):
+    write(os.path.join(DATA, 'loot_table', 'chests', name + '.json'), {
+        'type': 'minecraft:chest',
+        'pools': [{'rolls': {'type': 'minecraft:uniform', 'min': rolls[0], 'max': rolls[1]},
+                   'entries': [{'type': 'minecraft:item', 'name': i, 'weight': w,
+                                'functions': [{'function': 'minecraft:set_count', 'count': {'type': 'minecraft:uniform', 'min': 1, 'max': c}}]} for i, w, c in items]}]})
+pool_table('forest_ruin', (4, 7), [('omnispell:fae_dust', 10, 4), ('minecraft:amethyst_shard', 8, 5), ('minecraft:emerald', 6, 4), ('minecraft:book', 6, 3),
+                                   ('minecraft:ender_pearl', 4, 2), ('minecraft:diamond', 3, 2), ('minecraft:echo_shard', 2, 2), ('omnispell:arcane_potion', 5, 2),
+                                   ('omnispell:faewood_log', 6, 6), ('minecraft:experience_bottle', 4, 4)])
+pool_table('familiar_nest', (2, 4), [('minecraft:feather', 10, 4), ('omnispell:fae_dust', 8, 3), ('minecraft:glow_berries', 6, 4), ('minecraft:moss_block', 4, 2)])
+
+# ----- villager trades: scrolls for emeralds
+def scroll(rarity):
+    names = ['', 'Common', 'Uncommon', 'Rare', 'Ancient', 'Forbidden']
+    looks = ['', 'common', 'common', 'uncommon', 'rare', 'epic']
+    return {'id': 'omnispell:word_scroll', 'components': {
+        'minecraft:custom_data': {'omni_rarity': rarity},
+        'minecraft:item_name': names[rarity] + ' Word Scroll',
+        'minecraft:rarity': looks[rarity],
+        'minecraft:lore': [{'text': 'Read it to learn a word of power.', 'color': 'gray', 'italic': True}]}}
+TRADES = {  # tag -> [(trade name, emeralds, what it gives, uses)]
+    'librarian/level_1': [('librarian/1/scroll_common', 6, scroll(1), 4)],
+    'librarian/level_2': [('librarian/2/scroll_common', 5, scroll(1), 6)],
+    'librarian/level_3': [('librarian/3/scroll_uncommon', 12, scroll(2), 4)],
+    'librarian/level_4': [('librarian/4/scroll_rare', 24, scroll(3), 3)],
+    'librarian/level_5': [('librarian/5/scroll_ancient', 40, scroll(4), 2)],
+    'cleric/level_2': [('cleric/2/arcane_potion', 4, {'id': 'omnispell:arcane_potion'}, 8)],
+    'cleric/level_4': [('cleric/4/scroll_uncommon', 14, scroll(2), 3)],
+    'cleric/level_5': [('cleric/5/scroll_rare', 28, scroll(3), 2)],
+    'wandering_trader/uncommon': [('wandering_trader/scroll_rare', 20, scroll(3), 1), ('wandering_trader/scroll_ancient', 36, scroll(4), 1)],
+    'wandering_trader/common': [('wandering_trader/scroll_uncommon', 10, scroll(2), 2)],
+}
+for tag, trades in TRADES.items():
+    for name, cost, gives, uses in trades:
+        write(os.path.join(DATA, 'villager_trade', name + '.json'), {
+            'gives': gives, 'max_uses': uses, 'reputation_discount': 0.05, 'xp': 10,
+            'wants': {'id': 'minecraft:emerald', 'count': cost}})
+    write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'villager_trade', tag + '.json'),
+          {'replace': False, 'values': ['omnispell:' + name for name, _, _, _ in trades]})
+
 # Until arcane wells generate in structures, one can be built.
 write(os.path.join(recipe_dir, 'arcane_well.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'misc',

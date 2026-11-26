@@ -10,7 +10,8 @@ public enum ManaPool {
 	RESTORATION("Restoration", 0x22c55e, 75), // healing
 	CONTROL("Control", 0xa855f7, 6),          // turns of stun, charm, fear, confusion
 	MIRROR("Mirror", 0xf59e0b, 60),           // damage reflected
-	PHASE("Phase", 0x06b6d4, 5);              // dodges
+	PHASE("Phase", 0x06b6d4, 5),              // dodges, the wand sprint and air-walking
+	FORCE("Force", 0xef4444, 60);             // attack spells and the wand's plain bolt
 
 	public final String label;
 	public final int color;

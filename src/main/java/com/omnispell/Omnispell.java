@@ -59,6 +59,7 @@ public class Omnispell implements ModInitializer {
 		com.omnispell.familiar.Familiars.register();
 		com.omnispell.boss.Lairs.register();
 		com.omnispell.world.Cauldrons.register();
+		com.omnispell.world.ForestFeatures.register();
 		PlayerStore.register();
 		com.omnispell.waypoint.Waypoints.register();
 		OmniNet.register();
