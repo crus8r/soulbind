@@ -110,6 +110,41 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runCommand("gamerule spawn_mobs false");
 			context.waitTicks(40);
 
+			// ---- boss parade: spawn every boss, let it fight for a while, photograph it
+			if (System.getenv("OMNISPELL_BOSSES") != null) {
+				server.runCommand("effect give @a minecraft:resistance infinite 4 true");
+				server.runCommand("effect give @a minecraft:regeneration infinite 4 true");
+				server.runCommand("effect give @a minecraft:fire_resistance infinite 0 true");
+				BlockPos[] home = new BlockPos[1];
+				server.runOnServer(s -> home[0] = player(s).blockPosition());
+				int n = 0;
+				for (com.omnispell.boss.BossDef def : com.omnispell.boss.BossDef.ALL.values()) {
+					net.minecraft.world.entity.Mob[] boss = new net.minecraft.world.entity.Mob[1];
+					server.runOnServer(s -> {
+						ServerPlayer p = player(s);
+						ServerLevel level = p.level();
+						p.teleportTo(level, home[0].getX() + 0.5, home[0].getY(), home[0].getZ() + 0.5, java.util.Set.of(), 0f, -5f, true);
+						boss[0] = com.omnispell.boss.Bosses.spawn(level, Vec3.atBottomCenterOf(home[0].offset(0, 0, 9)), def);
+						check(boss[0] != null, def.name + " spawned");
+						String body = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(boss[0].getType()).toString();
+						System.out.println("[omnispell-test] BOSS " + def.name + " wears " + body + ", health " + boss[0].getMaxHealth() + ", hostile=" + (boss[0] instanceof net.minecraft.world.entity.monster.Enemy));
+					});
+					context.waitTicks(40);
+					context.takeScreenshot("boss-" + String.format("%02d", n++) + "-" + def.id);
+					context.waitTicks(Math.max(200, def.abilities.size() * 140)); // long enough for each attack to be used once
+					server.runOnServer(s -> {
+						ServerPlayer p = player(s);
+						check(p.isAlive(), "player survived " + def.name + " with test protection");
+						if (boss[0].isAlive()) boss[0].hurtServer(p.level(), p.level().damageSources().playerAttack(p), 100000f);
+						for (net.minecraft.world.entity.Entity e : p.level().getAllEntities()) {
+							if (e != p && !(e instanceof net.minecraft.world.entity.item.ItemEntity) && e.distanceToSqr(p) < 60 * 60 && e instanceof net.minecraft.world.entity.LivingEntity) e.discard();
+						}
+					});
+					context.waitTicks(10);
+				}
+				return;
+			}
+
 			// ---- structure building mode: build, save, screenshot, stop
 			if (System.getenv("OMNISPELL_BUILD_STRUCTURES") != null) {
 				server.runOnServer(s -> StructureBuilder.buildAll(player(s).level(), player(s).blockPosition()));

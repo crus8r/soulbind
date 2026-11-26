@@ -50,14 +50,21 @@ public final class Bosses {
 		final ServerBossEvent bar;
 		long nextAbility;
 		int abilityIndex;
+		/** Some pack creatures bring a boss bar of their own; ours would be a second one. */
+		boolean ownBar;
 		boolean split;
 		long reflectUntil;
+		long nextStrike;
+		float healthFiveSecondsAgo;
+		long healthStampedAt;
 
 		Active(BossDef def, Mob entity) {
 			this.def = def;
 			this.entity = entity;
 			this.bar = new ServerBossEvent(UUID.randomUUID(), Component.literal(def.name), barColor(def.element), BossEvent.BossBarOverlay.PROGRESS);
 			this.nextAbility = Tasks.now() + 100;
+			String body = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
+			this.ownBar = body.equals("aerialhell:lunatic_priest") || body.equals("aerialhell:chained_god");
 		}
 	}
 
@@ -77,11 +84,29 @@ public final class Bosses {
 		};
 	}
 
+	/** Makes the first of the boss's bodies that exists here. Bodies from mods that are not installed are skipped. */
+	private static Mob body(ServerLevel level, BossDef def, double[] scaleOut) {
+		for (BossDef.Body body : def.bodies) {
+			var type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(net.minecraft.resources.Identifier.parse(body.entity()));
+			if (type.isEmpty()) continue;
+			try {
+				if (type.get().create(level, EntitySpawnReason.MOB_SUMMONED) instanceof Mob mob) {
+					scaleOut[0] = body.scale();
+					return mob;
+				}
+			} catch (Exception e) {
+				Omnispell.LOG.warn("Boss body {} could not be made; trying the next", body.entity(), e);
+			}
+		}
+		return null;
+	}
+
 	public static Mob spawn(ServerLevel level, Vec3 at, BossDef def) {
-		Mob mob = def.body.create(level, EntitySpawnReason.MOB_SUMMONED);
+		double[] scale = {1.0};
+		Mob mob = body(level, def, scale);
 		if (mob == null) return null;
 		mob.snapTo(at.x, at.y, at.z, 0, 0);
-		set(mob.getAttribute(Attributes.SCALE), def.scale);
+		set(mob.getAttribute(Attributes.SCALE), scale[0]);
 		set(mob.getAttribute(Attributes.MAX_HEALTH), def.health());
 		set(mob.getAttribute(Attributes.ATTACK_DAMAGE), def.damage());
 		set(mob.getAttribute(Attributes.FOLLOW_RANGE), 40);
@@ -162,7 +187,7 @@ public final class Bosses {
 			for (ServerPlayer player : level.players()) {
 				if (player.distanceToSqr(mob) < 48 * 48) {
 					near.add(player);
-					boss.bar.addPlayer(player);
+					if (!boss.ownBar) boss.bar.addPlayer(player);
 				} else {
 					boss.bar.removePlayer(player);
 				}
@@ -175,6 +200,21 @@ public final class Bosses {
 						break;
 					}
 				}
+			}
+			// Whatever body a boss wears, standing next to it hurts: gentle creatures get teeth this way.
+			if (now >= boss.nextStrike) {
+				double reach = 2.2 + mob.getBbWidth();
+				for (ServerPlayer player : near) {
+					if (player.getAbilities().invulnerable || player.distanceToSqr(mob) > reach * reach) continue;
+					boss.nextStrike = now + 30;
+					boolean fights = mob instanceof net.minecraft.world.entity.monster.Enemy;
+					player.hurtServer(level, level.damageSources().mobAttack(mob), (float) (boss.def.damage() * (fights ? 0.35 : 1.0)));
+					break;
+				}
+			}
+			if (now - boss.healthStampedAt >= 100) {
+				boss.healthStampedAt = now;
+				boss.healthFiveSecondsAgo = mob.getHealth();
 			}
 			if (boss.def.abilities.contains("split") && !boss.split && mob.getHealth() < mob.getMaxHealth() * 0.5f) {
 				boss.split = true;
@@ -191,11 +231,12 @@ public final class Bosses {
 
 	private static void split(ServerLevel level, Active boss) {
 		for (int i = 0; i < 2; i++) {
-			Mob minion = boss.def.body.create(level, EntitySpawnReason.MOB_SUMMONED);
+			double[] minionScale = {1.0};
+			Mob minion = body(level, boss.def, minionScale);
 			if (minion == null) continue;
 			Vec3 at = boss.entity.position().add(i == 0 ? 1.5 : -1.5, 0, 0);
 			minion.snapTo(at.x, at.y, at.z, 0, 0);
-			set(minion.getAttribute(Attributes.SCALE), boss.def.scale * 0.6);
+			set(minion.getAttribute(Attributes.SCALE), minionScale[0] * 0.6);
 			set(minion.getAttribute(Attributes.MAX_HEALTH), boss.def.health() * 0.15);
 			set(minion.getAttribute(Attributes.ATTACK_DAMAGE), boss.def.damage() * 0.5);
 			minion.setHealth(minion.getMaxHealth());
@@ -296,6 +337,180 @@ public final class Bosses {
 				Fx.impact(level, mob.position(), "arcane", 3);
 				target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 2), mob);
 				mob.addEffect(new MobEffectInstance(MobEffects.SPEED, 80, 1));
+			}
+			case "charge" -> {
+				LivingEntity target = mob.getTarget();
+				if (target == null) return;
+				Vec3 dir = target.position().subtract(at);
+				if (dir.lengthSqr() < 1) return;
+				Fx.line(level, at.add(0, 1, 0), target.position().add(0, 1, 0), Fx.color("nature"), ParticleTypes.CRIT, 3);
+				Tasks.later(12, () -> {
+					if (!mob.isAlive()) return;
+					Vec3 push = dir.normalize().scale(1.6);
+					mob.setDeltaMovement(push.x, 0.3, push.z);
+					mob.syncVelocity = true;
+				});
+				Tasks.later(22, () -> {
+					for (ServerPlayer p : level.players()) {
+						if (!mob.isAlive() || p.distanceToSqr(mob) > 9) continue;
+						p.hurtServer(level, level.damageSources().mobAttack(mob), (float) (boss.def.damage() * 1.2));
+						Vec3 away = p.position().subtract(mob.position()).normalize();
+						p.push(away.x * 1.4, 0.5, away.z * 1.4);
+						p.syncVelocity = true;
+					}
+				});
+			}
+			case "thorn_volley" -> {
+				for (ServerPlayer p : near) {
+					if (p.distanceToSqr(mob) > 20 * 20) continue;
+					Vec3 from = at.add(0, mob.getBbHeight() * 0.7, 0);
+					Vec3 to = p.position().add(0, 1, 0);
+					Fx.line(level, from, to, Fx.color("nature"), ParticleTypes.COMPOSTER, 2);
+					Tasks.later(8, () -> {
+						if (p.position().add(0, 1, 0).distanceToSqr(to) < 4) {
+							p.hurtServer(level, level.damageSources().mobAttack(mob), (float) (boss.def.damage() * 0.7));
+							p.addEffect(new MobEffectInstance(MobEffects.POISON, 60, 0), mob);
+						}
+					});
+				}
+			}
+			case "vanish" -> {
+				LivingEntity target = mob.getTarget();
+				mob.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 60, 0, false, false));
+				Fx.impact(level, at, "shadow", 3);
+				if (target == null) return;
+				Tasks.later(50, () -> {
+					if (!mob.isAlive() || !target.isAlive()) return;
+					Vec3 behind = target.position().subtract(target.getLookAngle().multiply(1.5, 0, 1.5));
+					mob.teleportTo(behind.x, target.getY(), behind.z);
+					mob.removeEffect(MobEffects.INVISIBILITY);
+					Fx.impact(level, mob.position(), "shadow", 4);
+					if (target instanceof ServerPlayer p) p.hurtServer(level, level.damageSources().mobAttack(mob), (float) (boss.def.damage() * 1.3));
+				});
+			}
+			case "root_slam", "tidal_slam" -> {
+				boolean tidal = ability.equals("tidal_slam");
+				String element = tidal ? "shadow" : "nature";
+				Fx.ring(level, at, 2, Fx.color(element), null);
+				int waves = tidal ? 3 : 1;
+				for (int wave = 0; wave < waves; wave++) {
+					double radius = 5 + wave * 3;
+					Tasks.later(18 + wave * 10, () -> {
+						if (!mob.isAlive()) return;
+						Vec3 now = mob.position();
+						Fx.ring(level, now, radius, Fx.color(element), tidal ? ParticleTypes.SQUID_INK : ParticleTypes.COMPOSTER);
+						for (ServerPlayer p : level.players()) {
+							double d = Math.sqrt(p.distanceToSqr(mob));
+							if (d > radius + 0.8 || d < radius - 3.5 || !p.onGround()) continue; // jump the wave to dodge it
+							p.hurtServer(level, level.damageSources().mobAttack(mob), (float) (boss.def.damage() * 0.8));
+							p.push(0, 0.9, 0);
+							p.syncVelocity = true;
+							p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1), mob);
+						}
+					});
+				}
+			}
+			case "meteor", "judgement" -> {
+				boolean holy = ability.equals("judgement");
+				String element = holy ? "light" : "fire";
+				for (ServerPlayer p : near) {
+					if (p.distanceToSqr(mob) > 30 * 30) continue;
+					Vec3 mark = p.position();
+					Tasks.repeat(8, 4, () -> Fx.ring(level, mark, 2.5, Fx.color(element), holy ? ParticleTypes.END_ROD : ParticleTypes.SMALL_FLAME));
+					Tasks.later(32, () -> {
+						Fx.line(level, mark.add(holy ? 0 : 6, 18, 0), mark, Fx.color(element), holy ? ParticleTypes.END_ROD : ParticleTypes.FLAME, 5);
+						Fx.impact(level, mark, element, 5);
+						level.playSound(null, BlockPos.containing(mark), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 0.8f, holy ? 1.6f : 0.8f);
+						boolean hit = false;
+						for (ServerPlayer q : level.players()) {
+							if (q.position().distanceToSqr(mark) > 7.5) continue;
+							q.hurtServer(level, holy ? level.damageSources().magic() : level.damageSources().mobAttack(mob), (float) (boss.def.damage() * 1.3));
+							if (!holy) q.igniteForSeconds(5);
+							hit = true;
+						}
+						if (holy && hit && mob.isAlive()) mob.heal(mob.getMaxHealth() * 0.04f); // judgement that lands restores the judge
+					});
+				}
+			}
+			case "ice_spikes" -> {
+				LivingEntity target = mob.getTarget();
+				if (target == null) return;
+				Vec3 dir = target.position().subtract(at);
+				double length = Math.min(18, dir.length() + 4);
+				Vec3 step = new Vec3(dir.x, 0, dir.z).normalize();
+				for (int i = 2; i < length; i += 2) {
+					Vec3 spot = at.add(step.scale(i));
+					Tasks.later(6 + i * 2, () -> {
+						Fx.impact(level, spot, "ice", 3);
+						Fx.line(level, spot, spot.add(0, 2.2, 0), Fx.color("ice"), ParticleTypes.SNOWFLAKE, 3);
+						for (ServerPlayer p : level.players()) {
+							if (p.position().distanceToSqr(spot) > 3.2) continue;
+							p.hurtServer(level, level.damageSources().freeze(), (float) (boss.def.damage() * 0.8));
+							p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 2), mob);
+							p.setTicksFrozen(p.getTicksFrozen() + 120);
+						}
+					});
+				}
+			}
+			case "gale" -> {
+				Fx.ring(level, at, 3, Fx.color("spirit"), ParticleTypes.CLOUD);
+				Fx.ring(level, at, 7, Fx.color("spirit"), ParticleTypes.GUST);
+				for (ServerPlayer p : near) {
+					if (p.distanceToSqr(mob) > 144) continue;
+					Vec3 away = p.position().subtract(at);
+					Vec3 push = new Vec3(away.x, 0, away.z).normalize().scale(1.8);
+					p.push(push.x, 0.8, push.z);
+					p.syncVelocity = true;
+					p.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 30, 1), mob);
+				}
+			}
+			case "void_grasp" -> {
+				for (ServerPlayer p : near) {
+					if (p.distanceToSqr(mob) > 24 * 24 || p.distanceToSqr(mob) < 9) continue;
+					Fx.line(level, at.add(0, 1.2, 0), p.position().add(0, 1, 0), Fx.color("shadow"), ParticleTypes.REVERSE_PORTAL, 4);
+					Vec3 pull = at.subtract(p.position()).normalize().scale(1.7);
+					p.push(pull.x, 0.35, pull.z);
+					p.syncVelocity = true;
+					p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 80, 0), mob);
+				}
+			}
+			case "acid_spit" -> {
+				for (ServerPlayer p : near) {
+					if (p.distanceToSqr(mob) > 22 * 22) continue;
+					Vec3 mark = p.position();
+					Fx.line(level, at.add(0, mob.getBbHeight() * 0.8, 0), mark, Fx.color("poison"), ParticleTypes.ITEM_SLIME, 3);
+					// The acid pools where it lands and burns for a few seconds.
+					Tasks.repeat(10, 8, () -> {
+						Fx.ring(level, mark, 2.2, Fx.color("poison"), ParticleTypes.ITEM_SLIME);
+						for (ServerPlayer q : level.players()) {
+							if (q.position().distanceToSqr(mark) > 5.5) continue;
+							q.hurtServer(level, level.damageSources().magic(), (float) (boss.def.damage() * 0.25));
+							q.addEffect(new MobEffectInstance(MobEffects.POISON, 60, 1), mob);
+						}
+					});
+				}
+			}
+			case "rewind" -> {
+				// Time runs backward for the wyrm: it returns to the health it had five seconds ago.
+				if (boss.healthFiveSecondsAgo > mob.getHealth()) {
+					mob.setHealth(Math.min(mob.getMaxHealth(), mob.getHealth() + (boss.healthFiveSecondsAgo - mob.getHealth()) * 0.6f));
+					Fx.helix(level, at, 3.5, 1.5, Fx.color("arcane"), ParticleTypes.REVERSE_PORTAL);
+					for (ServerPlayer p : near) p.sendOverlayMessage(Component.literal("Time runs backward. " + boss.def.name + " mends.").withStyle(ChatFormatting.LIGHT_PURPLE));
+				}
+			}
+			case "cage" -> {
+				for (ServerPlayer p : near) {
+					if (p.distanceToSqr(mob) > 30 * 30) continue;
+					BlockPos c = p.blockPosition();
+					var glass = net.minecraft.world.level.block.Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.PURPLE);
+					for (BlockPos pos : BlockPos.betweenClosed(c.offset(-1, 0, -1), c.offset(1, 2, 1))) {
+						boolean edge = pos.getX() != c.getX() || pos.getZ() != c.getZ();
+						if (edge) com.omnispell.spell.TempBlocks.place(level, pos.immutable(), glass, 70);
+					}
+					com.omnispell.spell.TempBlocks.place(level, c.above(2), glass, 70);
+					Fx.impact(level, p.position(), "arcane", 4);
+					p.sendOverlayMessage(Component.literal("Sealed. Break out or blink away.").withStyle(ChatFormatting.DARK_PURPLE));
+				}
 			}
 			default -> {
 			}
