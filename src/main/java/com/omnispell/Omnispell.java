@@ -228,6 +228,7 @@ public class Omnispell implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			Tasks.tick();
 			com.omnispell.player.AirWalk.tick(server);
+			com.omnispell.item.Attire.tick(server);
 			int tick = server.getTickCount();
 			if (tick % 10 == 0) {
 				MobControl.tick();

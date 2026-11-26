@@ -67,11 +67,23 @@ public final class OmniItems {
 			.component(net.minecraft.core.component.DataComponents.ENCHANTABLE, new net.minecraft.world.item.enchantment.Enchantable(15))
 			.component(net.minecraft.core.component.DataComponents.CONTAINER, net.minecraft.world.item.component.ItemContainerContents.EMPTY)
 			.rarity(net.minecraft.world.item.Rarity.EPIC));
+	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.item.equipment.EquipmentAsset> ROBE_ASSET =
+			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_robe"));
+	public static final Item WIZARD_ROBE = register("wizard_robe", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.CHEST));
+	public static final Item WIZARD_BOOTS = register("wizard_boots", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.FEET));
 	public static final Item ARCANE_FOCUS = register("arcane_focus", Item::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR_EGG = register("familiar_egg", com.omnispell.familiar.FamiliarEggItem::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR = register("familiar", com.omnispell.familiar.FamiliarItem::new, new Item.Properties().stacksTo(1));
 
 	private OmniItems() {
+	}
+
+	/** Robe or boots: no armour, no durability, dyeable, enchantable with the mana enchantments. */
+	private static Item.Properties attire(net.minecraft.world.entity.EquipmentSlot slot) {
+		return new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
+				.component(net.minecraft.core.component.DataComponents.EQUIPPABLE, net.minecraft.world.item.equipment.Equippable.builder(slot)
+						.setAsset(ROBE_ASSET).setEquipSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER).setDamageOnHurt(false).build())
+				.component(net.minecraft.core.component.DataComponents.ENCHANTABLE, new net.minecraft.world.item.enchantment.Enchantable(15));
 	}
 
 	static Item register(String name, Function<Item.Properties, Item> factory, Item.Properties properties) {
@@ -100,6 +112,8 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_POTION));
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_FOCUS));
 					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_HAT));
+					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_ROBE));
+					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_BOOTS));
 					output.accept(new net.minecraft.world.item.ItemStack(ALCHEMY_CAULDRON_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
 					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "omnispell:item/wizard_robe",
+    "layer1": "omnispell:item/wizard_robe_trim"
+  }
+}

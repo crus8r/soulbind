@@ -89,6 +89,14 @@ public class OmnispellClientTest implements FabricClientGameTest {
 	/** Presses a spell key twice: the first press shows the name, the second casts. */
 	private static TestServerContext SERVER;
 
+	private static ItemStack charmGem(ServerLevel level, String charm, int strength) {
+		ItemStack gem = new ItemStack(Items.AMETHYST_SHARD);
+		var holder = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+				.get(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENCHANTMENT, com.omnispell.Omnispell.id(charm)));
+		gem.enchant(holder.orElseThrow(), strength);
+		return gem;
+	}
+
 	private static void cast(ClientGameTestContext context, int slot) {
 		// Attack spells cost Force mana; the play-through is not about running dry.
 		if (SERVER != null) SERVER.runOnServer(s -> {
@@ -689,7 +697,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (int k = 0; k < 3; k++) com.omnispell.item.WizardHatItem.insert(hat, new ItemStack(Items.ENDER_PEARL, 16));
 				check(com.omnispell.item.WizardHatItem.count(hat) == 50 && beds.isEmpty() && totem.isEmpty(), "the hat holds beds, totems and pearls (" + com.omnispell.item.WizardHatItem.count(hat) + " things)");
 				check(com.omnispell.item.WizardHatItem.insert(hat, new ItemStack(Items.DIRT, 64)) == 14, "and stops at 64");
-				check(com.omnispell.charm.Charms.slots(hat) == 1 && com.omnispell.charm.Charms.isGem(new ItemStack(Items.TOTEM_OF_UNDYING)), "the hat takes a charm, and a totem can be charmed");
+				check(com.omnispell.charm.Charms.slots(hat) == 2 && com.omnispell.charm.Charms.isGem(new ItemStack(Items.TOTEM_OF_UNDYING)), "the hat takes two charms, and a totem can be charmed");
 				check(com.omnispell.item.WandParts.CORES.containsKey("totem_of_undying"), "a totem can be a wand core");
 				int tableBound = 0, plain = 0;
 				for (int k = 0; k < 40; k++) {
@@ -759,6 +767,26 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(WandItem.warding(p), "holding the wand up raises its ward");
 				float warded = com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().generic(), 10f);
 				check(Math.abs(warded - 5f) < 0.01f, "the ward turns half of a hit aside (10 became " + warded + ")");
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(OmniItems.WIZARD_ROBE));
+				p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(OmniItems.WIZARD_BOOTS));
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 50;
+				float robed = com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().generic(), 10f);
+				check(robed < 0.01f, "in a wizard's robe the ward stops the whole blow (10 became " + robed + ")");
+				float fall = com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().fall(), 6f);
+				check(fall < 0.01f, "in wizard's boots the ward holds off a fall");
+				check(com.omnispell.charm.Charms.slots(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST)) == 2 && com.omnispell.charm.Charms.slots(wand) == 3, "attire holds two charms, a wand three");
+				ItemStack eloquent = com.omnispell.charm.Charms.merge(WandItem.create("oak", "flint"), charmGem(level, "eloquence", 2));
+				ItemStack mainWand = p.getMainHandItem();
+				ItemStack[] kept = new ItemStack[p.getInventory().getContainerSize()];
+				for (int k = 0; k < kept.length; k++) {
+					kept[k] = p.getInventory().getItem(k);
+					if (WandItem.isWand(kept[k])) p.getInventory().setItem(k, ItemStack.EMPTY); // only flint wands about, for a clean count
+				}
+				p.getInventory().setItem(p.getInventory().getSelectedSlot(), WandItem.create("oak", "flint"));
+				int budgetBefore = WandItem.bestWordBudget(p);
+				p.getInventory().setItem(p.getInventory().getSelectedSlot(), eloquent);
+				check(budgetBefore == 3 && WandItem.bestWordBudget(p) == 5, "an Eloquence II charm on the wand in hand lends two more words (" + budgetBefore + " -> " + WandItem.bestWordBudget(p) + ")");
+				for (int k = 0; k < kept.length; k++) p.getInventory().setItem(k, kept[k]);
 				com.omnispell.player.Mana.wandUpkeep(p);
 				check(PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < 41, "the ward costs Barrier mana to hold");
 				p.stopUsingItem();
@@ -1372,11 +1400,23 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.waitTicks(10);
 			context.takeScreenshot("31b-hat-in-inventory");
 			context.runOnClient(c -> c.gui.setScreen(null));
+			server.runOnServer(s -> {
+				ItemStack robe = new ItemStack(OmniItems.WIZARD_ROBE);
+				robe.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x5E7C16));
+				ItemStack boots = new ItemStack(OmniItems.WIZARD_BOOTS);
+				boots.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x5E7C16));
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, robe);
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, boots);
+			});
 			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
 			context.waitTicks(10);
 			context.takeScreenshot("31c-hat-third-person");
 			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
-			server.runOnServer(s -> player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, ItemStack.EMPTY));
+			server.runOnServer(s -> {
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, ItemStack.EMPTY);
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, ItemStack.EMPTY);
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, ItemStack.EMPTY);
+			});
 			server.runOnServer(s -> {
 				seeker[0].discard();
 				hatWearers.forEach(net.minecraft.world.entity.Entity::discard);
@@ -1386,6 +1426,9 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop
 				player(s).getInventory().setItem(8, new ItemStack(OmniItems.GRIMOIRE)); // a loose book must not
+				player(s).getInventory().setItem(7, WandItem.create("oak", "totem_of_undying")); // nor a totem wand
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(OmniItems.WIZARD_ROBE)); // nor wizard's attire
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(OmniItems.WIZARD_BOOTS));
 			});
 			server.runCommand("kill @a");
 			context.waitForScreen(net.minecraft.client.gui.screens.DeathScreen.class);
@@ -1403,6 +1446,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 				check(bundles == 1, "one bundle after respawn, not zero and not a second one (found " + bundles + ")");
 				check(p.getInventory().getItem(8).is(OmniItems.GRIMOIRE), "a loose Book of Words is kept through death");
+				check("totem_of_undying".equals(WandItem.core(p.getInventory().getItem(7))), "a totem-core wand is kept through death");
+				check(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(OmniItems.WIZARD_ROBE) && p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).is(OmniItems.WIZARD_BOOTS), "the robe and boots are kept through death");
 				PlayerData data = PlayerStore.get(p);
 				check(data.spells.size() == 15 && data.words.size() > 200, "words and spells survive death (" + data.spells.size() + " spells)");
 			});

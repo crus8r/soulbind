@@ -31,7 +31,7 @@ public final class Mana {
 	private static int armorPercent(ItemStack stack) {
 		if (stack.isEmpty()) return 0;
 		String path = BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
-		if (path.equals("wizard_hat")) return 20; // it guards nothing, but it holds a great deal of magic
+		if (path.equals("wizard_hat") || path.equals("wizard_robe") || path.equals("wizard_boots")) return 20; // it guards nothing, but it holds a great deal of magic
 		if (path.startsWith("golden_")) return 15;
 		if (path.startsWith("leather_")) return 12;
 		if (path.startsWith("chainmail_") || path.equals("turtle_helmet")) return 8;

@@ -268,6 +268,19 @@ public final class Guide {
 			familiars.add(species.name() + ": gifted in " + species.gift().label + ".");
 		}
 		s.put("Familiars", familiars);
+		s.put("Wizard's attire", List.of(
+				"A wizard trusts the wand, not plate. The Wizard's Hat, Robe and Boots guard nothing at all, but none of them ever wears out, all three stay with you when you die, and each holds one more charm than ordinary armor. Each also adds a fifth to every mana reserve.",
+				"THE HAT",
+				"Holds 64 things of any kind, beds, books and totems included; use it like a bundle.",
+				"THE ROBE",
+				"While you hold the wand's ward up, it stops a blow outright instead of half of it, and throws the attacker back much harder. It is still paid for in Barrier mana, so it fails when the mana does.",
+				"THE BOOTS",
+				"While you hold the ward up, they carry you: you float up out of lava and can walk out of it, you walk on water, and a fall slows and bounces you off the ground instead of hurting. It costs Phase mana, and Barrier mana in lava and in falls.",
+				"FINDING THEM",
+				"The hat comes from the bosses of stone, iron and gold lairs now and then, always from diamond and netherite lairs and Razza, and once in a while from a witch. The robe and boots come half the time from diamond and netherite lairs and Razza, and now and then from iron and gold.",
+				"All three can be dyed in a crafting grid. When you die, each piece has a one-in-four chance to lose one of its charms.",
+				"WANDS",
+				"A wand holds up to three charms; they work while it is in your hand. A wand with a totem core is never lost when you die, so it is the one to invest in."));
 		s.put("Realms and gates", List.of(
 				"Each realm opens a part of the craft, and the further you go the rarer the word scrolls you find there.",
 				"THE NETHER",

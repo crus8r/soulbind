@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "#minecraft:enchantable/armor",
-    "omnispell:wizard_hat"
+    "omnispell:wizard_hat",
+    "omnispell:wizard_robe",
+    "omnispell:wizard_boots"
   ]
 }

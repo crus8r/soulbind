@@ -29,7 +29,10 @@ public abstract class InventoryMixin {
 		soulbind$kept.clear();
 		for (int i = 0; i < self.getContainerSize(); i++) {
 			ItemStack stack = self.getItem(i);
-			if (stack.is(com.omnispell.item.OmniItems.GRIMOIRE) || stack.is(com.omnispell.item.OmniItems.WIZARD_HAT) || SoulBind.payDeathCost(stack)) {
+			boolean attire = com.omnispell.item.Attire.isAttire(stack);
+			boolean totemWand = com.omnispell.item.WandItem.isWand(stack) && "totem_of_undying".equals(com.omnispell.item.WandItem.core(stack));
+			if (attire) com.omnispell.item.Attire.onDeath(stack, self.player, self.player.getRandom());
+			if (stack.is(com.omnispell.item.OmniItems.GRIMOIRE) || attire || totemWand || SoulBind.payDeathCost(stack)) {
 				soulbind$kept.put(i, stack);
 				self.setItem(i, ItemStack.EMPTY);
 			}

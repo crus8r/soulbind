@@ -76,13 +76,14 @@ public final class Charms {
 		charm("quickening", "Quickening", "-3% spell cooldown per level");
 		charm("potency", "Potency", "+4% spell damage per level");
 		charm("leech", "Leech", "heals you for 3% of spell damage dealt per level");
+		charm("eloquence", "Eloquence", "one more word in the spells you craft per level, up to two");
 
-		GEMS.put(Items.AMETHYST_SHARD, new Gem("Amethyst", 10, 0.08, 0.0, List.of("deepwell", "flow")));
-		GEMS.put(Items.LAPIS_LAZULI, new Gem("Lapis", 12, 0.10, 0.0, List.of("quickening", "fortune")));
+		GEMS.put(Items.AMETHYST_SHARD, new Gem("Amethyst", 10, 0.08, 0.0, List.of("deepwell", "flow", "eloquence")));
+		GEMS.put(Items.LAPIS_LAZULI, new Gem("Lapis", 12, 0.10, 0.0, List.of("quickening", "fortune", "eloquence")));
 		GEMS.put(Items.QUARTZ, new Gem("Quartz", 10, 0.10, 0.0, List.of("potency", "ember_ward")));
 		GEMS.put(Items.PRISMARINE_CRYSTALS, new Gem("Prismarine", 12, 0.12, 0.0, List.of("renewal", "featherstep")));
 		GEMS.put(Items.EMERALD, new Gem("Emerald", 14, 0.20, 0.02, List.of("fortune", "vigor", "fleetfoot")));
-		GEMS.put(Items.ECHO_SHARD, new Gem("Echo", 16, 0.30, 0.05, List.of("leech", "warding")));
+		GEMS.put(Items.ECHO_SHARD, new Gem("Echo", 16, 0.30, 0.05, List.of("leech", "warding", "eloquence")));
 		GEMS.put(Items.DIAMOND, new Gem("Diamond", 18, 0.55, 0.15, List.of("warding", "stoneskin", "vigor")));
 		GEMS.put(Items.TOTEM_OF_UNDYING, new Gem("Totem", 20, 0.65, 0.25, List.of("vigor", "renewal", "warding")));
 		GEMS.put(Items.NETHERITE_INGOT, new Gem("Netherite", 22, 0.80, 0.40, List.of("potency", "stoneskin", "ember_ward")));
@@ -170,7 +171,9 @@ public final class Charms {
 
 	/** One slot, plus one for each level of Attunement. */
 	public static int slots(ItemStack armor) {
-		return isArmor(armor) ? 1 + SoulBind.enchantmentLevel(armor, ATTUNEMENT) : 0;
+		if (com.omnispell.item.WandItem.isWand(armor)) return 3;
+		if (!isArmor(armor)) return 0;
+		return (com.omnispell.item.Attire.isAttire(armor) ? 2 : 1) + SoulBind.enchantmentLevel(armor, ATTUNEMENT);
 	}
 
 	/** The charms set into a piece of armor, oldest first. Stored as gem|charm:level,charm:level;gem|... */
@@ -195,6 +198,13 @@ public final class Charms {
 			if (!charms.isEmpty()) out.add(new Set(part.substring(0, bar), charms));
 		}
 		return out;
+	}
+
+	/** Takes one set of charms out of a piece. */
+	public static void remove(ItemStack armor, Set lost) {
+		List<Set> sets = stored(armor);
+		sets.removeIf(s -> s.gem().equals(lost.gem()) && s.charms().equals(lost.charms()));
+		store(armor, sets);
 	}
 
 	private static void store(ItemStack armor, List<Set> sets) {
@@ -240,8 +250,10 @@ public final class Charms {
 	/** Total level of a charm across everything worn. */
 	public static int level(LivingEntity entity, String id) {
 		int total = 0;
-		for (EquipmentSlot slot : ARMOR) {
-			ItemStack piece = entity.getItemBySlot(slot);
+		java.util.List<ItemStack> worn = new java.util.ArrayList<>();
+		for (EquipmentSlot slot : ARMOR) worn.add(entity.getItemBySlot(slot));
+		if (entity instanceof net.minecraft.world.entity.player.Player player) worn.add(com.omnispell.item.WandItem.heldWand(player)); // a wand's charms work while it is in hand
+		for (ItemStack piece : worn) {
 			if (piece.isEmpty() || !piece.has(DataComponents.CUSTOM_DATA)) continue;
 			for (Set set : stored(piece)) total += set.charms().getOrDefault(id, 0);
 		}

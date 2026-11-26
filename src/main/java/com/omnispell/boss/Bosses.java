@@ -541,6 +541,11 @@ public final class Bosses {
 		if (tier >= 2) drop(entity, WordScrollItem.ofRarity(Math.min(5, 1 + tier / 2)));
 		// The Wizard's Hat: always from the bosses of diamond and netherite lairs and from Razza; often from stone, iron and gold lairs.
 		if (tier >= 5 || (tier >= 2 && entity.getRandom().nextFloat() < 0.15f * tier)) drop(entity, new ItemStack(com.omnispell.item.OmniItems.WIZARD_HAT));
+		// The robe and boots: half the time from the bosses of diamond and netherite lairs and Razza, now and then from iron and gold.
+		for (net.minecraft.world.item.Item piece : new net.minecraft.world.item.Item[]{com.omnispell.item.OmniItems.WIZARD_ROBE, com.omnispell.item.OmniItems.WIZARD_BOOTS}) {
+			float chance = tier >= 5 ? 0.5f : tier >= 3 ? 0.2f : 0f;
+			if (entity.getRandom().nextFloat() < chance) drop(entity, new ItemStack(piece));
+		}
 		if (tier >= 7) {
 			drop(entity, new ItemStack(Items.NETHER_STAR));
 			for (int i = 0; i < 3; i++) drop(entity, WordScrollItem.ofRarity(5));

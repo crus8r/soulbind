@@ -23,6 +23,8 @@
   "entity.omnispell.familiar": "Familiar",
   "item.omnispell.arcane_focus": "Arcane Focus",
   "item.omnispell.wizard_hat": "Wizard's Hat",
+  "item.omnispell.wizard_robe": "Wizard's Robe",
+  "item.omnispell.wizard_boots": "Wizard's Boots",
   "item.omnispell.familiar": "Familiar",
   "enchantment.omnispell.attunement": "Attunement",
   "enchantment.omnispell.reservoir": "Reservoir",
@@ -48,5 +50,6 @@
   "enchantment.omnispell.flow": "Flow",
   "enchantment.omnispell.quickening": "Quickening",
   "enchantment.omnispell.potency": "Potency",
-  "enchantment.omnispell.leech": "Leech"
+  "enchantment.omnispell.leech": "Leech",
+  "enchantment.omnispell.eloquence": "Eloquence"
 }

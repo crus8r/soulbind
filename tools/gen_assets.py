@@ -341,6 +341,41 @@ def hat_band(x, y):
     if (x, y) in ((8, 4), (6, 7), (9, 8)): return (255, 240, 170, 255)
     return (0, 0, 0, 0)
 tex('wizard_hat', hat_cone, 'item')
+# Robe and boots icons: a grey shape the dye tints, with a gold hem drawn over it.
+ROBE = ['................', '...gg......gg...', '..gggg....gggg..', '.ggggggggggggggg', '.gg.gggggggg.gg.', '.gg.gggggggg.gg.', '.tt.gggggggg.tt.', '....gggggggg....',
+        '....gggggggg....', '...gggggggggg...', '...gggggggggg...', '..gggggggggggg..', '..gggggggggggg..', '..tttttttttttt..', '................', '................']
+BOOTS = ['................', '................', '................', '..tttt....tttt..', '..gggg....gggg..', '..gggg....gggg..', '..gggg....gggg..', '..gggg....gggg..',
+         '..gggg....gggg..', '..gggg....ggggg.', '.ggggg...gggggg.', 'gggggg...gggggg.', 'gggggg...gggggg.', 'tttttt...tttttt.', '................', '................']
+for name, rows in (('wizard_robe', ROBE), ('wizard_boots', BOOTS)):
+    image(name, rows, {'g': (215, 215, 215, 255)})
+    image(name + '_trim', rows, {'t': (236, 196, 84, 255)})
+# Worn: one armour sheet (64x32) for robe and boots. The body and arms are the robe; the lower legs are the boots.
+def robe_worn(x, y, trim):
+    body = 16 <= x < 40 and 16 <= y < 32
+    arms = 40 <= x < 56 and 16 <= y < 32
+    feet = x < 16 and 16 <= y < 32
+    if not (body or arms or feet): return (0, 0, 0, 0)
+    if trim:
+        if body and y >= 30: return (236, 196, 84, 255)                    # hem
+        if body and x in (27, 28) and y >= 20: return (214, 170, 60, 255)  # clasps down the front
+        if arms and y >= 30: return (236, 196, 84, 255)                    # cuffs
+        if feet and 20 <= y < 22: return (236, 196, 84, 255)               # boot tops
+        if (body or arms) and noise(x, y, 97) > 0.94: return (255, 240, 170, 255)
+        return (0, 0, 0, 0)
+    v = 205 + int(40 * noise(x, y, 91))
+    if feet and y < 20: return (0, 0, 0, 0)                                # boots cover only the lower leg
+    return (v, v, v, 255)
+for name, trim in (('wizard_robe', False), ('wizard_robe_trim', True)):
+    img = Image.new('RGBA', (64, 32))
+    for yy in range(32):
+        for xx in range(64):
+            img.putpixel((xx, yy), robe_worn(xx, yy, trim))
+    path = os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', name + '.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {'humanoid': [
+    {'texture': 'omnispell:wizard_robe', 'dyeable': {'color_when_undyed': -12570202}},
+    {'texture': 'omnispell:wizard_robe_trim'}]}})
 tex('wizard_hat_band', hat_band, 'item')
 # Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
 def box_uv(u, v, w, h, d):
@@ -464,6 +499,11 @@ write(os.path.join(ASSETS, 'items', 'familiar.json'), {'model': {
               {'type': 'minecraft:constant', 'value': -1}]}})
 flat_item('arcane_focus', ['arcane_focus'])
 flat_item('wizard_hat', ['wizard_hat', 'wizard_hat_band'])
+for piece in ('wizard_robe', 'wizard_boots'):
+    flat_item(piece, [piece, piece + '_trim'])
+    write(os.path.join(ASSETS, 'items', piece + '.json'), {'model': {
+        'type': 'minecraft:model', 'model': f'omnispell:item/{piece}',
+        'tints': [{'type': 'minecraft:dye', 'default': -12570202}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'wizard_hat.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/wizard_hat',
     'tints': [{'type': 'minecraft:dye', 'default': -12570246}, {'type': 'minecraft:constant', 'value': -1}]}})
@@ -674,6 +714,8 @@ lang = {
     'entity.omnispell.familiar': 'Familiar',
     'item.omnispell.arcane_focus': 'Arcane Focus',
     'item.omnispell.wizard_hat': "Wizard's Hat",
+    'item.omnispell.wizard_robe': "Wizard's Robe",
+    'item.omnispell.wizard_boots': "Wizard's Boots",
     'item.omnispell.familiar': 'Familiar',
     'enchantment.omnispell.attunement': 'Attunement',
     'enchantment.omnispell.reservoir': 'Reservoir',
@@ -761,7 +803,10 @@ for tag, values in {'block/mineable/axe': ['omnispell:faewood_log', 'omnispell:f
     write(os.path.join(ROOT, 'data', 'minecraft', 'tags', tag + '.json'), {'replace': False, 'values': values})
 write(os.path.join(recipe_dir, 'wizard_hat_dyed.json'), {'type': 'minecraft:crafting_dye', 'dye': '#minecraft:dyes', 'group': 'dyed_armor',
                                                        'result': {'id': 'omnispell:wizard_hat'}, 'target': 'omnispell:wizard_hat'})
-write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'item', 'cauldron_can_remove_dye.json'), {'replace': False, 'values': ['omnispell:wizard_hat']})
+for piece in ('wizard_robe', 'wizard_boots'):
+    write(os.path.join(recipe_dir, piece + '_dyed.json'), {'type': 'minecraft:crafting_dye', 'dye': '#minecraft:dyes', 'group': 'dyed_armor',
+                                                         'result': {'id': 'omnispell:' + piece}, 'target': 'omnispell:' + piece})
+write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'item', 'cauldron_can_remove_dye.json'), {'replace': False, 'values': ['omnispell:wizard_hat', 'omnispell:wizard_robe', 'omnispell:wizard_boots']})
 write(os.path.join(recipe_dir, 'arcane_focus.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'equipment',
     'key': {'G': 'minecraft:gold_ingot', 'A': 'minecraft:amethyst_shard', 'L': 'minecraft:lapis_lazuli'},
@@ -918,7 +963,7 @@ enchantment('wellspring', 'Wellspring', 4, 3)  # +15% mana refill speed per leve
 enchantment('alacrity', 'Alacrity', 3, 3)      # -4% spell cooldown per level, per piece
 enchantment('attunement', 'Attunement', 2, 2)  # +1 charm slot per level
 # Charm enchantments only ever sit on gems. The mod itself decides which gem gets which.
-write(os.path.join(DATA, 'tags', 'item', 'enchantable', 'mana_gear.json'), {'replace': False, 'values': ['#minecraft:enchantable/armor', 'omnispell:wizard_hat']})
+write(os.path.join(DATA, 'tags', 'item', 'enchantable', 'mana_gear.json'), {'replace': False, 'values': ['#minecraft:enchantable/armor', 'omnispell:wizard_hat', 'omnispell:wizard_robe', 'omnispell:wizard_boots']})
 GEMS = ['minecraft:totem_of_undying', 'minecraft:amethyst_shard', 'minecraft:lapis_lazuli', 'minecraft:quartz', 'minecraft:prismarine_crystals',
         'minecraft:emerald', 'minecraft:echo_shard', 'minecraft:diamond', 'minecraft:netherite_ingot']
 write(os.path.join(DATA, 'tags', 'item', 'charm_gems.json'), {'replace': False, 'values': GEMS})

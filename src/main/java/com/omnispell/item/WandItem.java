@@ -145,7 +145,8 @@ public class WandItem extends Item {
 			ItemStack stack = inventory.getItem(i);
 			if (isWand(stack)) best = Math.max(best, WandParts.core(core(stack)).words);
 		}
-		return best;
+		// The Eloquence charm, on a wand in hand or on armour, lends up to two more words.
+		return best + Math.min(2, com.omnispell.charm.Charms.level(player, "eloquence"));
 	}
 
 	/** A freshly crafted wand has no tooltip yet: write it the first time the wand sits in an inventory. */

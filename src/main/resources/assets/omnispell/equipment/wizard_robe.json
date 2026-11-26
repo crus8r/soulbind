@@ -1,0 +1,15 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "omnispell:wizard_robe",
+        "dyeable": {
+          "color_when_undyed": -12570202
+        }
+      },
+      {
+        "texture": "omnispell:wizard_robe_trim"
+      }
+    ]
+  }
+}
