@@ -800,6 +800,56 @@ public class OmnispellClientTest implements FabricClientGameTest {
 						check(effects.add(com.omnispell.spell.Terraform.effectFor(command, intention)), command + " + " + intention + " has an effect of its own (" + com.omnispell.spell.Terraform.effectFor(command, intention) + ")");
 					}
 				}
+				// Command words of the same kind build different things.
+				{
+					String severMalice = com.omnispell.spell.Terraform.effectFor("Sever", "launch", "destruction");
+					String releaseMalice = com.omnispell.spell.Terraform.effectFor("Release", "launch", "destruction");
+					String envelopWard = com.omnispell.spell.Terraform.effectFor("Envelop", "envelop", "protection");
+					check(!severMalice.equals(releaseMalice) && "dome".equals(envelopWard), "Sever and Release no longer build the same thing (" + severMalice + " / " + releaseMalice + "), and Envelop with Warding closes a dome");
+					java.util.Set<String> starter = new java.util.HashSet<>();
+					for (String c : new String[]{"Sever", "Release", "Envelop"}) {
+						String kind = c.equals("Envelop") ? "envelop" : "launch";
+						starter.add(com.omnispell.spell.Terraform.effectFor(c, "Malice", kind, "destruction"));
+						starter.add(com.omnispell.spell.Terraform.effectFor(c, "Warding", kind, "protection"));
+						starter.add(com.omnispell.spell.Terraform.effectFor(c, "Restoration", kind, "protection"));
+						starter.add(com.omnispell.spell.Terraform.effectFor(c, kind, "wild"));
+					}
+					check(starter.size() >= 11, "the starting words make " + starter.size() + " different exploration spells: " + starter);
+					for (String i : new String[]{"destruction", "protection", "wild"}) {
+						for (String c : new String[]{"Elevate", "Freeze", "Fill", "Open", "Traverse", "Shield", "Grow", "Agitate"}) {
+							String e = com.omnispell.spell.Terraform.effectFor(c, "form", i);
+							check(e != null && (com.omnispell.spell.Terraform.handles(e) || !com.omnispell.spell.Terraform.describe(e, new com.omnispell.spell.Spell()).startsWith("Its effect")), c + " + " + i + " is a real effect (" + e + ")");
+						}
+					}
+				}
+
+				// Attack forms: the command decides how an attack takes hold, and ice freezes for real.
+				{
+					com.omnispell.spell.Spell frost = new com.omnispell.spell.Spell();
+					frost.type = "attack";
+					frost.tier = 3;
+					frost.code.element = "ice";
+					frost.words.add("command:Freeze");
+					check("encase".equals(com.omnispell.spell.AttackForms.commandForm(frost)) && com.omnispell.spell.AttackForms.describe(frost).contains("block of ice"), "an ice attack with Freeze says it freezes its target in ice: " + com.omnispell.spell.AttackForms.describe(frost));
+					com.omnispell.spell.Spell hurler = new com.omnispell.spell.Spell();
+					hurler.type = "attack";
+					hurler.code.element = "fire";
+					hurler.words.add("command:Release");
+					check("hurl".equals(com.omnispell.spell.AttackForms.commandForm(hurler)), "an attack with Release hurls its target into the air");
+					var iceCow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+					BlockPos icePos = b.offset(6, 0, 6);
+					for (BlockPos clear : BlockPos.betweenClosed(icePos.offset(-2, 0, -2), icePos.offset(2, 3, 2))) level.setBlock(clear, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+					iceCow.snapTo(icePos.getX() + 0.5, icePos.getY(), icePos.getZ() + 0.5, 0f, 0f);
+					iceCow.setNoAi(true);
+					level.addFreshEntity(iceCow);
+					com.omnispell.spell.Cast frostCast = new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), frost);
+					com.omnispell.spell.AttackForms.manifest(frostCast, iceCow, "encase", "ice", 10);
+					int ice = 0;
+					for (BlockPos near : BlockPos.betweenClosed(icePos.offset(-2, 0, -2), icePos.offset(2, 3, 2))) if (level.getBlockState(near).is(net.minecraft.world.level.block.Blocks.ICE)) ice++;
+					check(ice >= 8 && level.getBlockState(icePos).isAir(), "the cow is frozen in a shell of " + ice + " ice blocks, with room inside");
+					iceCow.discard();
+				}
+
 				// Deselecting: with no spell selected, the wand reports none and left-click is the bolt.
 				WandItem.select(wand, -1);
 				check(WandItem.selected(wand) == -1, "a wand can have no spell selected");

@@ -48,6 +48,8 @@ public final class Guide {
 				"Crafting costs arcane essence: 5 for every two words. Discarding a spell returns half.",
 				"Attack, Defense and Conjuration spells are interpreted by the Oracle. The same words always give the same spell, for everyone.",
 				"Environment spells follow fixed laws: Base + Command + Intention decide the effect. Light + Envelop + Concealment is invisibility. Experiment.",
+				"Many commands build a shape of their own, even beside others of their kind: Sever bores a tunnel where Release blasts a crater, and Envelop with Warding closes a dome. Try every command you learn with every intention.",
+				"An attack's command decides how it takes hold of what it hits: Release hurls it into the air, Repel blasts it back, a binding command roots it, Freeze or Petrify locks it in a shell. Its element adds a touch of its own now and then. Ice freezes its target in a block of ice, wind catches it in a vortex, fire spreads. The spell's description says which.",
 				"UNLOCKING CONJURATION",
 				"Conjuration calls creatures and things to fight beside you. You do not begin with it. There are three ways to learn it.",
 				"1. Defeat any lair boss past the first tier (a wooden door or better). Your first such victory teaches it at once.",

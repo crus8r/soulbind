@@ -152,6 +152,88 @@ public final class Terraform {
 		level.playSound(null, BlockPos.containing(eye), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0f, 0.6f + 0.1f * tier);
 	}
 
+	/**
+	 * Many command words have a shape of their own for the common intentions (destruction,
+	 * protection, or none at all), so two commands of the same kind do not build the same thing.
+	 * Columns: destruction, protection, wild. Null keeps the kind's own effect.
+	 */
+	private static final java.util.Map<String, String[]> SIGNATURES = java.util.Map.ofEntries(
+			java.util.Map.entry("Release", new String[]{"crater", "ring", "launch"}),
+			java.util.Map.entry("Envelop", new String[]{"pit", "dome", null}),
+			java.util.Map.entry("Shield", new String[]{"push", "ring", "dome"}),
+			java.util.Map.entry("Protect", new String[]{null, "dome", "dome"}),
+			java.util.Map.entry("Harbor", new String[]{null, "dome", "thicket"}),
+			java.util.Map.entry("Cover", new String[]{null, "thicket", "thicket"}),
+			java.util.Map.entry("Extinguish", new String[]{"dry", "dry", "dry"}),
+			java.util.Map.entry("Quell", new String[]{"dry", "calm", "calm"}),
+			java.util.Map.entry("Calm", new String[]{"calm", "calm", "calm"}),
+			java.util.Map.entry("Soothe", new String[]{null, "calm", "calm"}),
+			java.util.Map.entry("Fill", new String[]{"flatten", "mend_land", "mend_land"}),
+			java.util.Map.entry("Elevate", new String[]{"pillar", "pillar", "pillar"}),
+			java.util.Map.entry("Ascend", new String[]{null, "pillar", "launch"}),
+			java.util.Map.entry("Descend", new String[]{"pit", "stairs", "stairs"}),
+			java.util.Map.entry("Freeze", new String[]{"solidify", "solidify", "solidify"}),
+			java.util.Map.entry("Solidify", new String[]{null, "solidify", "solidify"}),
+			java.util.Map.entry("Petrify", new String[]{null, "raise_wall", "pillar"}),
+			java.util.Map.entry("Pierce", new String[]{"drill", null, null}),
+			java.util.Map.entry("Breach", new String[]{"drill", null, "carve"}),
+			java.util.Map.entry("Crush", new String[]{"crater", "flatten", null}),
+			java.util.Map.entry("Compress", new String[]{"flatten", "flatten", "flatten"}),
+			java.util.Map.entry("Erode", new String[]{"flatten", null, "clear"}),
+			java.util.Map.entry("Decay", new String[]{"clear", null, "clear"}),
+			java.util.Map.entry("Wither", new String[]{"clear", null, "clear"}),
+			java.util.Map.entry("Disintegrate", new String[]{"crater", null, null}),
+			java.util.Map.entry("Ignite", new String[]{"strike", null, "field"}),
+			java.util.Map.entry("Assault", new String[]{"strike", null, null}),
+			java.util.Map.entry("Cleave", new String[]{"strike", null, "carve"}),
+			java.util.Map.entry("Throw", new String[]{"push", null, "launch"}),
+			java.util.Map.entry("Repel", new String[]{"push", "ring", null}),
+			java.util.Map.entry("Open", new String[]{"carve", "path", "path"}),
+			java.util.Map.entry("Traverse", new String[]{null, "bridge", "bridge"}),
+			java.util.Map.entry("Move", new String[]{null, "path", "path"}),
+			java.util.Map.entry("Mobilize", new String[]{null, "path", "dash"}),
+			java.util.Map.entry("Seal", new String[]{null, "dome", "dome"}),
+			java.util.Map.entry("Close", new String[]{null, "dome", "ring"}),
+			java.util.Map.entry("Fortify", new String[]{null, "raise_wall", "ring"}),
+			java.util.Map.entry("Stabilize", new String[]{null, "platform", "platform"}),
+			java.util.Map.entry("Illuminate", new String[]{null, "illuminate", "illuminate"}),
+			java.util.Map.entry("Find", new String[]{null, "prospect", "prospect"}),
+			java.util.Map.entry("Expose", new String[]{null, "echo", "echo"}),
+			java.util.Map.entry("Gather", new String[]{"gather", "gather", "gather"}),
+			java.util.Map.entry("Attract", new String[]{null, "gather", "gather"}),
+			java.util.Map.entry("Grow", new String[]{null, "growth", "tree"}),
+			java.util.Map.entry("Mend", new String[]{null, "mend_land", "growth"}),
+			java.util.Map.entry("Regenerate", new String[]{null, "growth", "growth"}),
+			java.util.Map.entry("Agitate", new String[]{"crater", "weather", "weather"}),
+			java.util.Map.entry("Liquefy", new String[]{"pit", null, null}));
+
+	/** A few pairings of command word and intention word that are their own thing. */
+	private static final java.util.Map<String, String> PAIRS = java.util.Map.of(
+			"Envelop+Restoration", "mend_land",
+			"Release+Restoration", "growth",
+			"Sever+Restoration", "clear",
+			"Fill+Warding", "raise_wall");
+
+	public static String effectFor(String commandWord, String intentionWord, String command, String intention) {
+		String pair = PAIRS.get(commandWord + "+" + intentionWord);
+		return pair != null ? pair : effectFor(commandWord, command, intention);
+	}
+
+	/** The effect of an environment spell: the command word's own shape if it has one, otherwise its kind's. */
+	public static String effectFor(String commandWord, String command, String intention) {
+		String[] own = commandWord == null ? null : SIGNATURES.get(commandWord);
+		if (own != null) {
+			int column = switch (intention == null ? "" : intention) {
+				case "destruction" -> 0;
+				case "protection" -> 1;
+				case "wild" -> 2;
+				default -> -1;
+			};
+			if (column >= 0 && own[column] != null) return own[column];
+		}
+		return effectFor(command, intention);
+	}
+
 	/** The effect of an environment spell: the command's kind and the intention's kind decide it. */
 	public static String effectFor(String command, String intention) {
 		for (int c = 0; c < COMMANDS.length; c++) {

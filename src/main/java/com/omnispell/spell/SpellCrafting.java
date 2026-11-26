@@ -132,7 +132,7 @@ public final class SpellCrafting {
 
 	/** Exploration spells come from Omnispell's fixed table of 540 combinations: no AI involved. */
 	private static void fillExploration(Spell spell) {
-		String base = null, command = null, intention = null;
+		String base = null, command = null, intention = null, commandName = null, intentionName = null;
 		Word baseWord = null;
 		for (String id : spell.words) {
 			Word word = WordBank.word(id);
@@ -142,8 +142,14 @@ public final class SpellCrafting {
 					base = word.explore;
 					baseWord = word;
 				}
-				case "command" -> command = word.explore;
-				case "intention" -> intention = word.explore;
+				case "command" -> {
+					command = word.explore;
+					commandName = word.english;
+				}
+				case "intention" -> {
+					intention = word.explore;
+					intentionName = word.english;
+				}
 				default -> {
 				}
 			}
@@ -173,9 +179,9 @@ public final class SpellCrafting {
 			}
 			return;
 		}
-		if (intention == null && command != null && Terraform.effectFor(command, "wild") != null) {
+		if (intention == null && command != null && Terraform.effectFor(commandName, command, "wild") != null) {
 			// No intention: the command let loose, for its own sake.
-			String wild = Terraform.effectFor(command, "wild");
+			String wild = Terraform.effectFor(commandName, command, "wild");
 			spell.toggle = wild;
 			spell.effect = Terraform.effectName(wild);
 			spell.description = Terraform.describe(wild, spell);
@@ -203,7 +209,7 @@ public final class SpellCrafting {
 		spell.visual.shape = entry.shape;
 		spell.visual.motion = entry.motion;
 		spell.visual.intensity = Math.max(1, Math.min(5, entry.intensity));
-		String effect = Terraform.effectFor(command, intention);
+		String effect = Terraform.effectFor(commandName, intentionName, command, intention);
 		if (effect != null && !effect.equals(entry.toggle)) {
 			spell.toggle = effect;
 			spell.fizzle = false;
@@ -223,6 +229,10 @@ public final class SpellCrafting {
 	}
 
 	private static void finish(ServerPlayer player, Spell spell, boolean stable) {
+		if ("attack".equals(spell.type)) {
+			String forms = AttackForms.describe(spell);
+			if (!forms.isEmpty() && (spell.description == null || !spell.description.contains(forms))) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + forms;
+		}
 		PlayerData data = PlayerStore.get(player);
 		data.pending = spell;
 		PlayerStore.save(player);
