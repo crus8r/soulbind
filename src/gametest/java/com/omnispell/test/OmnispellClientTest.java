@@ -850,12 +850,12 @@ public class OmnispellClientTest implements FabricClientGameTest {
 
 				// Mana potions, drunk and thrown.
 				{
-					var recipe = level.getServer().getRecipeManager().byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, com.omnispell.Omnispell.id("splash_phase_mana_potion")));
-					check(recipe.isPresent(), "a splash potion of Phase mana has a recipe");
-					ItemStack splashPhase = recipe.get().value() instanceof net.minecraft.world.item.crafting.ShapelessRecipe shapeless
-							? shapeless.assemble(net.minecraft.world.item.crafting.CraftingInput.EMPTY) : ItemStack.EMPTY;
-					com.omnispell.alchemy.Brew phaseBrew = com.omnispell.alchemy.BrewItem.read(splashPhase);
-					check(phaseBrew != null && phaseBrew.splash && "phase".equals(phaseBrew.manaType) && "Splash Potion of Phase Mana".equals(splashPhase.getHoverName().getString()), "it makes a thrown Phase mana potion");
+					com.omnispell.alchemy.Brew phaseBrew = com.omnispell.alchemy.ManaPotions.match("water", java.util.List.of("gunpowder", "glowstone_dust", "feather"));
+					check(phaseBrew != null && phaseBrew.splash && "phase".equals(phaseBrew.manaType), "water, glowstone dust, a feather and gunpowder brew a splash potion of Phase mana");
+					check(com.omnispell.alchemy.ManaPotions.match("water", java.util.List.of("glowstone_dust", "feather", "sugar")) == null
+							&& com.omnispell.alchemy.ManaPotions.match("honey", java.util.List.of("glowstone_dust", "feather")) == null, "anything else is left to the potioneer");
+					ItemStack splashPhase = com.omnispell.alchemy.BrewItem.of(phaseBrew);
+					check("Splash Potion of Phase Mana".equals(splashPhase.getHoverName().getString()), "it bottles as a Splash Potion of Phase Mana");
 					int phaseSlot = com.omnispell.player.ManaPool.PHASE.ordinal();
 					PlayerStore.get(p).mana[phaseSlot] = 0;
 					ItemStack mainKeep = p.getMainHandItem().copy();
@@ -867,6 +867,19 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					check(p.getCooldowns().isOnCooldown(splashPhase), "mana potions have a short cooldown");
 					p.getInventory().setItem(p.getInventory().getSelectedSlot(), mainKeep);
 					p.setXRot(25f);
+				}
+
+				// An arcane well comes away whole only with Silk Touch.
+				{
+					var wellState = com.omnispell.item.OmniItems.ARCANE_WELL.defaultBlockState();
+					ItemStack plainPick = new ItemStack(Items.DIAMOND_PICKAXE);
+					ItemStack silkPick = new ItemStack(Items.DIAMOND_PICKAXE);
+					silkPick.enchant(level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH), 1);
+					var plainDrops = net.minecraft.world.level.block.Block.getDrops(wellState, level, b, null, p, plainPick);
+					var silkDrops = net.minecraft.world.level.block.Block.getDrops(wellState, level, b, null, p, silkPick);
+					check(plainDrops.stream().noneMatch(d -> d.is(com.omnispell.item.OmniItems.ARCANE_WELL_ITEM)) && plainDrops.stream().anyMatch(d -> d.is(Items.AMETHYST_SHARD)),
+							"an arcane well mined without Silk Touch shatters into amethyst");
+					check(silkDrops.stream().anyMatch(d -> d.is(com.omnispell.item.OmniItems.ARCANE_WELL_ITEM)), "with Silk Touch it comes away whole");
 				}
 
 				// New wand cores.

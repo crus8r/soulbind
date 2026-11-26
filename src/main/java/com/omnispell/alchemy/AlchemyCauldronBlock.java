@@ -304,6 +304,18 @@ public class AlchemyCauldronBlock extends Block {
 			say(player, "The cauldron is cold. Charge it with blaze powder.", ChatFormatting.RED);
 			return InteractionResult.SUCCESS;
 		}
+		// Mana potions are the cauldron's one open secret: always the same, at any heat, no potioneer needed.
+		Brew mana = ManaPotions.match(vat.base, vat.items);
+		if (mana != null) {
+			if (!player.getAbilities().instabuild) vat.charges--;
+			vat.brew = WordBank.GSON.toJson(mana);
+			vat.servings = 3;
+			Vats.save(level.getServer());
+			level.sendParticles(ParticleTypes.WITCH, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 24, 0.25, 0.3, 0.25, 0.02);
+			level.playSound(null, pos, SoundEvents.BREWING_STAND_BREW, SoundSource.BLOCKS, 1.0f, 1.5f);
+			player.sendSystemMessage(Component.literal("You have brewed " + mana.name + ". " + mana.effect).withStyle(ChatFormatting.LIGHT_PURPLE));
+			return bottle(level, pos, player, bottles, vat);
+		}
 		Alchemy.Base base = Alchemy.base(vat.base);
 		List<Alchemy.Ingredient> ingredients = new ArrayList<>();
 		for (String key : vat.items) {

@@ -857,34 +857,6 @@ write(os.path.join(recipe_dir, 'waypoint.json'), {
     'key': {'E': 'minecraft:ender_pearl', 'A': 'minecraft:amethyst_shard', 'S': 'minecraft:stone_bricks'},
     'pattern': [' E ', 'ASA', 'SSS'],
     'result': {'id': 'omnispell:waypoint', 'count': 2}})
-# Mana potions: a bottle, lapis and something of the pool's nature. Gunpowder makes it a splash potion, to throw to a friend.
-MANA_POTIONS = [('barrier', 'Barrier', 0x3B82F6, 'minecraft:iron_ingot'),
-                ('restoration', 'Restoration', 0x22C55E, 'minecraft:glistering_melon_slice'),
-                ('spirit', 'Spirit', 0xA855F7, 'minecraft:amethyst_shard'),
-                ('phase', 'Phase', 0x06B6D4, 'minecraft:feather'),
-                ('force', 'Force', 0xEF4444, 'minecraft:blaze_powder')]
-for pool, label, color, extra in MANA_POTIONS:
-    for splash in (False, True):
-        percent = 35 if splash else 50
-        name = ('Splash ' if splash else '') + f'Potion of {label} Mana'
-        effect = (f'Restores a third of the {label} mana of everyone it splashes, you included.' if splash
-                  else f'Restores half your {label} mana.')
-        brew = {'name': name, 'description': f'Bottled {label} mana.', 'effect': effect, 'tier': 2, 'type': 'mana',
-                'offline': False, 'splash': splash, 'codeType': 'mana_restore', 'value': 0, 'duration': 0,
-                'element': 'neutral', 'status': 'none', 'manaType': pool, 'manaPercent': percent}
-        ingredients = ['minecraft:glass_bottle', 'minecraft:lapis_lazuli', extra] + (['minecraft:gunpowder'] if splash else [])
-        hexc = '#%06X' % color
-        write(os.path.join(recipe_dir, f'{"splash_" if splash else ""}{pool}_mana_potion.json'), {
-            'type': 'minecraft:crafting_shapeless', 'category': 'misc',
-            'ingredients': ingredients,
-            'result': {'id': 'omnispell:brew', 'components': {
-                'minecraft:custom_data': {'omni_brew': json.dumps(brew)},
-                'minecraft:item_name': name,
-                'minecraft:custom_model_data': {'colors': [color]},
-                'minecraft:rarity': 'uncommon',
-                'minecraft:use_cooldown': {'seconds': 2.0, 'cooldown_group': 'omnispell:mana_potion'},
-                'minecraft:lore': [{'text': 'Tier 2 · ' + ('Throw' if splash else 'Drink'), 'color': hexc, 'italic': False},
-                                   {'text': effect, 'color': 'gray', 'italic': False}]}}})
 # The alchemy cauldron needs a blaze rod, so brewing waits for the Nether, as in vanilla.
 write(os.path.join(recipe_dir, 'alchemy_cauldron.json'), {
     'type': 'minecraft:crafting_shapeless', 'category': 'misc',
@@ -1119,10 +1091,15 @@ write(os.path.join(recipe_dir, 'arcane_well.json'), {
     'key': {'S': 'minecraft:stone_bricks', 'A': 'minecraft:amethyst_shard', 'B': 'minecraft:water_bucket'},
     'pattern': ['SAS', 'SBS', 'SSS'],
     'result': {'id': 'omnispell:arcane_well'}})
+# An arcane well only comes away whole with Silk Touch. Otherwise it shatters into a shard or two of amethyst.
+SILK = {'condition': 'minecraft:match_tool', 'predicate': {'predicates': {'minecraft:enchantments': [
+    {'enchantments': 'minecraft:silk_touch', 'levels': {'min': 1}}]}}}
 write(os.path.join(DATA, 'loot_table', 'blocks', 'arcane_well.json'), {
     'type': 'minecraft:block',
-    'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
-               'entries': [{'type': 'minecraft:item', 'name': 'omnispell:arcane_well'}]}]})
+    'pools': [{'rolls': 1, 'entries': [{'type': 'minecraft:alternatives', 'children': [
+        {'type': 'minecraft:item', 'name': 'omnispell:arcane_well', 'conditions': [SILK]},
+        {'type': 'minecraft:item', 'name': 'minecraft:amethyst_shard', 'conditions': [{'condition': 'minecraft:survives_explosion'}],
+         'functions': [{'function': 'minecraft:set_count', 'count': {'type': 'minecraft:uniform', 'min': 1, 'max': 2}}]}]}]}]})
 write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'block', 'mineable', 'pickaxe.json'),
       {'replace': False, 'values': ['omnispell:arcane_well', 'omnispell:waypoint', 'omnispell:alchemy_cauldron', 'omnispell:forest_gate']})
 

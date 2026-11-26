@@ -57,6 +57,7 @@ public class BrewItem extends Item {
 		CustomData.set(DataComponents.CUSTOM_DATA, stack, tag);
 		stack.set(DataComponents.ITEM_NAME, Component.literal(brew.name));
 		stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of(), List.of(), List.of(), List.of(brew.color())));
+		if (brew.manaPercent > 0) stack.set(DataComponents.USE_COOLDOWN, new net.minecraft.world.item.component.UseCooldown(2.0f, java.util.Optional.of(Omnispell.id("mana_potion"))));
 		stack.set(DataComponents.RARITY, brew.tier >= 5 ? Rarity.EPIC : brew.tier >= 4 ? Rarity.RARE : brew.tier >= 3 ? Rarity.UNCOMMON : Rarity.COMMON);
 		List<Component> lines = new ArrayList<>();
 		lines.add(Component.literal("Tier " + brew.tier + " · " + (brew.splash ? "Throw" : "Drink")).withStyle(s -> s.withColor(brew.color()).withItalic(false)));
