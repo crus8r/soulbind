@@ -31,7 +31,6 @@ GlitchCore | 26.3.0.0.5 | LicenseRef-All-Rights-Reserved | glitchcore
 ImmediatelyFast | 1.17.1+26.3-fabric | LGPL-3.0-or-later | immediatelyfast
 Incendium Legacy | 5.5.4+26.3 | LicenseRef-Stardust-Labs-License | incendium
 It Takes a Pillage Continuation | fabric-1.0.13+mc26.3 | MIT | it-takes-a-pillage-continuation
-Krypton | 0.3.2 | LGPL-3.0-only | krypton
 Ksyxis | 1.4.6 | MIT | ksyxis
 Lithium | mc26.3-0.26.4-fabric | LGPL-3.0-only | lithium
 Lithostitched | 2.0.6-fabric-26.3 | MIT | lithostitched
