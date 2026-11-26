@@ -36,6 +36,9 @@ public final class PlayerData {
 		return null;
 	}
 
+	/** World time at which a totem-core wand can save this player again. */
+	public long totemReadyAt;
+	public boolean totemWarned;
 	public int waypointPairs;                                // how many waypoint pairs this player has crafted
 	public boolean initialized;
 

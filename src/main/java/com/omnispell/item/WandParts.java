@@ -102,7 +102,7 @@ public final class WandParts {
 		core("echo_shard", "Echo Shard", 0x0A5060, 6, "Spirit. Shadow spells gain power and return sooner.").element = "shadow";
 		CORES.get("echo_shard").haste = 10;
 		core("enchanting_table", "Obsidian", 0x24163A, 4, "A plain obsidian core. The table it came from leaves enchantments on the wand, by chance: Unbreaking, Soul Bind, or both.");
-		core("totem_of_undying", "Totem", 0xF2D35B, 6, "Life clings to it. Once every ten minutes, a blow that would kill you leaves you standing.").mending = 15;
+		core("totem_of_undying", "Totem", 0xF2D35B, 6, "Life clings to it. Never lost when you die. Once every ten minutes, a blow that would kill you leaves you standing, while it is in hand or on your hotbar.").mending = 15;
 		core("netherite_ingot", "Netherite", 0x5A575A, 6, "Overwhelming force.").damage = 25;
 		core("nether_star", "Nether Star", 0xF6F8C8, 7, "The Wither's heart. Power, speed and mana together.").damage = 20;
 		CORES.get("nether_star").haste = 15;

@@ -295,13 +295,35 @@ public final class Modifiers {
 	}
 
 	/** Last Stand: once, survive a killing blow with a sliver of health. Returns false to cancel the death. */
-	private static final java.util.Map<java.util.UUID, Long> TOTEM_READY = new java.util.HashMap<>();
+	private static boolean isTotemWand(net.minecraft.world.item.ItemStack stack) {
+		return com.omnispell.item.WandItem.isWand(stack) && "totem_of_undying".equals(com.omnispell.item.WandItem.core(stack));
+	}
+
+	/** Once a second: say when a used totem wand is ready again. */
+	public static void totemCheck(ServerPlayer player) {
+		com.omnispell.player.PlayerData data = com.omnispell.player.PlayerStore.get(player);
+		if (data.totemReadyAt == 0 || data.totemWarned) return;
+		if (player.level().getServer().overworld().getGameTime() < data.totemReadyAt) return;
+		data.totemWarned = true;
+		player.sendSystemMessage(net.minecraft.network.chat.Component.literal("The totem in your wand stirs again: it will hold you to life once more.").withStyle(net.minecraft.ChatFormatting.GOLD));
+	}
 
 	public static boolean allowDeath(ServerPlayer player) {
 		// A wand with a totem core, in either hand, cheats death once every ten minutes.
-		net.minecraft.world.item.ItemStack wand = com.omnispell.item.WandItem.heldWand(player);
-		if (!wand.isEmpty() && "totem_of_undying".equals(com.omnispell.item.WandItem.core(wand)) && TOTEM_READY.getOrDefault(player.getUUID(), 0L) <= Tasks.now()) {
-			TOTEM_READY.put(player.getUUID(), Tasks.now() + 12000);
+		// A wand with a totem core, in either hand or on the hotbar, cheats death once every ten minutes of world time.
+		boolean totemWand = false;
+		for (int i = 0; i < 9; i++) totemWand |= isTotemWand(player.getInventory().getItem(i));
+		totemWand |= isTotemWand(player.getOffhandItem());
+		com.omnispell.player.PlayerData data = com.omnispell.player.PlayerStore.get(player);
+		long worldTime = player.level().getServer().overworld().getGameTime();
+		if (totemWand && data.totemReadyAt > worldTime) {
+			long seconds = (data.totemReadyAt - worldTime) / 20;
+			player.sendSystemMessage(net.minecraft.network.chat.Component.literal("Your wand's totem was still recharging (" + seconds / 60 + ":" + String.format("%02d", seconds % 60) + " left).").withStyle(net.minecraft.ChatFormatting.GRAY));
+		}
+		if (totemWand && data.totemReadyAt <= worldTime) {
+			data.totemReadyAt = worldTime + 12000;
+			data.totemWarned = false;
+			com.omnispell.player.PlayerStore.save(player);
 			player.setHealth(4.0f);
 			player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
 			player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));

@@ -1,7 +1,9 @@
 {
-  "variants": {
-    "": {
-      "model": "omnispell:block/forest_gate"
+  "multipart": [
+    {
+      "apply": {
+        "model": "omnispell:block/forest_gate"
+      }
     }
-  }
+  ]
 }

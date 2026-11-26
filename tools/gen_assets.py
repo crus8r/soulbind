@@ -290,6 +290,12 @@ def gate_side(x, y):
     if d < 5.5: return mix((150, 90, 230), (90, 220, 200), noise(x, y, 17))
     return mix((66, 96, 70), (108, 140, 100), noise(x // 2, y // 2, 19)) if noise(x, y, 23) > 0.2 else (48, 70, 52, 255)
 tex('forest_gate', gate_side)
+def withered_side(x, y):
+    r_, g_, b_, a_ = gate_side(x, y)
+    grey = (r_ + g_ + b_) // 3
+    if noise(x, y, 113) > 0.88: return (40, 36, 34, 255)            # cracks
+    return (int(grey * 0.75 + 30), int(grey * 0.7 + 26), int(grey * 0.6 + 20), 255)
+tex('withered_gate', withered_side)
 tex('fae_dust', lambda x, y: ((250, 220, 255, 255) if noise(x, y, 29) > 0.6 else (190, 120, 240, 255)) if (abs(x - 7.5) + abs(y - 9) < 5.5 and noise(x, y, 31) > 0.25) else (0, 0, 0, 0), 'item')
 
 # Familiar eggs: a shell tinted by the primary leaning and a band tinted by the secondary.
@@ -614,9 +620,9 @@ for n, tex in CONTENT.items():
 write(os.path.join(ASSETS, 'blockstates', 'alchemy_cauldron.json'), {'variants': cauldron_variants})
 write(os.path.join(ASSETS, 'items', 'alchemy_cauldron.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/alchemy_cauldron_5'}})
 
-for name in ('faewood_leaves', 'faewood_planks', 'forest_gate'):
+for name in ('faewood_leaves', 'faewood_planks', 'forest_gate', 'withered_gate'):
     write(os.path.join(ASSETS, 'models', 'block', name + '.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': f'omnispell:block/{name}'}})
-    write(os.path.join(ASSETS, 'blockstates', name + '.json'), {'variants': {'': {'model': f'omnispell:block/{name}'}}})
+    write(os.path.join(ASSETS, 'blockstates', name + '.json'), {'multipart': [{'apply': {'model': f'omnispell:block/{name}'}}]})
     write(os.path.join(ASSETS, 'items', name + '.json'), {'model': {'type': 'minecraft:model', 'model': f'omnispell:block/{name}'}})
 write(os.path.join(ASSETS, 'models', 'block', 'faewood_log.json'), {'parent': 'minecraft:block/cube_column',
       'textures': {'end': 'omnispell:block/faewood_log_top', 'side': 'omnispell:block/faewood_log'}})
@@ -790,6 +796,7 @@ lang = {
     'block.omnispell.faewood_planks': 'Faewood Planks',
     'block.omnispell.runic_bookshelf': 'Runic Bookshelf',
     'block.omnispell.forest_gate': 'Forest Gate',
+    'block.omnispell.withered_gate': 'Withered Forest Gate',
     'item.omnispell.fae_dust': 'Fae Dust',
     'biome.omnispell.faewood_grove': 'Faewood Grove',
     'biome.omnispell.gloamwood': 'Gloamwood',
@@ -872,6 +879,24 @@ write(os.path.join(recipe_dir, 'runic_bookshelf.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'building',
     'key': {'W': 'omnispell:faewood_planks', 'B': 'minecraft:book'},
     'pattern': ['WWW', 'BBB', 'WWW'], 'result': {'id': 'omnispell:runic_bookshelf'}})
+# ----- Ruins of the other gates (see PortalRuins): rarer than the Nether's ruined portals; the forest gate rarest.
+for name, chance in (('ruined_sky_portal', 1500), ('ruined_forest_gate', 900)):
+    write(os.path.join(DATA, 'worldgen', 'feature', name + '.json'), {'type': f'omnispell:{name}'})
+    write(os.path.join(DATA, 'worldgen', 'placed_feature', name + '.json'), {
+        'feature': f'omnispell:{name}',
+        'placement': [{'type': 'minecraft:rarity_filter', 'chance': chance}, {'type': 'minecraft:in_square'},
+                      {'type': 'minecraft:heightmap', 'heightmap': 'WORLD_SURFACE_WG'}, {'type': 'minecraft:biome'}]})
+write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_ruined_forest_gate.json'), {'replace': False, 'values': [
+    '#minecraft:is_forest', 'minecraft:cherry_grove', 'minecraft:meadow', 'minecraft:old_growth_birch_forest', {'id': '#c:is_forest', 'required': False}]})
+write(os.path.join(DATA, 'tags', 'worldgen', 'biome', 'has_ruined_sky_portal.json'), {'replace': False, 'values': [
+    '#minecraft:is_mountain', '#minecraft:is_hill', 'minecraft:snowy_plains', 'minecraft:snowy_taiga', 'minecraft:plains', 'minecraft:savanna_plateau',
+    {'id': '#c:is_mountain', 'required': False}, {'id': '#c:is_snowy', 'required': False}]})
+write(os.path.join(DATA, 'loot_table', 'chests', 'ruined_forest_gate.json'), {
+    'type': 'minecraft:chest',
+    'pools': [{'rolls': {'type': 'minecraft:uniform', 'min': 3, 'max': 6},
+               'entries': [{'type': 'minecraft:item', 'name': i, 'weight': w, 'functions': [{'function': 'minecraft:set_count', 'count': {'type': 'minecraft:uniform', 'min': 1, 'max': c}}]}
+                           for i, w, c in (('minecraft:moss_block', 10, 4), ('minecraft:glow_berries', 8, 4), ('minecraft:honey_bottle', 7, 2), ('minecraft:amethyst_shard', 6, 3),
+                                           ('minecraft:emerald', 4, 2), ('minecraft:ender_pearl', 2, 1), ('minecraft:golden_apple', 2, 1), ('omnispell:arcane_potion', 3, 1))]}]})
 for wood_block in ('faewood_log', 'faewood_planks', 'runic_bookshelf', 'forest_gate'):
     write(os.path.join(DATA, 'loot_table', 'blocks', wood_block + '.json'), {
         'type': 'minecraft:block',
@@ -990,6 +1015,43 @@ for level, offers in ARCANIST.items():
     write(os.path.join(DATA, 'trade_set', 'arcanist', f'level_{level}.json'),
           {'amount': 2 if level < 5 else 3, 'random_sequence': f'omnispell:trade_set/arcanist/level_{level}', 'trades': f'#omnispell:arcanist/level_{level}'})
 write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'point_of_interest_type', 'acquirable_job_site.json'), {'replace': False, 'values': ['omnispell:arcanist']})
+# ----- The same trades for VillagersTradingPlus (in the content pack), which replaces the game's villager trading
+# with its own data and shows each level's trades in its Catalog. Without these, the Arcanist's later trades would
+# not show there, and the scroll trades of librarians, clerics, alchemists and wandering traders would be lost.
+LEVEL_NAMES = {1: 'novice', 2: 'apprentice', 3: 'journeyman', 4: 'expert', 5: 'master'}
+def vtp_item(gives):
+    out = {'item': gives['id'], 'count': gives.get('count', 1)}
+    comps = gives.get('components', {})
+    if 'minecraft:item_name' in comps: out['name'] = json.dumps({'text': comps['minecraft:item_name'], 'italic': False})
+    data = comps.get('minecraft:custom_data')
+    if data: out['nbt'] = '{' + ','.join(f'{k}:{json.dumps(v) if isinstance(v, str) else v}' for k, v in data.items()) + '}'
+    ench = comps.get('minecraft:enchantments')
+    if ench: out['enchantments'] = [{'id': k, 'lvl': v} for k, v in ench.items()]
+    return out
+def vtp_sell(price, gives, uses, xp):
+    return {'type': 'villagertradingplus:sell_item', 'sell': vtp_item(gives), 'priceIn': {'item': 'minecraft:emerald', 'count': price},
+            'max_uses': uses, 'villager_experience': xp, 'price_multiplier': 0.05}
+def vtp_buy(item, count, xp):
+    return {'type': 'villagertradingplus:buy_item', 'buy': {'item': item, 'count': count}, 'reward': {'item': 'minecraft:emerald', 'count': 1},
+            'max_uses': 16, 'villager_experience': xp, 'price_multiplier': 0.05}
+VTP = os.path.join(DATA)
+arcanist = {'profession': 'omnispell:arcanist', 'trades': {}}
+for level, offers in ARCANIST.items():
+    arcanist['trades'][LEVEL_NAMES[level]] = [vtp_buy(o[1], o[2], 2 * level) if o[0] == 'buy' else vtp_sell(o[1], o[2], o[3], 5 * level) for o in offers]
+write(os.path.join(VTP, 'default_villager_trades', 'arcanist.json'), arcanist)
+extra = {'minecraft:librarian': {}, 'minecraft:cleric': {}}
+for tag, trades in TRADES.items():
+    who, lvl = tag.split('/')
+    if who == 'wandering_trader': continue
+    extra['minecraft:' + who].setdefault(LEVEL_NAMES[int(lvl[-1])], []).extend(vtp_sell(cost, gives, uses, 10) for _, cost, gives, uses in trades)
+# The Villagers Plus alchemist deals in rare scrolls and arcane potions too.
+extra['villagersplus:alchemist'] = {'apprentice': [vtp_sell(4, {'id': 'omnispell:arcane_potion'}, 8, 10)],
+                                    'expert': [vtp_sell(22, scroll(3), 1, 15)], 'master': [vtp_sell(38, scroll(4), 1, 20)]}
+for prof, levels in extra.items():
+    write(os.path.join(VTP, 'villager_trades', prof.split(':')[1] + '.json'), {'profession': prof, 'trades': levels})
+write(os.path.join(VTP, 'wandering_trader_trades', 'omnispell.json'), {'replace': False, 'trades': {
+    'common': [vtp_sell(10, scroll(2), 2, 1)],
+    'rare': [vtp_sell(20, scroll(3), 1, 1), vtp_sell(36, scroll(4), 1, 1)]}})
 # The Arcanist's robe: violet with a gold hem, over the ordinary villager.
 def robe(x, y):
     star = noise(x, y, 67) > 0.93

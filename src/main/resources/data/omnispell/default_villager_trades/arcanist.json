@@ -1,0 +1,373 @@
+{
+  "profession": "omnispell:arcanist",
+  "trades": {
+    "novice": [
+      {
+        "type": "villagertradingplus:buy_item",
+        "buy": {
+          "item": "minecraft:amethyst_shard",
+          "count": 8
+        },
+        "reward": {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        "max_uses": 16,
+        "villager_experience": 2,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:buy_item",
+        "buy": {
+          "item": "minecraft:paper",
+          "count": 20
+        },
+        "reward": {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        "max_uses": 16,
+        "villager_experience": 2,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Common Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:1}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 5
+        },
+        "max_uses": 6,
+        "villager_experience": 5,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:arcane_potion",
+          "count": 1
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 3
+        },
+        "max_uses": 8,
+        "villager_experience": 5,
+        "price_multiplier": 0.05
+      }
+    ],
+    "apprentice": [
+      {
+        "type": "villagertradingplus:buy_item",
+        "buy": {
+          "item": "minecraft:lapis_lazuli",
+          "count": 10
+        },
+        "reward": {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        "max_uses": 16,
+        "villager_experience": 4,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:buy_item",
+        "buy": {
+          "item": "minecraft:glass_bottle",
+          "count": 9
+        },
+        "reward": {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        "max_uses": 16,
+        "villager_experience": 4,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Uncommon Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:2}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 10
+        },
+        "max_uses": 5,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:amethyst_shard",
+          "count": 4
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 6
+        },
+        "max_uses": 8,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      }
+    ],
+    "journeyman": [
+      {
+        "type": "villagertradingplus:buy_item",
+        "buy": {
+          "item": "omnispell:fae_dust",
+          "count": 4
+        },
+        "reward": {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        "max_uses": 16,
+        "villager_experience": 6,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Rare Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:3}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 20
+        },
+        "max_uses": 1,
+        "villager_experience": 15,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:arcane_focus",
+          "count": 1
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 16
+        },
+        "max_uses": 1,
+        "villager_experience": 15,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:emerald",
+          "count": 1,
+          "enchantments": [
+            {
+              "id": "omnispell:fortune",
+              "lvl": 1
+            }
+          ]
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 18
+        },
+        "max_uses": 1,
+        "villager_experience": 15,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:amethyst_shard",
+          "count": 1,
+          "enchantments": [
+            {
+              "id": "omnispell:flow",
+              "lvl": 2
+            }
+          ]
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 18
+        },
+        "max_uses": 1,
+        "villager_experience": 15,
+        "price_multiplier": 0.05
+      }
+    ],
+    "expert": [
+      {
+        "type": "villagertradingplus:buy_item",
+        "buy": {
+          "item": "minecraft:ender_pearl",
+          "count": 2
+        },
+        "reward": {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        "max_uses": 16,
+        "villager_experience": 8,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Ancient Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:4}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 34
+        },
+        "max_uses": 1,
+        "villager_experience": 20,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:diamond",
+          "count": 1,
+          "enchantments": [
+            {
+              "id": "omnispell:warding",
+              "lvl": 2
+            }
+          ]
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 30
+        },
+        "max_uses": 1,
+        "villager_experience": 20,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:echo_shard",
+          "count": 1,
+          "enchantments": [
+            {
+              "id": "omnispell:leech",
+              "lvl": 2
+            }
+          ]
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 30
+        },
+        "max_uses": 1,
+        "villager_experience": 20,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:quartz",
+          "count": 1,
+          "enchantments": [
+            {
+              "id": "omnispell:potency",
+              "lvl": 2
+            }
+          ]
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 28
+        },
+        "max_uses": 1,
+        "villager_experience": 20,
+        "price_multiplier": 0.05
+      }
+    ],
+    "master": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Forbidden Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:5}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 56
+        },
+        "max_uses": 1,
+        "villager_experience": 25,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Treatise on Conjuration\", \"italic\": false}",
+          "nbt": "{omni_type:\"conjuration\"}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 48
+        },
+        "max_uses": 1,
+        "villager_experience": 25,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Scroll of Sparsus\", \"italic\": false}",
+          "nbt": "{omni_word:\"charge:Sparsus (Area of effect)\"}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 52
+        },
+        "max_uses": 1,
+        "villager_experience": 25,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "minecraft:diamond",
+          "count": 1,
+          "enchantments": [
+            {
+              "id": "omnispell:vigor",
+              "lvl": 3
+            }
+          ]
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 44
+        },
+        "max_uses": 1,
+        "villager_experience": 25,
+        "price_multiplier": 0.05
+      }
+    ]
+  }
+}

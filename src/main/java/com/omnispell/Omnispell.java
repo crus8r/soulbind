@@ -61,6 +61,7 @@ public class Omnispell implements ModInitializer {
 		com.omnispell.world.Cauldrons.register();
 		com.omnispell.world.ForestFeatures.register();
 		com.omnispell.world.Arcanist.register();
+		com.omnispell.world.PortalRuins.register();
 		PlayerStore.register();
 		com.omnispell.waypoint.Waypoints.register();
 		OmniNet.register();
@@ -242,6 +243,7 @@ public class Omnispell implements ModInitializer {
 					com.omnispell.boss.BossAltarBlock.wakeNear(player);
 					Modifiers.everySecond(player);
 					com.omnispell.charm.Charms.everySecond(player);
+					Modifiers.totemCheck(player);
 				}
 				com.omnispell.spell.Shroud.everySecond(server);
 			}

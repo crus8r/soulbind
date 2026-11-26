@@ -1,0 +1,57 @@
+{
+  "replace": false,
+  "trades": {
+    "common": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Uncommon Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:2}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 10
+        },
+        "max_uses": 2,
+        "villager_experience": 1,
+        "price_multiplier": 0.05
+      }
+    ],
+    "rare": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Rare Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:3}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 20
+        },
+        "max_uses": 1,
+        "villager_experience": 1,
+        "price_multiplier": 0.05
+      },
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Ancient Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:4}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 36
+        },
+        "max_uses": 1,
+        "villager_experience": 1,
+        "price_multiplier": 0.05
+      }
+    ]
+  }
+}

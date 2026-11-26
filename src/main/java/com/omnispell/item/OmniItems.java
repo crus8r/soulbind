@@ -58,6 +58,9 @@ public final class OmniItems {
 	public static final Block FOREST_GATE = registerBlock("forest_gate", com.omnispell.realm.ForestGateBlock::new,
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(3.0f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 12));
 	public static final Item FOREST_GATE_ITEM = register("forest_gate", p -> new BlockItem(FOREST_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
+	public static final Block WITHERED_GATE = registerBlock("withered_gate", com.omnispell.realm.WitheredGateBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(50.0f, 1200.0f).sound(SoundType.STONE).requiresCorrectToolForDrops());
+	public static final Item WITHERED_GATE_ITEM = register("withered_gate", p -> new BlockItem(WITHERED_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Item FAE_DUST = register("fae_dust", Item::new, new Item.Properties());
 	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.item.equipment.EquipmentAsset> HAT_ASSET =
 			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_hat"));
@@ -120,6 +123,7 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
 					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(FOREST_GATE_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(WITHERED_GATE_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_LOG_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_PLANKS_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(FAEWOOD_LEAVES_ITEM));

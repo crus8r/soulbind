@@ -1,7 +1,9 @@
 {
-  "variants": {
-    "": {
-      "model": "omnispell:block/faewood_leaves"
+  "multipart": [
+    {
+      "apply": {
+        "model": "omnispell:block/faewood_leaves"
+      }
     }
-  }
+  ]
 }

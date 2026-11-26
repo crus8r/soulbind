@@ -1,0 +1,95 @@
+{
+  "profession": "minecraft:librarian",
+  "trades": {
+    "novice": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Common Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:1}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 6
+        },
+        "max_uses": 4,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      }
+    ],
+    "apprentice": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Common Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:1}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 5
+        },
+        "max_uses": 6,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      }
+    ],
+    "journeyman": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Uncommon Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:2}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 12
+        },
+        "max_uses": 4,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      }
+    ],
+    "expert": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Rare Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:3}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 24
+        },
+        "max_uses": 1,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      }
+    ],
+    "master": [
+      {
+        "type": "villagertradingplus:sell_item",
+        "sell": {
+          "item": "omnispell:word_scroll",
+          "count": 1,
+          "name": "{\"text\": \"Ancient Word Scroll\", \"italic\": false}",
+          "nbt": "{omni_rarity:4}"
+        },
+        "priceIn": {
+          "item": "minecraft:emerald",
+          "count": 40
+        },
+        "max_uses": 1,
+        "villager_experience": 10,
+        "price_multiplier": 0.05
+      }
+    ]
+  }
+}

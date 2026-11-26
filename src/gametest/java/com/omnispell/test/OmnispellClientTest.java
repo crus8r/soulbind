@@ -488,6 +488,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 
 			Zombie[] vortexed = new Zombie[1];
+			BlockPos[] ruinSites = new BlockPos[2];
 			// ---- land shaping: carve a tunnel, mend water into grass, raise a lasting wall; then the wand's plain bolt
 			BlockPos[] site = new BlockPos[1];
 			server.runOnServer(s -> player(s).getInventory().setItem(4, WandItem.create("oak", "nether_star")));
@@ -843,7 +844,35 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				int offers = keeper.getOffers().size();
 				boolean sellsScroll = keeper.getOffers().stream().anyMatch(o -> o.getResult().is(OmniItems.WORD_SCROLL) || o.getResult().is(OmniItems.ARCANE_POTION) || o.getResult().is(Items.EMERALD));
 				check(offers >= 2 && sellsScroll, "a villager made an Arcanist has offers (" + offers + ")");
+				System.out.println("[omnispell-test] arcanist offers: " + keeper.getOffers().stream().map(o -> o.getResult().getHoverName().getString() + " " + o.getResult().get(DataComponents.CUSTOM_DATA)).toList());
 				keeper.discard();
+
+				// The ruined Forest Gate: it builds, and its withered gate wakes only once mended with all three.
+				BlockPos ruinGate = b.offset(-40, 0, 0);
+				for (BlockPos pos : BlockPos.betweenClosed(ruinGate.offset(-6, -1, -6), ruinGate.offset(6, -1, 6))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(ruinGate.offset(-6, 0, -6), ruinGate.offset(6, 6, 6))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				check(com.omnispell.world.PortalRuins.ForestGateRuin.INSTANCE.place(level, level.getChunkSource().getGenerator(), level.getRandom(), ruinGate), "a ruined Forest Gate builds");
+				BlockPos withered = null;
+				for (BlockPos pos : BlockPos.betweenClosed(ruinGate.offset(-6, -2, -6), ruinGate.offset(6, 4, 6))) if (level.getBlockState(pos).is(OmniItems.WITHERED_GATE)) withered = pos.immutable();
+				check(withered != null, "the ruin holds a withered gate");
+				var gateHit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(withered), net.minecraft.core.Direction.UP, withered, false);
+				for (var mend : new net.minecraft.world.item.Item[]{Items.EMERALD, Items.ENDER_PEARL}) {
+					p.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, new ItemStack(mend));
+					level.getBlockState(withered).useItemOn(p.getOffhandItem(), level, p, net.minecraft.world.InteractionHand.OFF_HAND, gateHit);
+				}
+				check(level.getBlockState(withered).is(OmniItems.WITHERED_GATE), "two of three is not enough to wake it");
+				p.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, new ItemStack(Items.GLOW_BERRIES));
+				level.getBlockState(withered).useItemOn(p.getOffhandItem(), level, p, net.minecraft.world.InteractionHand.OFF_HAND, gateHit);
+				check(level.getBlockState(withered).is(OmniItems.FOREST_GATE), "with emerald, pearl and glow berries it wakes as a Forest Gate");
+				p.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, ItemStack.EMPTY);
+				boolean skyRealm = net.minecraft.core.registries.BuiltInRegistries.BLOCK.containsKey(net.minecraft.resources.Identifier.fromNamespaceAndPath("aerialhell", "stellar_portal_frame_block"));
+				BlockPos skyRuin = b.offset(-40, 0, 30);
+				for (BlockPos pos : BlockPos.betweenClosed(skyRuin.offset(-6, -1, -6), skyRuin.offset(6, -1, 6))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(skyRuin.offset(-6, 0, -6), skyRuin.offset(6, 8, 6))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				boolean skyBuilt = com.omnispell.world.PortalRuins.SkyPortalRuin.INSTANCE.place(level, level.getChunkSource().getGenerator(), level.getRandom(), skyRuin);
+				check(skyBuilt == skyRealm, "a ruined sky portal builds when the sky realm is installed, and only then (installed: " + skyRealm + ")");
+				ruinSites[0] = ruinGate;
+				ruinSites[1] = skyRuin;
 
 				// The forest's ruin and nest build, and their chests hold what they should.
 				BlockPos ruinAt = b.offset(0, 0, 30);
@@ -1323,6 +1352,12 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() - 1.5, java.util.Set.of(), 180f, 12f, true);
 			});
+			server.runOnServer(s -> player(s).teleportTo(player(s).level(), ruinSites[0].getX() + 6.5, ruinSites[0].getY() + 4, ruinSites[0].getZ() + 6.5, java.util.Set.of(), 135f, 25f, true));
+			context.waitTicks(30);
+			context.takeScreenshot("29c-forest-gate-ruin");
+			server.runOnServer(s -> player(s).teleportTo(player(s).level(), ruinSites[1].getX() + 7.5, ruinSites[1].getY() + 3, ruinSites[1].getZ() + 0.5, java.util.Set.of(), 90f, 15f, true));
+			context.waitTicks(30);
+			context.takeScreenshot("29d-sky-portal-ruin");
 			context.waitTicks(30);
 			context.takeScreenshot("29-familiar-kinds");
 			server.runCommand("time set midnight");
@@ -1445,7 +1480,18 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop
 				player(s).getInventory().setItem(8, new ItemStack(OmniItems.GRIMOIRE)); // a loose book must not
-				player(s).getInventory().setItem(7, WandItem.create("oak", "totem_of_undying")); // nor a totem wand
+				// A totem wand on the hotbar saves you once, then recharges for ten minutes of world time.
+				ServerPlayer saved = player(s);
+				saved.getInventory().setItem(7, WandItem.create("oak", "totem_of_undying"));
+				PlayerStore.get(saved).totemReadyAt = 0;
+				check(!com.omnispell.spell.Modifiers.allowDeath(saved), "a totem wand on the hotbar saves you from death");
+				check(com.omnispell.spell.Modifiers.allowDeath(saved), "and not again until it has recharged");
+				PlayerStore.get(saved).totemReadyAt = saved.level().getServer().overworld().getGameTime() - 1;
+				check(!com.omnispell.spell.Modifiers.allowDeath(saved), "once recharged it saves you again");
+				saved.getInventory().setItem(7, ItemStack.EMPTY);
+				saved.removeAllEffects();
+				saved.setHealth(saved.getMaxHealth());
+				saved.getInventory().setItem(20, WandItem.create("oak", "totem_of_undying")); // off the hotbar it does not save you, but it is never lost
 				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(OmniItems.WIZARD_ROBE)); // nor wizard's attire
 				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(OmniItems.WIZARD_BOOTS));
 			});
@@ -1465,7 +1511,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 				check(bundles == 1, "one bundle after respawn, not zero and not a second one (found " + bundles + ")");
 				check(p.getInventory().getItem(8).is(OmniItems.GRIMOIRE), "a loose Book of Words is kept through death");
-				check("totem_of_undying".equals(WandItem.core(p.getInventory().getItem(7))), "a totem-core wand is kept through death");
+				check("totem_of_undying".equals(WandItem.core(p.getInventory().getItem(20))), "a totem-core wand is kept through death");
 				check(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(OmniItems.WIZARD_ROBE) && p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).is(OmniItems.WIZARD_BOOTS), "the robe and boots are kept through death");
 				PlayerData data = PlayerStore.get(p);
 				check(data.spells.size() == 15 && data.words.size() > 200, "words and spells survive death (" + data.spells.size() + " spells)");
