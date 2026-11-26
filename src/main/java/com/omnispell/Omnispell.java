@@ -33,6 +33,8 @@ public class Omnispell implements ModInitializer {
 	public static final Logger LOG = LoggerFactory.getLogger("Omnispell");
 	public static OmniConfig CONFIG = new OmniConfig();
 
+	private static final java.util.Map<java.util.UUID, Boolean> CREATIVE_SEEN = new java.util.HashMap<>();
+
 	public static Identifier id(String path) {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
@@ -203,6 +205,16 @@ public class Omnispell implements ModInitializer {
 			}
 			if (tick % 5 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.syncVitals(player);
+			}
+			if (tick % 20 == 0) {
+				// Switching into or out of creative changes what the book shows.
+				for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+					boolean creative = player.getAbilities().instabuild;
+					if (CREATIVE_SEEN.getOrDefault(player.getUUID(), false) != creative) {
+						CREATIVE_SEEN.put(player.getUUID(), creative);
+						PlayerStore.syncState(player);
+					}
+				}
 			}
 			if (tick % 600 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.save(player);

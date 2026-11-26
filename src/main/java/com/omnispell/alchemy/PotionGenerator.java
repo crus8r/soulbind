@@ -44,7 +44,7 @@ public final class PotionGenerator {
 		return FabricLoader.getInstance().getConfigDir().resolve("omnispell").resolve("potions").resolve(safe + ".json");
 	}
 
-	static JsonObject request(Alchemy.Base base, List<Alchemy.Ingredient> ingredients, List<String> warnings) {
+	static JsonObject request(Alchemy.Base base, List<Alchemy.Ingredient> ingredients, List<String> warnings, boolean unstable) {
 		JsonObject body = new JsonObject();
 		JsonObject b = new JsonObject();
 		b.addProperty("name", base.name);
@@ -67,8 +67,9 @@ public final class PotionGenerator {
 		JsonArray warn = new JsonArray();
 		for (String w : warnings) warn.add(w);
 		body.add("warnings", warn);
-		// The website's cauldrons hold 4, 6 or 8 parts; more than four makes a brew unstable.
-		body.addProperty("slotCount", ingredients.size() <= 4 ? 4 : 6);
+		// The website's cauldrons hold 4, 6 or 8 parts, and the larger ones are unstable. Here a brew
+		// is unstable when its volatility says so, which tells the potioneer to give it a downside.
+		body.addProperty("slotCount", unstable ? 6 : Math.max(4, ingredients.size()));
 		body.addProperty("filledCount", ingredients.size());
 		body.addProperty("purityBonus", 0);
 		body.addProperty("gameMode", false);
@@ -98,7 +99,7 @@ public final class PotionGenerator {
 		});
 	}
 
-	public static CompletableFuture<Brew> brew(String key, Alchemy.Base base, List<Alchemy.Ingredient> ingredients, List<String> warnings) {
+	public static CompletableFuture<Brew> brew(String key, Alchemy.Base base, List<Alchemy.Ingredient> ingredients, List<String> warnings, boolean unstable) {
 		Path file = cacheFile(key);
 		Brew brew = new Brew();
 		try {
@@ -113,7 +114,7 @@ public final class PotionGenerator {
 			fallback(brew, base, ingredients, warnings);
 			return CompletableFuture.completedFuture(brew);
 		}
-		return transport.apply(request(base, ingredients, warnings)).handle((json, error) -> {
+		return transport.apply(request(base, ingredients, warnings, unstable)).handle((json, error) -> {
 			if (error != null) {
 				Omnispell.LOG.warn("Potioneer unavailable for {}: {}", key, error.getMessage());
 				fallback(brew, base, ingredients, warnings);

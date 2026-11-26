@@ -17,6 +17,18 @@
     },
     "contents=5": {
       "model": "omnispell:block/alchemy_cauldron_5"
+    },
+    "contents=6": {
+      "model": "omnispell:block/alchemy_cauldron_6"
+    },
+    "contents=7": {
+      "model": "omnispell:block/alchemy_cauldron_7"
+    },
+    "contents=8": {
+      "model": "omnispell:block/alchemy_cauldron_8"
+    },
+    "contents=9": {
+      "model": "omnispell:block/alchemy_cauldron_9"
     }
   }
 }

@@ -4,31 +4,137 @@
    "name": "Water",
    "potency": 1,
    "temperature": "room",
-   "model": 1
+   "model": 1,
+   "items": [
+    "water_bucket",
+    "potion"
+   ],
+   "containers": [
+    "bucket",
+    "glass_bottle"
+   ],
+   "danger": 0
   },
   "honey": {
    "name": "Nectar",
    "potency": 2,
    "temperature": "room",
-   "model": 2
+   "model": 2,
+   "items": [
+    "honey_bottle"
+   ],
+   "containers": [
+    "glass_bottle"
+   ],
+   "danger": 0
   },
   "milk": {
    "name": "Milk",
    "potency": 2,
    "temperature": "low",
-   "model": 3
+   "model": 3,
+   "items": [
+    "milk_bucket"
+   ],
+   "containers": [
+    "bucket"
+   ],
+   "danger": 0
   },
   "lava": {
    "name": "Molten Lava",
    "potency": 3,
    "temperature": "high",
-   "model": 4
+   "model": 4,
+   "items": [
+    "lava_bucket"
+   ],
+   "containers": [
+    "bucket"
+   ],
+   "danger": 2
   },
   "dragon": {
    "name": "Dragon's Blood",
    "potency": 4,
    "temperature": "high",
-   "model": 5
+   "model": 5,
+   "items": [
+    "dragon_breath"
+   ],
+   "containers": [
+    "glass_bottle"
+   ],
+   "danger": 2
+  },
+  "frost": {
+   "name": "Frostmelt",
+   "potency": 2,
+   "temperature": "low",
+   "model": 6,
+   "items": [
+    "powder_snow_bucket"
+   ],
+   "containers": [
+    "bucket"
+   ],
+   "danger": 0
+  },
+  "ichor": {
+   "name": "Ominous Ichor",
+   "potency": 4,
+   "temperature": "low",
+   "model": 7,
+   "items": [
+    "ominous_bottle"
+   ],
+   "containers": [
+    "glass_bottle"
+   ],
+   "danger": 2
+  },
+  "memory": {
+   "name": "Liquid Memory",
+   "potency": 3,
+   "temperature": "room",
+   "model": 8,
+   "items": [
+    "experience_bottle"
+   ],
+   "containers": [
+    "glass_bottle"
+   ],
+   "danger": 1
+  },
+  "fungal": {
+   "name": "Fungal Broth",
+   "potency": 2,
+   "temperature": "room",
+   "model": 9,
+   "items": [
+    "mushroom_stew",
+    "suspicious_stew"
+   ],
+   "containers": [
+    "bowl",
+    "bowl"
+   ],
+   "danger": 0
+  },
+  "stock": {
+   "name": "Hunter's Stock",
+   "potency": 2,
+   "temperature": "high",
+   "model": 9,
+   "items": [
+    "rabbit_stew",
+    "beetroot_soup"
+   ],
+   "containers": [
+    "bowl",
+    "bowl"
+   ],
+   "danger": 0
   }
  },
  "ingredients": {

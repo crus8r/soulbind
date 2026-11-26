@@ -70,6 +70,7 @@ public final class Brew {
 
 	public int color() {
 		return switch (codeType) {
+			case "sludge" -> 0x6E6E64;
 			case "heal" -> 0xF2486A;
 			case "damage" -> element.equals("fire") ? 0xF2742B : element.equals("ice") ? 0x6FC8F2 : element.equals("shadow") ? 0x7A3DB0 : 0xD23A2E;
 			case "shield" -> 0x4F86F0;

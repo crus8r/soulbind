@@ -44,9 +44,11 @@ public final class SpellCrafting {
 	public static String problem(ServerPlayer player, PlayerData data, String typeId, List<String> wordIds) {
 		WordBank.SpellType type = WordBank.spellType(typeId);
 		if (type == null) return "Unknown kind of spell.";
-		if (!data.spellTypes.contains(typeId)) return "You have not learned to craft " + type.name.toLowerCase() + " yet.";
+		boolean creative = player.getAbilities().instabuild;
+		if (!creative && !data.spellTypes.contains(typeId)) return "You have not learned to craft " + type.name.toLowerCase() + " yet.";
 		if (wordIds.isEmpty()) return "Choose at least a base word.";
 		int budget = WandItem.bestWordBudget(player);
+		if (creative) budget = 7;
 		if (wordIds.size() > budget) return "Your wand can only hold spells of " + budget + " words. A better core allows more.";
 
 		Map<String, Integer> counts = new HashMap<>();
@@ -54,7 +56,7 @@ public final class SpellCrafting {
 		for (String id : wordIds) {
 			Word word = WordBank.word(id);
 			if (word == null || word.excluded) return "Unknown word.";
-			if (!data.words.contains(id)) return "You do not know the word " + word.shortName() + ".";
+			if (!creative && !data.words.contains(id)) return "You do not know the word " + word.shortName() + ".";
 			if (!seen.add(id)) return "A word can only be used once.";
 			int count = counts.merge(word.type, 1, Integer::sum);
 			if (count > MAX_PER_TYPE.getOrDefault(word.type, 1)) return "Too many " + word.type + " words.";

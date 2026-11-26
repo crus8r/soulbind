@@ -30,7 +30,8 @@ public final class Guide {
 				"Scrolls are found in the chests of generated structures and, rarely, on hostile creatures. Strongholds, bastions, ancient cities and End cities hold the rarest.",
 				"The more words you know, the less often a new scroll appears.",
 				"Treatises unlock a whole kind of spell: Enchantment, Illusion, Charm, then Conjuration. They lie in the rarer vaults.",
-				"The Wither, the Warden and the Ender Dragon each guard a word of their own."));
+				"The Wither, the Warden and the Ender Dragon each guard a word of their own.",
+				"In creative mode every word and every kind of spell is open, crafting is free, and the Omnispell tab holds a scroll for each word."));
 		s.put("Crafting a spell", List.of(
 				"Pick the kind of spell, then fill its slots: click a slot, then click a word. Words that do not suit the spell are greyed and sorted to the bottom.",
 				"Base: the element or force. Command: what it does. Intention: why. Use + to add a Charge, Source or Attribute.",
@@ -95,16 +96,28 @@ public final class Guide {
 				"Crossing between worlds always takes an ender pearl.",
 				"Breaking a waypoint returns it, still bonded to its partner. A lone waypoint from an odd stack has no partner and cannot be placed."));
 		s.put("Potions", List.of(
-				"Brewing needs an Alchemy Cauldron: a cauldron, a blaze rod and an amethyst shard. Like all brewing, it waits for the Nether.",
+				"Brewing uses an Alchemy Cauldron, not a brewing stand: a cauldron, a blaze rod and an amethyst shard. Like all brewing, it waits for the Nether.",
 				"1. Charge it with blaze powder. Each powder is good for four brews.",
-				"2. Pour in a liquid. Water is versatile. Honey heals. Milk soothes and cleanses. Lava destroys. Dragon's breath is the strongest and strangest.",
-				"3. Add up to three ingredients. Almost anything gathered can be brewed: flowers, crops and fungi; bones, eyes, scales and tears; pearls, shards and rods; metals and gems.",
-				"4. Add up to two catalysts if you wish. Lapis draws out an ingredient's nature. Honeycomb lets flora and fauna mix. Redstone makes it last. Fermented spider eye turns a brew into a weapon. Sugar makes a harsh brew safe to drink. Prismarine crystals cancel the heat.",
-				"5. Heat matters. Fire, a campfire, lava or magma underneath is high heat. Soul fire, a soul campfire or ice is low heat. Anything else is room heat. Ingredients brewed at the wrong heat make an unstable potion.",
+				"2. Pour in a liquid. It decides the potion's character.",
+				"3. Add up to three ingredients. Almost anything gathered can be brewed.",
+				"4. Add up to two catalysts if the brew needs them.",
+				"5. Mind the heat under the cauldron.",
 				"6. Use a glass bottle on the cauldron. Each brew fills three bottles.",
+				"Empty hand on the cauldron shows what is inside and how steady it is. Sneak + empty hand tips it out.",
+				"LIQUIDS",
+				"Water is versatile. Honey heals. Milk soothes and cleanses. Powder snow (Frostmelt) is cold and still. Mushroom stew (Fungal Broth) is earthy; rabbit stew or beetroot soup (Hunter's Stock) is hearty and hot.",
+				"Bottled experience (Liquid Memory) is arcane and a little unruly. Lava destroys. Dragon's breath and ominous bottles are the strongest and the most dangerous to brew with.",
+				"CATALYSTS",
+				"Honeycomb is the harmonizer: it lets flora and fauna mix and steadies a volatile brew. Lapis draws out an ingredient's nature. Redstone makes it last. Fermented spider eye turns a brew into a weapon. Sugar makes a harsh liquid safe. Prismarine crystals cancel the heat.",
+				"Catalysts act on ingredients. They are not ingredients themselves.",
+				"HEAT",
+				"Fire, a campfire, lava or magma underneath is high heat. Soul fire, a soul campfire or ice is low heat. Anything else is room heat. Many ingredients prefer one heat.",
+				"WAYS TO RUIN A BREW",
+				"Sludge: catalysts with nothing to act on, the same ingredient three times, or more catalyst than substance. A liquid and a pile of lapis is sludge.",
+				"Boiling over: wrong heat, flora mixed raw with fauna, very potent ingredients, a dangerous liquid, a weaponizer. Each adds volatility. Too much without honeycomb and the cauldron bursts, the brew is lost, and you are burned.",
+				"An uneasy brew still works, but comes out with a side effect.",
 				"The same recipe at the same heat always makes the same potion. Gunpowder makes a potion for throwing. Glowstone dust makes potions that restore or drain mana.",
-				"Use a potion to drink it. Harmful potions are thrown where you look instead. Potions stack to 16 and there is no limit on how many you carry.",
-				"Empty hand on the cauldron shows what is inside. Sneak + empty hand tips it out."));
+				"Use a potion to drink it. Harmful potions are thrown where you look instead. Potions stack to 16 and there is no limit on how many you carry."));
 		s.put("Shrines and lairs", List.of(
 				"Arcane shrines stand in the open across the world: a stone platform, four amethyst-crowned pillars, and an arcane well at the centre. Draw your essence there.",
 				"Boss lairs are white domes of snow and ice, like great igloos, with a single sealed door.",

@@ -45,7 +45,7 @@ import java.util.UUID;
  * Empty hand shows what is inside. Sneak + empty hand tips it out.
  */
 public class AlchemyCauldronBlock extends Block {
-	public static final IntegerProperty CONTENTS = IntegerProperty.create("contents", 0, 5);
+	public static final IntegerProperty CONTENTS = IntegerProperty.create("contents", 0, 9);
 	public static final int MAX_PRIMARY = 3, MAX_CATALYST = 2, MAX_CHARGES = 16;
 
 	public AlchemyCauldronBlock(Properties properties) {
@@ -116,34 +116,14 @@ public class AlchemyCauldronBlock extends Block {
 
 		// A liquid, if the cauldron is empty.
 		if (vat.base == null) {
-			String base = null;
-			Item container = null;
-			if (stack.is(Items.WATER_BUCKET)) {
-				base = "water";
-				container = Items.BUCKET;
-			} else if (stack.is(Items.POTION)) {
-				base = "water";
-				container = Items.GLASS_BOTTLE;
-			} else if (stack.is(Items.HONEY_BOTTLE)) {
-				base = "honey";
-				container = Items.GLASS_BOTTLE;
-			} else if (stack.is(Items.MILK_BUCKET)) {
-				base = "milk";
-				container = Items.BUCKET;
-			} else if (stack.is(Items.LAVA_BUCKET)) {
-				base = "lava";
-				container = Items.BUCKET;
-			} else if (stack.is(Items.DRAGON_BREATH)) {
-				base = "dragon";
-				container = Items.GLASS_BOTTLE;
-			}
-			if (base != null) {
-				vat.base = base;
+			String[] liquid = Alchemy.liquid(stack);
+			if (liquid != null) {
+				vat.base = liquid[0];
 				vat.items.clear();
-				swap(player, stack, container);
+				swap(player, stack, net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.withDefaultNamespace(liquid[1])));
 				level.playSound(null, pos, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 0.8f, 1.0f);
 				look(level, pos, vat);
-				say(player, Alchemy.base(base).name + " fills the cauldron. Heat: " + heat(level, pos) + ".", ChatFormatting.AQUA);
+				say(player, Alchemy.base(liquid[0]).name + " fills the cauldron. Heat: " + heat(level, pos) + ".", ChatFormatting.AQUA);
 				Vats.save(level.getServer());
 				return InteractionResult.SUCCESS;
 			}
@@ -155,7 +135,7 @@ public class AlchemyCauldronBlock extends Block {
 			return InteractionResult.SUCCESS;
 		}
 		if (vat.base == null) {
-			say(player, "Pour in a liquid first: water, honey, milk, lava or dragon's breath.", ChatFormatting.GRAY);
+			say(player, "Pour in a liquid first. The book lists them.", ChatFormatting.GRAY);
 			return InteractionResult.SUCCESS;
 		}
 		if (vat.servings > 0) {
@@ -203,7 +183,7 @@ public class AlchemyCauldronBlock extends Block {
 
 	private static void describe(ServerLevel level, BlockPos pos, ServerPlayer player, Vats.Vat vat) {
 		if (vat.base == null) {
-			say(player, "Empty. Charges: " + vat.charges + ". Pour in water, honey, milk, lava or dragon's breath.", ChatFormatting.GRAY);
+			say(player, "Empty. Charges: " + vat.charges + ". Pour in a liquid to begin.", ChatFormatting.GRAY);
 			return;
 		}
 		if (vat.servings > 0) {
@@ -216,7 +196,66 @@ public class AlchemyCauldronBlock extends Block {
 			Alchemy.Ingredient in = Alchemy.ingredient(key);
 			sb.append(" + ").append(in == null ? key : in.name);
 		}
-		say(player, sb + "  ·  heat " + heat(level, pos) + "  ·  charges " + vat.charges, ChatFormatting.AQUA);
+		List<Alchemy.Ingredient> inside = new ArrayList<>();
+		for (String key : vat.items) {
+			Alchemy.Ingredient in = Alchemy.ingredient(key);
+			if (in != null) inside.add(in);
+		}
+		String heatNow = heat(level, pos);
+		String state = vat.items.isEmpty() ? "" : sludge(inside) != null ? "  ·  this would only make sludge"
+				: "  ·  " + stabilityWord(volatility(Alchemy.base(vat.base), inside, heatNow));
+		say(player, sb + "  ·  heat " + heatNow + "  ·  charges " + vat.charges + state, ChatFormatting.AQUA);
+	}
+
+	/**
+	 * Why a mix would be worthless sludge, or null if it has a purpose.
+	 * Catalysts act on ingredients: with nothing to act on, or the same thing thrown in three times, there is no potion.
+	 */
+	static String sludge(List<Alchemy.Ingredient> ingredients) {
+		List<Alchemy.Ingredient> primaries = new ArrayList<>();
+		int catalysts = 0;
+		for (Alchemy.Ingredient in : ingredients) {
+			if (in.role != null) catalysts++;
+			else primaries.add(in);
+		}
+		if (primaries.isEmpty()) return "Catalysts with nothing to act on";
+		if (primaries.size() >= 3 && primaries.stream().allMatch(p -> p.name.equals(primaries.get(0).name))) return "The same thing three times over";
+		if (catalysts > primaries.size() + 1) return "More catalyst than substance";
+		return null;
+	}
+
+	/**
+	 * How close a brew is to boiling over. Wrong heat, flora mixed raw with fauna, very
+	 * potent ingredients, dangerous liquids and a weaponizer all add to it. A harmonizer
+	 * (honeycomb) calms it a great deal; sugar tames a dangerous liquid.
+	 */
+	static int volatility(Alchemy.Base base, List<Alchemy.Ingredient> ingredients, String heat) {
+		boolean negated = false, harmonized = false, sweetened = false, flora = false, fauna = false;
+		for (Alchemy.Ingredient in : ingredients) {
+			if ("temperature_negator".equals(in.role)) negated = true;
+			if ("harmonizer".equals(in.role)) harmonized = true;
+			if ("consumability".equals(in.role)) sweetened = true;
+			if (in.role == null && in.category.equals("flora")) flora = true;
+			if (in.role == null && in.category.equals("fauna")) fauna = true;
+		}
+		String brewHeat = heat.equals("room") ? base.temperature : heat;
+		int score = base.danger;
+		if (sweetened && base.danger > 0) score -= 1;
+		for (Alchemy.Ingredient in : ingredients) {
+			if (in.role == null && in.potency >= 4) score += 1;
+			if ("weaponizer".equals(in.role)) score += 1;
+			if (!negated && in.role == null && !in.temperature.equals("room") && !in.temperature.equals(brewHeat)) score += 2;
+		}
+		if (flora && fauna && !harmonized) score += 2; // the harmonizer lets them mix
+		if (ingredients.size() >= 5) score += 1;
+		if (harmonized) score -= 4;                     // and steadies whatever else is wrong
+		return Math.max(0, score);
+	}
+
+	public static final int UNSTABLE = 3, BOILS_OVER = 6;
+
+	static String stabilityWord(int volatility) {
+		return volatility >= BOILS_OVER ? "dangerously volatile: it needs a harmonizer" : volatility >= UNSTABLE ? "uneasy" : "steady";
 	}
 
 	/** Problems the potioneer should know about: heat that does not suit an ingredient, flora and fauna mixed raw. */
@@ -274,6 +313,46 @@ public class AlchemyCauldronBlock extends Block {
 		String heat = heat(level, pos);
 		List<String> warnings = warnings(base, ingredients, heat);
 		boolean gunpowder = vat.items.contains("gunpowder");
+
+		// Two ways to ruin a brew are judged here, before the potioneer is ever asked.
+		String sludgeReason = sludge(ingredients);
+		if (sludgeReason != null) {
+			if (!player.getAbilities().instabuild) vat.charges--;
+			Brew sludge = new Brew();
+			sludge.name = "Sludge";
+			sludge.description = "A grey, purposeless mess.";
+			sludge.effect = sludgeReason + ". Brewing needs an ingredient with a purpose.";
+			sludge.codeType = "sludge";
+			sludge.type = "sludge";
+			sludge.tier = 1;
+			vat.brew = WordBank.GSON.toJson(sludge);
+			vat.servings = 3;
+			Vats.save(level.getServer());
+			level.playSound(null, pos, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.BLOCKS, 1.0f, 0.6f);
+			level.sendParticles(ParticleTypes.ITEM_SLIME, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 16, 0.25, 0.1, 0.25, 0.02);
+			player.sendSystemMessage(Component.literal("The brew curdles into sludge. " + sludgeReason + ".").withStyle(ChatFormatting.GRAY));
+			return InteractionResult.SUCCESS;
+		}
+		int volatility = volatility(base, ingredients, heat);
+		if (volatility >= BOILS_OVER) {
+			if (!player.getAbilities().instabuild) vat.charges--;
+			vat.base = null;
+			vat.items.clear();
+			look(level, pos, vat);
+			Vats.save(level.getServer());
+			level.playSound(null, pos, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 1.0f, 1.2f);
+			level.sendParticles(ParticleTypes.EXPLOSION, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 3, 0.4, 0.3, 0.4, 0.0);
+			level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 20, 0.4, 0.4, 0.4, 0.02);
+			for (ServerPlayer near : level.players()) {
+				if (near.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 16) continue;
+				near.hurtServer(level, level.damageSources().magic(), 6f);
+				if (base.temperature.equals("high")) near.igniteForSeconds(3);
+			}
+			player.sendSystemMessage(Component.literal("The brew boils over! It was too volatile to hold together. A harmonizer (honeycomb) would have calmed it.").withStyle(ChatFormatting.RED));
+			return InteractionResult.SUCCESS;
+		}
+		if (volatility >= UNSTABLE) warnings.add("The brew is volatile and has no harmonizer to steady it");
+		boolean unstable = volatility >= UNSTABLE;
 		String key = PotionGenerator.recipeKey(vat.base, vat.items, heat);
 		if (!player.getAbilities().instabuild) vat.charges--;
 		vat.brewing = true;
@@ -282,7 +361,7 @@ public class AlchemyCauldronBlock extends Block {
 		MinecraftServer server = level.getServer();
 		UUID uuid = player.getUUID();
 		BlockPos at = pos.immutable();
-		PotionGenerator.brew(key, base, ingredients, warnings).whenComplete((brew, error) -> server.execute(() -> {
+		PotionGenerator.brew(key, base, ingredients, warnings, unstable).whenComplete((brew, error) -> server.execute(() -> {
 			vat.brewing = false;
 			Brew result = brew;
 			if (error != null || result == null) {

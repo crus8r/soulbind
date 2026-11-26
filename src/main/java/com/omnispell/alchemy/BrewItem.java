@@ -133,6 +133,10 @@ public class BrewItem extends Item {
 		double value = brew.value > 0 ? brew.value : brew.tier * 8;
 		ServerPlayer targetPlayer = target instanceof ServerPlayer p ? p : null;
 		switch (brew.codeType) {
+			case "sludge" -> {
+				target.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 160, 0));
+				target.addEffect(new MobEffectInstance(MobEffects.HUNGER, 200, 0));
+			}
 			case "heal" -> {
 				// Healing lands at once; a duration on a healing potion belongs to its status (regen, fortify...).
 				target.heal((float) (value * scale));

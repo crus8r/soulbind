@@ -311,7 +311,8 @@ write(os.path.join(ASSETS, 'items', 'brew.json'), {'model': {
 CAULDRON_TEX = {'bottom': 'minecraft:block/cauldron_bottom', 'inside': 'minecraft:block/cauldron_inner',
                 'particle': 'minecraft:block/cauldron_side', 'side': 'minecraft:block/cauldron_side', 'top': 'minecraft:block/cauldron_top'}
 CONTENT = {1: 'minecraft:block/light_blue_stained_glass', 2: 'minecraft:block/honey_block_top', 3: 'minecraft:block/white_concrete_powder',
-           4: 'minecraft:block/lava_still', 5: 'minecraft:block/purple_concrete_powder'}
+           4: 'minecraft:block/lava_still', 5: 'minecraft:block/purple_concrete_powder', 6: 'minecraft:block/powder_snow',
+           7: 'minecraft:block/black_concrete_powder', 8: 'minecraft:block/lime_stained_glass', 9: 'minecraft:block/brown_concrete_powder'}
 cauldron_variants = {'contents=0': {'model': 'minecraft:block/cauldron'}}
 for n, tex in CONTENT.items():
     write(os.path.join(ASSETS, 'models', 'block', f'alchemy_cauldron_{n}.json'),

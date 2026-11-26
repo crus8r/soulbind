@@ -32,6 +32,23 @@ public final class Alchemy {
 		public int potency;
 		public String temperature;
 		public int model;            // which filled-cauldron look to use
+		public java.util.List<String> items = new java.util.ArrayList<>();      // what is poured in
+		public java.util.List<String> containers = new java.util.ArrayList<>(); // what is handed back
+		public int danger;           // how much the liquid alone adds to a brew's volatility
+	}
+
+	/** The liquid an item pours, and the empty container it leaves: {base id, container item}. Null if it is not a liquid. */
+	public static String[] liquid(ItemStack stack) {
+		String key = key(stack);
+		for (Map.Entry<String, Base> e : BASES.entrySet()) {
+			int i = e.getValue().items.indexOf(key);
+			if (i >= 0) return new String[]{e.getKey(), e.getValue().containers.get(i)};
+		}
+		return null;
+	}
+
+	public static Map<String, Base> bases() {
+		return BASES;
 	}
 
 	private static final Map<String, Ingredient> INGREDIENTS = new LinkedHashMap<>();

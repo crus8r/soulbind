@@ -246,6 +246,15 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(data.spellTypes.contains("attack") && data.spellTypes.contains("exploration"), "starting spell types");
 			});
 
+			// ---- creative mode opens the whole dictionary without changing what was earned
+			server.runCommand("gamemode creative @a");
+			context.waitTicks(30);
+			check(context.computeOnClient(c -> ClientState.words.size()) > 200, "creative mode shows every word");
+			check(server.computeOnServer(s -> PlayerStore.get(player(s)).words.size()) == 9, "creative mode does not change the words actually known");
+			server.runCommand("gamemode survival @a");
+			context.waitTicks(30);
+			check(context.computeOnClient(c -> ClientState.words.size()) == 9, "back in survival only the earned words show");
+
 			// ---- set up: wand in hand, every word, plenty of essence
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
@@ -532,6 +541,56 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				potion.getItem().use(p.level(), p, InteractionHand.MAIN_HAND);
 				check(p.getHealth() >= 15.5f, "drinking the healing potion healed 10 health (now " + p.getHealth() + ")");
 			});
+			// sludge: a liquid and nothing but lapis
+			java.util.function.Consumer<String> emptyVat = why -> server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				com.omnispell.alchemy.Vats.Vat v = com.omnispell.alchemy.Vats.at(p.level(), vat[0]);
+				v.base = null;
+				v.items.clear();
+				v.servings = 0;
+				v.charges = 8;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) if (p.getInventory().getItem(i).is(OmniItems.BREW)) p.getInventory().setItem(i, ItemStack.EMPTY);
+			});
+			emptyVat.accept("sludge");
+			pour.accept(Items.MILK_BUCKET, 1);
+			pour.accept(Items.LAPIS_LAZULI, 1);
+			pour.accept(Items.LAPIS_LAZULI, 1);
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ItemStack potion = ItemStack.EMPTY;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) if (p.getInventory().getItem(i).is(OmniItems.BREW)) potion = p.getInventory().getItem(i);
+				com.omnispell.alchemy.Brew brew = potion.isEmpty() ? null : com.omnispell.alchemy.BrewItem.read(potion);
+				check(brew != null && brew.name.equals("Sludge"), "milk and nothing but lapis makes sludge");
+			});
+			// boiling over: lava, potent mismatched ingredients, flora with fauna, no honeycomb
+			emptyVat.accept("volatile");
+			pour.accept(Items.LAVA_BUCKET, 1);
+			pour.accept(Items.WITHER_ROSE, 1);
+			pour.accept(Items.GHAST_TEAR, 1);
+			pour.accept(Items.ECHO_SHARD, 1);
+			server.runOnServer(s -> player(s).setHealth(20f));
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				com.omnispell.alchemy.Vats.Vat v = com.omnispell.alchemy.Vats.at(p.level(), vat[0]);
+				check(v.base == null && v.servings == 0, "a volatile brew with no harmonizer boils over and is lost");
+				check(p.getHealth() < 20f, "boiling over burns the brewer (" + p.getHealth() + ")");
+				p.setHealth(20f);
+				p.clearFire();
+			});
+			// the same brew with honeycomb holds together
+			emptyVat.accept("harmonized");
+			pour.accept(Items.LAVA_BUCKET, 1);
+			pour.accept(Items.WITHER_ROSE, 1);
+			pour.accept(Items.GHAST_TEAR, 1);
+			pour.accept(Items.ECHO_SHARD, 1);
+			pour.accept(Items.HONEYCOMB, 1);
+			pour.accept(Items.GLASS_BOTTLE, 3);
+			server.waitFor(s -> com.omnispell.alchemy.Vats.at(player(s).level(), vat[0]).servings > 0, 200);
+			check(server.computeOnServer(s -> com.omnispell.alchemy.Vats.at(player(s).level(), vat[0]).servings) == 3, "honeycomb steadies the same brew");
+
 			// a weaponized brew is thrown
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);

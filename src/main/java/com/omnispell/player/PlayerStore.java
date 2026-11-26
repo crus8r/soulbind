@@ -84,12 +84,23 @@ public final class PlayerStore {
 	public static void syncState(ServerPlayer player) {
 		PlayerData data = get(player);
 		JsonObject json = new JsonObject();
-		json.add("words", WordBank.GSON.toJsonTree(data.words));
-		json.add("spellTypes", WordBank.GSON.toJsonTree(data.spellTypes));
+		// In creative mode the whole dictionary and every kind of spell are open, without changing what the player has earned.
+		boolean creative = player.getAbilities().instabuild;
+		java.util.Set<String> words = data.words;
+		java.util.Set<String> types = data.spellTypes;
+		if (creative) {
+			words = new java.util.LinkedHashSet<>();
+			for (Word word : WordBank.words()) if (!word.excluded) words.add(word.id);
+			types = new java.util.LinkedHashSet<>();
+			for (WordBank.SpellType type : WordBank.spellTypes()) types.add(type.id);
+		}
+		json.add("words", WordBank.GSON.toJsonTree(words));
+		json.add("spellTypes", WordBank.GSON.toJsonTree(types));
+		json.addProperty("creative", creative);
 		json.add("spells", WordBank.GSON.toJsonTree(data.spells));
 		json.add("pending", WordBank.GSON.toJsonTree(data.pending));
 		json.add("bosses", WordBank.GSON.toJsonTree(data.bosses));
-		json.addProperty("maxWords", WandItem.bestWordBudget(player));
+		json.addProperty("maxWords", creative ? 7 : WandItem.bestWordBudget(player));
 		ServerPlayNetworking.send(player, new OmniNet.SyncState(json.toString()));
 	}
 

@@ -54,7 +54,35 @@ public final class OmniItems {
 		return Registry.register(BuiltInRegistries.BLOCK, key, factory.apply(properties.setId(key)));
 	}
 
+	/** A creative tab with everything in Omnispell, including a scroll for every word. */
+	private static void registerCreativeTab() {
+		ResourceKey<net.minecraft.world.item.CreativeModeTab> key = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Omnispell.id("omnispell"));
+		Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, key, net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab.builder()
+				.title(net.minecraft.network.chat.Component.literal("Omnispell"))
+				.icon(() -> new net.minecraft.world.item.ItemStack(GRIMOIRE))
+				.displayItems((parameters, output) -> {
+					output.accept(new net.minecraft.world.item.ItemStack(GRIMOIRE));
+					for (WandParts.Core core : WandParts.CORES.values()) output.accept(WandItem.create("oak", core.id));
+					for (WandParts.Wood wood : WandParts.WOODS.values()) {
+						if (!wood.id.equals("oak")) output.accept(WandItem.create(wood.id, "amethyst_shard"));
+					}
+					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_WELL_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_POTION));
+					output.accept(new net.minecraft.world.item.ItemStack(ALCHEMY_CAULDRON_ITEM));
+					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
+					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));
+					for (int rarity = 1; rarity <= 5; rarity++) output.accept(WordScrollItem.ofRarity(rarity));
+					for (com.omnispell.data.WordBank.SpellType type : com.omnispell.data.WordBank.spellTypes()) {
+						if (!type.id.equals("attack") && !type.id.equals("defense") && !type.id.equals("exploration")) output.accept(WordScrollItem.ofSpellType(type.id));
+					}
+					for (com.omnispell.data.Word word : com.omnispell.data.WordBank.words()) {
+						if (!word.excluded) output.accept(WordScrollItem.ofWord(word.id));
+					}
+				}).build());
+	}
+
 	public static void register() {
+		registerCreativeTab();
 		// Touching the class registers the items.
 	}
 }
