@@ -243,6 +243,7 @@ public class Omnispell implements ModInitializer {
 					Modifiers.everySecond(player);
 					com.omnispell.charm.Charms.everySecond(player);
 				}
+				com.omnispell.spell.Shroud.everySecond(server);
 			}
 			if (tick % 5 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.syncVitals(player);

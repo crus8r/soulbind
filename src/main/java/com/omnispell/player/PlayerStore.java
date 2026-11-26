@@ -56,6 +56,7 @@ public final class PlayerStore {
 		if (data == null) data = new PlayerData();
 		if (data.mana == null || data.mana.length != ManaPool.values().length) data.mana = new double[ManaPool.values().length];
 		if (data.folders == null) data.folders = new java.util.ArrayList<>();
+		if (data.folder("Archive") == null) data.folders.add(0, new PlayerData.Folder("Archive", false)); // every spellbook has an Archive, hidden from the main list
 		// The single archive of older saves becomes a folder called Archive, hidden from the main list.
 		for (com.omnispell.spell.Spell spell : data.spells) {
 			if (!spell.archived) continue;

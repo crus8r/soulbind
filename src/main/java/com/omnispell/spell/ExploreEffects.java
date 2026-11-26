@@ -269,6 +269,11 @@ public final class ExploreEffects {
 				p.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, ticks, 0, false, false));
 				if (spell.toggle.equals("camouflage")) p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 0, false, false));
 				if (spell.toggle.equals("silent_step")) p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 0, false, false));
+				// A strong invisibility (Maxima, or a tier 4 base word or better) hides armour and what you carry as well.
+				if ((spell.toggle.equals("invisibility") || spell.toggle.equals("fade")) && (power > 1 || tier >= 4)) {
+					Shroud.apply(p, ticks);
+					c.tell("You vanish entirely, armour and all.");
+				}
 				forget(p, 24);
 				Fx.helix(level, p.position(), 2.0, 0.6, color, extra);
 				yield true;

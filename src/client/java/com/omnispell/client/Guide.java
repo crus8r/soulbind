@@ -29,7 +29,7 @@ public final class Guide {
 				"In the air with a wand in hand, double-tap sprint to walk on air: the air hardens under your feet until your Phase mana runs out, a few seconds at most. It forgives most of a fall, like hay, but not all of it. Double-tap again or sneak to let go.",
 				"To carry the wand in your off hand, shift-click it in your inventory as you would a shield, or sneak + right-click while holding it.",
 				"You know Maxima and Minima from the start. Every spell has a Charge slot on the Craft tab: click it, then pick Maxima for a stronger spell a tier higher, or Minima for a smaller, more exact one a tier lower. A charge does not count against your wand's word limit.",
-				"Spell folders: under the spell list, + makes a folder and < > step between them. Move on a spell puts it in the next folder. A folder can be shown in the main list or kept out of it, renamed, or removed (its spells go back to the main list).",
+				"Spell folders: under the spell list, + makes a folder and < > step between them. Every spellbook has an Archive, kept out of the main list. Move on a spell opens a list of where it can go (or sends it straight there if there is only one place). A folder can be shown in the main list or kept out of it, renamed, or removed (its spells go back to the main list).",
 				"Change the keys in the Spellbook tab: click the key under a slot, then press the key you want. Double-tap can be switched off there, so one press casts."));
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
@@ -75,6 +75,7 @@ public final class Guide {
 				"Guarding intentions (Warding, Fortitude, Restoration, Preservation, Soothing) build and tend: wall, ring wall, dome, platform under your feet, mend the land, quicken growth, calm the weather, or attune yourself to your element (water breathing for Water, fire immunity for Fire, slow falling for Air, and so on).",
 				"Shaping intentions (Binding, Transformation, Empowerment, Creation) work the world: harden water to ice, change the weather, gather loose items, conjure a spring or a mound, lay a path, raise a tree, shape a golem, or lay a field of your element on the ground.",
 				"Travelling intentions (Liberation, Transportation) move you: a launch straight up, a leap forward, bridge, stairs, pillar, teleport, grapple, dash, phase through a wall, a steed.",
+				"Light + Envelop + Concealment makes you invisible, though what you wear and carry still shows. Add Maxima, or use a tier 4 base word or stronger, and you vanish entirely, armour and all.",
 				"Insight shows things: living creatures, ores, hidden chests and spawners, the way to a village, a waymark to find your way back, lasting lights. Concealment hides you or fools others: invisibility, smoke, decoys, a thicket of leaves, a lull that makes hunters forget you.",
 				"Every one of the sixty pairings does something different.",
 				"THE ELEMENT'S MARK",

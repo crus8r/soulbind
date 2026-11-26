@@ -708,6 +708,16 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 				check(plain == 0 && tableBound > 8 && tableBound < 32, "an enchanting-table core always brings an enchantment, Soul Bind about half the time (" + tableBound + " of 40)");
 
+				// A Maxima invisibility hides armour and held things too; a plain one does not.
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Light", "command:Envelop", "intention:Concealment", "charge:Maxima (Amplify power)"));
+				com.omnispell.spell.Spell fullVeil = PlayerStore.get(p).pending;
+				PlayerStore.get(p).pending = null;
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] = 5;
+				check(fullVeil != null && "invisibility".equals(fullVeil.toggle) && com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, fullVeil))
+						&& com.omnispell.spell.Shroud.active(p), "a Maxima invisibility shrouds armour and held items too");
+				p.removeAllEffects();
+
 				// Nicknames and the archive.
 				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|Earth Tunnel");
@@ -716,7 +726,6 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check("Archive".equals(PlayerStore.get(p).spell(carveSpell.id).folder) && WandItem.spell(p.getMainHandItem(), 0) != null, "a spell can be archived and still sits on its wand");
 				com.omnispell.spell.SpellCrafting.archive(p, carveSpell.id);
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|");
-				PlayerStore.get(p).folders.clear();
 				check(PlayerStore.get(p).spell(carveSpell.id).folder == null && carveSpell.name.equals(PlayerStore.get(p).spell(carveSpell.id).label()), "and restored, and un-named");
 				wand = p.getMainHandItem();
 
@@ -1343,7 +1352,9 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.SpellCrafting.renameFolder(p, "Earth Work|Builders");
 				check(data.folder("Builders") != null && "Builders".equals(data.spell(id).folder), "renaming a folder takes its spells with it");
 				com.omnispell.spell.SpellCrafting.deleteFolder(p, "Builders");
-				check(data.folders.isEmpty() && data.spell(id).folder == null && data.spells.size() == 15, "removing a folder returns its spells and forgets nothing");
+				check(data.folders.size() == 1 && data.folder("Archive") != null && data.spell(id).folder == null && data.spells.size() == 15, "removing a folder returns its spells and forgets nothing; the Archive stays");
+				com.omnispell.spell.SpellCrafting.deleteFolder(p, "Archive");
+				check(data.folder("Archive") != null, "the Archive cannot be removed");
 			});
 
 			// ---- the Arcanist: an unemployed villager walks to an Arcane Well and takes up the trade

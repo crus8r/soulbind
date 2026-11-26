@@ -10,7 +10,8 @@
 		"MobGoalsAccessor"
 	],
 	"client": [
-		"DarkSightMixin"
+		"DarkSightMixin",
+		"ShroudMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

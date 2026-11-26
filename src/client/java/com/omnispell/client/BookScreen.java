@@ -45,6 +45,9 @@ public class BookScreen extends Screen {
 	private static String viewFolder;
 	/** What the text box is naming: "spell", "folder" (renaming the viewed folder) or "new" (a new folder). */
 	private String naming = "spell";
+	/** True while the Move list is open; the list itself is drawn last so it sits on top. */
+	private boolean moving;
+	private Runnable moveMenu;
 	private boolean renaming;
 	private static String guideSection = "Getting started";
 	private static String loreSection = "Enchantments";
@@ -618,6 +621,12 @@ public class BookScreen extends Screen {
 	}
 
 	private void spellbook(GuiGraphicsExtractor g) {
+		moveMenu = null;
+		spellbookPage(g);
+		if (moveMenu != null) moveMenu.run();
+	}
+
+	private void spellbookPage(GuiGraphicsExtractor g) {
 		com.omnispell.player.PlayerData.Folder viewing = null;
 		for (com.omnispell.player.PlayerData.Folder folder : ClientState.folders) if (folder.name.equalsIgnoreCase(viewFolder)) viewing = folder;
 		if (viewing == null) viewFolder = null;
@@ -651,6 +660,7 @@ public class BookScreen extends Screen {
 			hit(lx, cy - 1, lw, rh, () -> {
 				selectedSpell = spell.id;
 				renaming = false;
+				moving = false;
 				detailScroll = 0;
 			});
 		}
@@ -699,12 +709,32 @@ public class BookScreen extends Screen {
 				g.text(font(), "Hold a wand to equip.", dx, by + 4, DIM, false);
 			}
 			// Move steps the spell through the folders and back to the main list.
-			String moveTo = nextFolder(shown.folder);
-			button(g, dx + dw - 44 - 52, by, 48, 15, "Move", !ClientState.folders.isEmpty(), false, () -> send("move", shown.id + "|" + moveTo));
-			if (!ClientState.folders.isEmpty() && over(dx + dw - 44 - 52, by, 48, 15)) {
+			// Move: where else the spell could go. With one choice it simply goes; with more, a list opens to pick from.
+			List<String> places = new ArrayList<>();
+			if (shown.folder != null) places.add("");
+			for (com.omnispell.player.PlayerData.Folder folder : ClientState.folders) if (!folder.name.equalsIgnoreCase(shown.folder)) places.add(folder.name);
+			int mx = dx + dw - 44 - 52, my = by;
+			button(g, mx, my, 48, 15, "Move", !places.isEmpty(), moving, () -> {
+				if (places.size() == 1) send("move", shown.id + "|" + places.get(0));
+				else moving = !moving;
+			});
+			if (!moving && !places.isEmpty() && over(mx, my, 48, 15)) {
 				tooltip = new ArrayList<>();
 				tooltip.add(Component.literal("Now in: " + (shown.folder == null ? "main list" : shown.folder)));
-				tooltip.add(Component.literal("Click to move to: " + (moveTo.isEmpty() ? "main list" : moveTo)).withStyle(net.minecraft.ChatFormatting.GRAY));
+				tooltip.add(Component.literal(places.size() == 1 ? "Click to move to: " + (places.get(0).isEmpty() ? "main list" : places.get(0)) : "Click to choose where it goes").withStyle(net.minecraft.ChatFormatting.GRAY));
+			}
+			if (moving) {
+				moveMenu = () -> {
+					int w = 90, h = 13, top2 = my - 2 - places.size() * h;
+					g.fill(mx - 1, top2 - 1, mx + w + 1, my - 1, 0xFF0A0C14);
+					for (int k = 0; k < places.size(); k++) {
+						String place = places.get(k);
+						button(g, mx, top2 + k * h, w, h - 1, place.isEmpty() ? "Main list" : place, true, false, () -> {
+							send("move", shown.id + "|" + place);
+							moving = false;
+						});
+					}
+				};
 			}
 			button(g, dx + dw - 44, by, 44, 15, "Forget", true, false, () -> {
 				send("forget", shown.id);
@@ -894,6 +924,7 @@ public class BookScreen extends Screen {
 			return true;
 		}
 		if (addMenu) addMenu = false;
+		moving = false; // a click anywhere else closes the Move list
 		return false;
 	}
 

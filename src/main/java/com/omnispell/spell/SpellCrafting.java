@@ -321,6 +321,10 @@ public final class SpellCrafting {
 		PlayerData.Folder folder = data.folder(arg.substring(0, bar));
 		String name = folderName(arg.substring(bar + 1));
 		if (folder == null || name.isEmpty()) return;
+		if (folder.name.equals("Archive")) {
+			tell(player, false, "The Archive keeps its name. Make a new folder for anything else.");
+			return;
+		}
 		PlayerData.Folder clash = data.folder(name);
 		if (clash != null && clash != folder) {
 			tell(player, false, "You already have a folder called " + name + ".");
@@ -344,6 +348,10 @@ public final class SpellCrafting {
 		PlayerData data = PlayerStore.get(player);
 		PlayerData.Folder folder = data.folder(name);
 		if (folder == null) return;
+		if (folder.name.equals("Archive")) {
+			tell(player, false, "The Archive always stays. Move spells out of it instead.");
+			return;
+		}
 		for (Spell spell : data.spells) if (folder.name.equalsIgnoreCase(spell.folder)) spell.folder = null;
 		data.folders.remove(folder);
 		folderChanged(player, "Folder " + folder.name + " removed. Its spells are back in the main list.");

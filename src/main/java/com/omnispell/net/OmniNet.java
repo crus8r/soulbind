@@ -63,6 +63,17 @@ public final class OmniNet {
 	}
 
 	/** A screen flash or shake for a spell, from the spell's visual manifest. */
+	/** A player is fully shrouded (armour and held items hidden too) for this many ticks; 0 ends it. */
+	public record Shroud(int entityId, int ticks) implements CustomPacketPayload {
+		public static final Type<Shroud> TYPE = OmniNet.makeType("shroud");
+		public static final StreamCodec<ByteBuf, Shroud> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, Shroud::entityId, ByteBufCodecs.VAR_INT, Shroud::ticks, Shroud::new);
+
+		@Override
+		public Type<Shroud> type() {
+			return TYPE;
+		}
+	}
+
 	public record ScreenFx(String kind, int intensity, int color) implements CustomPacketPayload {
 		public static final Type<ScreenFx> TYPE = OmniNet.makeType("screen_fx");
 		public static final StreamCodec<ByteBuf, ScreenFx> CODEC = StreamCodec.composite(
@@ -151,6 +162,7 @@ public final class OmniNet {
 		PayloadTypeRegistry.clientboundPlay().register(OpenBook.TYPE, OpenBook.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(BookMessage.TYPE, BookMessage.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(ScreenFx.TYPE, ScreenFx.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(Shroud.TYPE, Shroud.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(OpenWaypoint.TYPE, OpenWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(EditWaypoint.TYPE, EditWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CastSpell.TYPE, CastSpell.CODEC);
