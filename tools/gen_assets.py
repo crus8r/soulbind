@@ -345,7 +345,7 @@ tex('wizard_hat_band', hat_band, 'item')
 # Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
 def box_uv(u, v, w, h, d):
     return {'top': (u + d, v, w, d), 'bottom': (u + d + w, v, w, d), 'sides': (u, v + d, 2 * (w + d), h)}
-HAT_BOXES = {'brim': (0, 0, 13, 1, 13), 'cone': (0, 14, 9, 3, 9), 'mid': (0, 27, 7, 3, 7), 'upper': (28, 27, 5, 3, 5), 'top': (0, 38, 3, 3, 3), 'tip': (14, 38, 1, 3, 1)}
+HAT_BOXES = {'brim': (0, 0, 14, 1, 14), 'cone': (0, 15, 9, 4, 9), 'mid': (0, 29, 7, 4, 7), 'upper': (28, 29, 5, 4, 5), 'top': (0, 41, 3, 4, 3), 'tip': (14, 41, 1, 3, 1)}
 base = Image.new('RGBA', (64, 64))
 trim = Image.new('RGBA', (64, 64))
 for name, (u, v, w, h, d) in HAT_BOXES.items():
@@ -357,6 +357,10 @@ for name, (u, v, w, h, d) in HAT_BOXES.items():
                 if name == 'cone' and face == 'sides' and yy >= fv + fh - 2: trim.putpixel((xx, yy), (236, 196, 84, 255))       # the band
                 elif name in ('mid', 'upper') and face == 'sides' and noise(xx, yy, 89) > 0.9: trim.putpixel((xx, yy), (255, 240, 170, 255))  # stars
                 elif name == 'brim' and face == 'sides': trim.putpixel((xx, yy), (214, 170, 60, 255))                          # a gold edge
+# The hat counts as worn armour, so the game does not paste its flat icon onto the head;
+# but the armour layers are empty, as WizardHatLayer draws the real hat.
+Image.new('RGBA', (64, 32)).save(os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', 'wizard_hat_none.png')) if os.makedirs(os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid'), exist_ok=True) is None else None
+write(os.path.join(ASSETS, 'equipment', 'wizard_hat.json'), {'layers': {'humanoid': [{'texture': 'omnispell:wizard_hat_none'}]}})
 for img, name in ((base, 'wizard_hat'), (trim, 'wizard_hat_trim')):
     path = os.path.join(ASSETS, 'textures', 'entity', name + '.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)

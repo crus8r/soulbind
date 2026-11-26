@@ -43,12 +43,12 @@ public final class WizardHatLayer extends RenderLayer<HumanoidRenderState, Human
 		MeshDefinition mesh = new MeshDefinition();
 		PartDefinition root = mesh.getRoot();
 		CubeDeformation snug = new CubeDeformation(0.05f);
-		root.addOrReplaceChild("brim", CubeListBuilder.create().texOffs(0, 0).addBox(-6.5f, -8.6f, -6.5f, 13, 1, 13, snug), PartPose.ZERO);
-		PartDefinition cone = root.addOrReplaceChild("cone", CubeListBuilder.create().texOffs(0, 14).addBox(-4.5f, -3f, -4.5f, 9, 3, 9, snug), PartPose.offsetAndRotation(0f, -8.6f, 0f, -0.08f, 0f, 0f));
-		PartDefinition mid = cone.addOrReplaceChild("mid", CubeListBuilder.create().texOffs(0, 27).addBox(-3.5f, -3f, -3.5f, 7, 3, 7), PartPose.offsetAndRotation(0f, -3f, 0.2f, -0.12f, 0f, 0f));
-		PartDefinition upper = mid.addOrReplaceChild("upper", CubeListBuilder.create().texOffs(28, 27).addBox(-2.5f, -3f, -2.5f, 5, 3, 5), PartPose.offsetAndRotation(0f, -3f, 0.3f, -0.2f, 0f, 0f));
-		PartDefinition top = upper.addOrReplaceChild("top", CubeListBuilder.create().texOffs(0, 38).addBox(-1.5f, -3f, -1.5f, 3, 3, 3), PartPose.offsetAndRotation(0f, -3f, 0.3f, -0.3f, 0f, 0f));
-		top.addOrReplaceChild("tip", CubeListBuilder.create().texOffs(14, 38).addBox(-0.5f, -2.5f, -0.5f, 1, 3, 1), PartPose.offsetAndRotation(0f, -3f, 0.3f, -0.45f, 0f, 0f));
+		root.addOrReplaceChild("brim", CubeListBuilder.create().texOffs(0, 0).addBox(-7f, -8.8f, -7f, 14, 1, 14, snug), PartPose.ZERO);
+		PartDefinition cone = root.addOrReplaceChild("cone", CubeListBuilder.create().texOffs(0, 15).addBox(-4.5f, -4f, -4.5f, 9, 4, 9, snug), PartPose.offsetAndRotation(0f, -8.8f, 0f, -0.06f, 0f, 0f));
+		PartDefinition mid = cone.addOrReplaceChild("mid", CubeListBuilder.create().texOffs(0, 29).addBox(-3.5f, -4f, -3.5f, 7, 4, 7), PartPose.offsetAndRotation(0f, -4f, 0.3f, -0.14f, 0f, 0f));
+		PartDefinition upper = mid.addOrReplaceChild("upper", CubeListBuilder.create().texOffs(28, 29).addBox(-2.5f, -4f, -2.5f, 5, 4, 5), PartPose.offsetAndRotation(0f, -4f, 0.4f, -0.22f, 0f, 0f));
+		PartDefinition top = upper.addOrReplaceChild("top", CubeListBuilder.create().texOffs(0, 41).addBox(-1.5f, -4f, -1.5f, 3, 4, 3), PartPose.offsetAndRotation(0f, -4f, 0.4f, -0.32f, 0f, 0f));
+		top.addOrReplaceChild("tip", CubeListBuilder.create().texOffs(14, 41).addBox(-0.5f, -3f, -0.5f, 1, 3, 1), PartPose.offsetAndRotation(0f, -4f, 0.3f, -0.5f, 0f, 0f));
 		return LayerDefinition.create(mesh, 64, 64);
 	}
 

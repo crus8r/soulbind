@@ -1363,6 +1363,21 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.waitTicks(20);
 			context.takeScreenshot("31-arcanist");
 			server.runOnServer(s -> {
+				ItemStack green = new ItemStack(OmniItems.WIZARD_HAT);
+				green.set(DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(0x5E7C16));
+				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, green);
+			});
+			context.waitTicks(5);
+			context.runOnClient(c -> c.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(c.player)));
+			context.waitTicks(10);
+			context.takeScreenshot("31b-hat-in-inventory");
+			context.runOnClient(c -> c.gui.setScreen(null));
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+			context.waitTicks(10);
+			context.takeScreenshot("31c-hat-third-person");
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+			server.runOnServer(s -> player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, ItemStack.EMPTY));
+			server.runOnServer(s -> {
 				seeker[0].discard();
 				hatWearers.forEach(net.minecraft.world.entity.Entity::discard);
 			});

@@ -63,7 +63,7 @@ public final class OmniItems {
 			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_hat"));
 	public static final Item WIZARD_HAT = register("wizard_hat", WizardHatItem::new, new Item.Properties().stacksTo(1)
 			.component(net.minecraft.core.component.DataComponents.EQUIPPABLE, net.minecraft.world.item.equipment.Equippable.builder(net.minecraft.world.entity.EquipmentSlot.HEAD)
-					.setEquipSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER).setDamageOnHurt(false).build())
+					.setAsset(HAT_ASSET).setEquipSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER).setDamageOnHurt(false).build())
 			.component(net.minecraft.core.component.DataComponents.ENCHANTABLE, new net.minecraft.world.item.enchantment.Enchantable(15))
 			.component(net.minecraft.core.component.DataComponents.CONTAINER, net.minecraft.world.item.component.ItemContainerContents.EMPTY)
 			.rarity(net.minecraft.world.item.Rarity.EPIC));
