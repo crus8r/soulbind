@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:dark_oak_planks",
+    "C": "minecraft:enchanting_table"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "dark_oak",
+        "omni_core": "enchanting_table"
+      },
+      "minecraft:item_name": "Dark Oak Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          5190168,
+          2364986
+        ]
+      }
+    }
+  }
+}

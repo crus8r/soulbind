@@ -691,6 +691,14 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(com.omnispell.item.WizardHatItem.insert(hat, new ItemStack(Items.DIRT, 64)) == 14, "and stops at 64");
 				check(com.omnispell.charm.Charms.slots(hat) == 1 && com.omnispell.charm.Charms.isGem(new ItemStack(Items.TOTEM_OF_UNDYING)), "the hat takes a charm, and a totem can be charmed");
 				check(com.omnispell.item.WandParts.CORES.containsKey("totem_of_undying"), "a totem can be a wand core");
+				int tableBound = 0, plain = 0;
+				for (int k = 0; k < 40; k++) {
+					ItemStack tableWand = WandItem.create("oak", "enchanting_table");
+					WandItem.rollEnchantments(tableWand, level);
+					if (com.soulbind.SoulBind.soulBindLevel(tableWand) > 0) tableBound++;
+					if (tableWand.getEnchantments().isEmpty()) plain++;
+				}
+				check(plain == 0 && tableBound > 8 && tableBound < 32, "an enchanting-table core always brings an enchantment, Soul Bind about half the time (" + tableBound + " of 40)");
 
 				// Nicknames and the archive.
 				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:crimson_planks",
+    "C": "minecraft:enchanting_table"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "crimson",
+        "omni_core": "enchanting_table"
+      },
+      "minecraft:item_name": "Crimson Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          8272470,
+          2364986
+        ]
+      }
+    }
+  }
+}

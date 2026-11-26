@@ -152,6 +152,30 @@ public class WandItem extends Item {
 	@Override
 	public void inventoryTick(ItemStack stack, net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity owner, net.minecraft.world.entity.EquipmentSlot slot) {
 		if (!stack.has(DataComponents.LORE) || stack.get(DataComponents.LORE).lines().isEmpty()) refreshLook(stack);
+		if (core(stack).equals("enchanting_table") && !tag(stack).getBooleanOr(ROLLED, false)) rollEnchantments(stack, level);
+		if (owner instanceof ServerPlayer player && (slot == net.minecraft.world.entity.EquipmentSlot.MAINHAND || slot == net.minecraft.world.entity.EquipmentSlot.OFFHAND)
+				&& com.omnispell.spell.Weapons.imbued(player) && level.getGameTime() % 3 == 0) com.omnispell.spell.Weapons.aura(player);
+	}
+
+	private static final String ROLLED = "omni_rolled";
+
+	/**
+	 * A wand with an enchanting table for a core comes with enchantments of its
+	 * own, once, by chance: often Unbreaking, often Soul Bind, never certain.
+	 */
+	public static void rollEnchantments(ItemStack stack, net.minecraft.server.level.ServerLevel level) {
+		CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(ROLLED, true));
+		var random = level.getRandom();
+		var soulBind = com.soulbind.SoulBind.findEnchantment(level.registryAccess(), com.soulbind.SoulBind.ENCHANTMENT_ID);
+		var unbreaking = com.soulbind.SoulBind.findEnchantment(level.registryAccess(), com.soulbind.SoulBind.UNBREAKING_ID);
+		int bind = random.nextFloat() < 0.5f ? (random.nextFloat() < 0.75f ? 1 : random.nextFloat() < 0.8f ? 2 : 3) : 0;
+		int keep = random.nextFloat() < 0.6f ? 1 + random.nextInt(3) : 0;
+		if (bind == 0 && keep == 0) keep = 1; // the table always gives something
+		int soul = bind, sturdy = keep;
+		net.minecraft.world.item.enchantment.EnchantmentHelper.updateEnchantments(stack, enchantments -> {
+			if (soulBind != null && soul > 0) enchantments.set(soulBind, soul);
+			if (unbreaking != null && sturdy > 0) enchantments.set(unbreaking, sturdy);
+		});
 	}
 
 	/** Right-click casts the selected spell. Sneak + right-click steps to the next slot. */

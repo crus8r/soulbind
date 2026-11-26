@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "W": "minecraft:warped_planks",
+    "C": "minecraft:enchanting_table"
+  },
+  "pattern": [
+    "W",
+    "C",
+    "W"
+  ],
+  "result": {
+    "id": "omnispell:wand",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_wood": "warped",
+        "omni_core": "enchanting_table"
+      },
+      "minecraft:item_name": "Warped Wand",
+      "minecraft:custom_model_data": {
+        "colors": [
+          3769218,
+          2364986
+        ]
+      }
+    }
+  }
+}

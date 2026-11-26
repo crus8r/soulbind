@@ -83,7 +83,7 @@ public final class Weapons {
 		IMBUED.put(p.getUUID(), new Imbued(cast.spell, kind, Tasks.now() + seconds * 20L));
 		Fx.helix(level, p.position(), 2.0, 0.6, color, null);
 		level.playSound(null, p.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, 1.3f);
-		p.sendOverlayMessage(Component.literal("Your wand becomes a " + (kind.equals("blade") ? "blade" : kind) + " of " + cast.spell.label() + " for " + seconds + " seconds. Left-click to strike."));
+		p.sendOverlayMessage(Component.literal("Your wand strikes like a " + kind + " of " + cast.spell.label() + " for " + seconds + " seconds. Left-click to strike."));
 		return true;
 	}
 
@@ -128,7 +128,7 @@ public final class Weapons {
 		ServerLevel level = player.level();
 		int color = Fx.color(imbued.spell().visual.color1);
 		Vec3 front = player.getEyePosition().add(player.getLookAngle().scale(Math.min(2.0, reach - 1)));
-		level.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y - 0.3, front.z, 1, 0, 0, 0, 0);
+		swingShape(player, kind, color);
 		level.playSound(null, player.blockPosition(), kind.equals("club") ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0f, 1.1f);
 		if (target == null) return;
 		CombatEffects.strike(cast, target, websiteDamage * share, false);
@@ -141,6 +141,71 @@ public final class Weapons {
 		if (kind.equals("sword")) {
 			for (LivingEntity other : Targeting.around(player, target.position(), 1.8, false)) {
 				if (other != target && other.isAlive() && !com.omnispell.familiar.Familiars.isFamiliar(other)) CombatEffects.strike(cast, other, websiteDamage * share * 0.5, false);
+			}
+		}
+	}
+
+	/** While the wand is imbued, the spell's colour hangs about it in the shape of its weapon. */
+	public static void aura(ServerPlayer player) {
+		Imbued imbued = IMBUED.get(player.getUUID());
+		if (imbued == null) return;
+		ServerLevel level = player.level();
+		int color = Fx.color(imbued.spell().visual.color1);
+		var dust = new net.minecraft.core.particles.DustParticleOptions(color, 0.7f);
+		Vec3 hand = Targeting.hand(player);
+		Vec3 look = player.getLookAngle();
+		double length = switch (imbued.kind()) {
+			case "spear" -> 2.4;
+			case "sword" -> 1.4;
+			case "club" -> 0.9;
+			default -> 0.8;
+		};
+		// A ghost of the weapon, drawn in light along the wand.
+		for (double d = 0; d <= length; d += 0.2) {
+			Vec3 at = hand.add(look.scale(d)).add(0, d * 0.25, 0);
+			level.sendParticles(dust, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		}
+		if (imbued.kind().equals("club")) {
+			Vec3 head = hand.add(look.scale(length)).add(0, length * 0.25, 0);
+			level.sendParticles(dust, head.x, head.y, head.z, 4, 0.12, 0.12, 0.12, 0);
+		}
+	}
+
+	/** The swing drawn in the air: an arc for a sword, a quick cross for a blade, a thrust for a spear, a burst for a club. */
+	private static void swingShape(ServerPlayer player, String kind, int color) {
+		ServerLevel level = player.level();
+		var dust = new net.minecraft.core.particles.DustParticleOptions(color, 1.0f);
+		Vec3 eye = player.getEyePosition().add(0, -0.3, 0);
+		Vec3 look = player.getLookAngle();
+		Vec3 flat = new Vec3(look.x, 0, look.z).normalize();
+		Vec3 side = new Vec3(-flat.z, 0, flat.x);
+		switch (kind) {
+			case "spear" -> {
+				for (double d = 0.8; d <= 5.0; d += 0.25) {
+					Vec3 at = eye.add(look.scale(d));
+					level.sendParticles(dust, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+				}
+				Vec3 tip = eye.add(look.scale(5.0));
+				level.sendParticles(ParticleTypes.CRIT, tip.x, tip.y, tip.z, 6, 0.1, 0.1, 0.1, 0.1);
+			}
+			case "club" -> {
+				Vec3 at = eye.add(look.scale(2.2));
+				level.sendParticles(dust, at.x, at.y, at.z, 24, 0.35, 0.35, 0.35, 0);
+				level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+			}
+			case "blade" -> {
+				for (int s = -1; s <= 1; s += 2) {
+					for (double t = -1; t <= 1; t += 0.2) {
+						Vec3 at = eye.add(flat.scale(1.6)).add(side.scale(t * 0.6 * s)).add(0, t * 0.5, 0);
+						level.sendParticles(dust, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+					}
+				}
+			}
+			default -> {
+				for (double a = -1.0; a <= 1.0; a += 0.12) {
+					Vec3 at = eye.add(flat.scale(1.8 * Math.cos(a))).add(side.scale(1.8 * Math.sin(a))).add(0, -a * 0.25, 0);
+					level.sendParticles(dust, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+				}
 			}
 		}
 	}

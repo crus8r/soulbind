@@ -236,7 +236,7 @@ public class SoulBind implements ModInitializer {
 		}
 	}
 
-	private static Holder<Enchantment> findEnchantment(RegistryAccess registries, String id) {
+	public static Holder<Enchantment> findEnchantment(RegistryAccess registries, String id) {
 		return registries.lookupOrThrow(Registries.ENCHANTMENT)
 				.listElements()
 				.filter(holder -> id.equals(holder.getRegisteredName()))

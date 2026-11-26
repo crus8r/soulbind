@@ -539,8 +539,8 @@ public final class Bosses {
 		int tier = def.tier;
 		drop(entity, WordScrollItem.ofRarity(Math.min(5, 2 + tier / 2)));
 		if (tier >= 2) drop(entity, WordScrollItem.ofRarity(Math.min(5, 1 + tier / 2)));
-		// The Wizard's Hat: from the bosses of diamond and netherite lairs, and from Razza.
-		if (tier >= 5) drop(entity, new ItemStack(com.omnispell.item.OmniItems.WIZARD_HAT));
+		// The Wizard's Hat: always from the bosses of diamond and netherite lairs and from Razza; often from stone, iron and gold lairs.
+		if (tier >= 5 || (tier >= 2 && entity.getRandom().nextFloat() < 0.15f * tier)) drop(entity, new ItemStack(com.omnispell.item.OmniItems.WIZARD_HAT));
 		if (tier >= 7) {
 			drop(entity, new ItemStack(Items.NETHER_STAR));
 			for (int i = 0; i < 3; i++) drop(entity, WordScrollItem.ofRarity(5));

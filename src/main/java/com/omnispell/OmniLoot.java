@@ -70,6 +70,9 @@ public final class OmniLoot {
 			if (!(source.getEntity() instanceof ServerPlayer killer)) return;
 			String id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
 			switch (id) {
+				case "minecraft:witch" -> {
+					if (entity.getRandom().nextFloat() < 0.04f) drop(entity, new net.minecraft.world.item.ItemStack(com.omnispell.item.OmniItems.WIZARD_HAT)); // a witch's hat, now and then
+				}
 				case "minecraft:wither" -> bossDrop(killer, entity, "wither", "The Wither", WordScrollItem.ofWord("command:Wither"));
 				case "minecraft:warden" -> bossDrop(killer, entity, "warden", "The Warden", WordScrollItem.ofWord("base:Spirit"));
 				case "minecraft:ender_dragon" -> bossDrop(killer, entity, "ender_dragon", "The Ender Dragon", WordScrollItem.ofRarity(5));
