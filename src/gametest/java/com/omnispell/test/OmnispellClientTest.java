@@ -848,6 +848,27 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					check(pipless == 0, "every exploration spell has a mana pool pip (" + pipless + " without, e.g. " + example + ")");
 				}
 
+				// Mana potions, drunk and thrown.
+				{
+					var recipe = level.getServer().getRecipeManager().byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, com.omnispell.Omnispell.id("splash_phase_mana_potion")));
+					check(recipe.isPresent(), "a splash potion of Phase mana has a recipe");
+					ItemStack splashPhase = recipe.get().value() instanceof net.minecraft.world.item.crafting.ShapelessRecipe shapeless
+							? shapeless.assemble(net.minecraft.world.item.crafting.CraftingInput.EMPTY) : ItemStack.EMPTY;
+					com.omnispell.alchemy.Brew phaseBrew = com.omnispell.alchemy.BrewItem.read(splashPhase);
+					check(phaseBrew != null && phaseBrew.splash && "phase".equals(phaseBrew.manaType) && "Splash Potion of Phase Mana".equals(splashPhase.getHoverName().getString()), "it makes a thrown Phase mana potion");
+					int phaseSlot = com.omnispell.player.ManaPool.PHASE.ordinal();
+					PlayerStore.get(p).mana[phaseSlot] = 0;
+					ItemStack mainKeep = p.getMainHandItem().copy();
+					p.setXRot(90f); // throw it at your feet
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), splashPhase.copy());
+					p.getMainHandItem().use(level, p, net.minecraft.world.InteractionHand.MAIN_HAND);
+					double phaseMax = com.omnispell.player.Mana.max(p, com.omnispell.player.ManaPool.PHASE);
+					check(PlayerStore.get(p).mana[phaseSlot] > phaseMax * 0.3, "thrown at your feet it refills your Phase mana (" + PlayerStore.get(p).mana[phaseSlot] + " of " + phaseMax + ")");
+					check(p.getCooldowns().isOnCooldown(splashPhase), "mana potions have a short cooldown");
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), mainKeep);
+					p.setXRot(25f);
+				}
+
 				// New wand cores.
 				{
 					var cores = com.omnispell.item.WandParts.CORES;

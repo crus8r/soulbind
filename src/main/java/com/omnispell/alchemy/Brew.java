@@ -22,6 +22,7 @@ public final class Brew {
 	public String resistType;
 	public String status = "none";    // none, poison, regen, haste, fortify
 	public String manaType;
+	public double manaPercent;        // crafted mana potions: restore this share of the pool, so they suit any size of reserve
 
 	public void read(JsonObject json) {
 		name = str(json, "name", name);
@@ -69,6 +70,7 @@ public final class Brew {
 	}
 
 	public int color() {
+		if (codeType.equals("mana_restore") && BrewItem.pool(manaType) != null) return BrewItem.pool(manaType).color;
 		return switch (codeType) {
 			case "sludge" -> 0x6E6E64;
 			case "heal" -> 0xF2486A;

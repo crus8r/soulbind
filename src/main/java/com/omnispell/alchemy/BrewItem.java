@@ -90,7 +90,9 @@ public class BrewItem extends Item {
 			level.playSound(null, at.x, at.y, at.z, SoundEvents.SPLASH_POTION_BREAK, SoundSource.PLAYERS, 1.0f, 1.0f);
 			Fx.burst(level, at.add(0, 0.5, 0), brew.color(), ParticleTypes.SPLASH, 3);
 			Fx.impact(level, at, brew.element, brew.tier);
-			for (LivingEntity target : Targeting.around(player, at, 3.5, false)) apply(player, brew, target);
+			// A mana potion is for friends: it splashes you too if you throw it at your feet.
+			boolean friendly = brew.codeType.equals("mana_restore") || brew.codeType.equals("heal") || brew.codeType.equals("shield");
+			for (LivingEntity target : Targeting.around(player, at, 3.5, friendly)) apply(player, brew, target);
 		} else {
 			apply(player, brew, player);
 			level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_DRINK.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
@@ -112,7 +114,7 @@ public class BrewItem extends Item {
 		return InteractionResult.SUCCESS;
 	}
 
-	private static ManaPool pool(String manaType) {
+	static ManaPool pool(String manaType) {
 		if (manaType == null) return null;
 		return switch (manaType) {
 			case "shield_generated" -> ManaPool.BARRIER;
@@ -120,6 +122,12 @@ public class BrewItem extends Item {
 			case "control_turns" -> ManaPool.SPIRIT;
 			case "damage_reflected" -> ManaPool.BARRIER;
 			case "evasion_dodges" -> ManaPool.PHASE;
+			// Crafted mana potions name their pool outright.
+			case "barrier" -> ManaPool.BARRIER;
+			case "restoration" -> ManaPool.RESTORATION;
+			case "spirit" -> ManaPool.SPIRIT;
+			case "phase" -> ManaPool.PHASE;
+			case "force" -> ManaPool.FORCE;
 			default -> null;
 		};
 	}
@@ -178,7 +186,13 @@ public class BrewItem extends Item {
 					double[] mana = PlayerStore.get(targetPlayer).mana;
 					for (ManaPool each : ManaPool.values()) {
 						if (pool != null && each != pool) continue;
-						mana[each.ordinal()] = Math.min(Mana.max(targetPlayer, each), mana[each.ordinal()] + (pool != null ? value : value / 3));
+						double gain = brew.manaPercent > 0 ? Mana.max(targetPlayer, each) * brew.manaPercent / 100.0 : pool != null ? value : value / 3;
+						mana[each.ordinal()] = Math.min(Mana.max(targetPlayer, each), mana[each.ordinal()] + gain);
+					}
+					if (brew.manaPercent > 0) {
+						level.sendParticles(ParticleTypes.ENCHANT, targetPlayer.getX(), targetPlayer.getY() + 1, targetPlayer.getZ(), 16, 0.4, 0.6, 0.4, 0.3);
+						if (targetPlayer != user) targetPlayer.sendOverlayMessage(Component.literal(user.getName().getString() + "'s potion refills your " + (pool == null ? "" : pool.label + " ") + "mana.").withStyle(ChatFormatting.AQUA));
+						PlayerStore.syncVitals(targetPlayer);
 					}
 				}
 			}

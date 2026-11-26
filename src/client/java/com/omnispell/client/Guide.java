@@ -131,6 +131,7 @@ public final class Guide {
 				"Every spell also has a cooldown: stronger spells take longer to be ready again. Some wand cores and armor shorten it.",
 				"Your reserves grow with what you carry, not with a level. The wand's wood raises some of them. Gold and leather armor hold the most magic, chainmail and copper some, iron a little, diamond and netherite none.",
 				"The Materials page says what each material is good for.",
+				"Mana potions refill one reserve. Drink one for half the pool, or throw a splash one to refill a third of it for everyone it lands near, you and your friends alike. See Recipes.",
 				"Press H to show or hide the mana display."));
 		s.put("Arcane essence", List.of(
 				"Essence is what a new spell is made from. You only spend it when crafting.",
@@ -178,6 +179,8 @@ public final class Guide {
 				"-  ender pearl  -   /   amethyst shard  stone bricks  amethyst shard   /   stone bricks x3",
 				"ARCANE WELL",
 				"stone bricks  amethyst shard  stone bricks   /   stone bricks  water bucket  stone bricks   /   stone bricks x3",
+				"MANA POTIONS",
+				"Glass bottle + lapis lazuli + one more, anywhere in the grid: iron ingot for Barrier, glistering melon slice for Restoration, amethyst shard for Spirit, feather for Phase, blaze powder for Force. Add gunpowder for a splash potion to throw.",
 				"ALCHEMY CAULDRON",
 				"Cauldron + blaze rod + amethyst shard, anywhere in the grid. Abandoned ones also stand over old campfires in swamps, dark forests, mushroom fields and the Enchanted Forest.",
 				"ARCANE FOCUS",

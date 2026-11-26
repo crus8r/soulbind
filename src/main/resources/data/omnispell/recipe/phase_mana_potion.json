@@ -1,0 +1,40 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:glass_bottle",
+    "minecraft:lapis_lazuli",
+    "minecraft:feather"
+  ],
+  "result": {
+    "id": "omnispell:brew",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_brew": "{\"name\": \"Potion of Phase Mana\", \"description\": \"Bottled Phase mana.\", \"effect\": \"Restores half your Phase mana.\", \"tier\": 2, \"type\": \"mana\", \"offline\": false, \"splash\": false, \"codeType\": \"mana_restore\", \"value\": 0, \"duration\": 0, \"element\": \"neutral\", \"status\": \"none\", \"manaType\": \"phase\", \"manaPercent\": 50}"
+      },
+      "minecraft:item_name": "Potion of Phase Mana",
+      "minecraft:custom_model_data": {
+        "colors": [
+          440020
+        ]
+      },
+      "minecraft:rarity": "uncommon",
+      "minecraft:use_cooldown": {
+        "seconds": 2.0,
+        "cooldown_group": "omnispell:mana_potion"
+      },
+      "minecraft:lore": [
+        {
+          "text": "Tier 2 \u00b7 Drink",
+          "color": "#06B6D4",
+          "italic": false
+        },
+        {
+          "text": "Restores half your Phase mana.",
+          "color": "gray",
+          "italic": false
+        }
+      ]
+    }
+  }
+}

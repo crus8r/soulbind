@@ -1,0 +1,41 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:glass_bottle",
+    "minecraft:lapis_lazuli",
+    "minecraft:iron_ingot",
+    "minecraft:gunpowder"
+  ],
+  "result": {
+    "id": "omnispell:brew",
+    "components": {
+      "minecraft:custom_data": {
+        "omni_brew": "{\"name\": \"Splash Potion of Barrier Mana\", \"description\": \"Bottled Barrier mana.\", \"effect\": \"Restores a third of the Barrier mana of everyone it splashes, you included.\", \"tier\": 2, \"type\": \"mana\", \"offline\": false, \"splash\": true, \"codeType\": \"mana_restore\", \"value\": 0, \"duration\": 0, \"element\": \"neutral\", \"status\": \"none\", \"manaType\": \"barrier\", \"manaPercent\": 35}"
+      },
+      "minecraft:item_name": "Splash Potion of Barrier Mana",
+      "minecraft:custom_model_data": {
+        "colors": [
+          3900150
+        ]
+      },
+      "minecraft:rarity": "uncommon",
+      "minecraft:use_cooldown": {
+        "seconds": 2.0,
+        "cooldown_group": "omnispell:mana_potion"
+      },
+      "minecraft:lore": [
+        {
+          "text": "Tier 2 \u00b7 Throw",
+          "color": "#3B82F6",
+          "italic": false
+        },
+        {
+          "text": "Restores a third of the Barrier mana of everyone it splashes, you included.",
+          "color": "gray",
+          "italic": false
+        }
+      ]
+    }
+  }
+}
