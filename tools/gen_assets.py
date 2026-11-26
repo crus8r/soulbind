@@ -350,22 +350,25 @@ for name, rows in (('wizard_robe', ROBE), ('wizard_boots', BOOTS)):
     image(name, rows, {'g': (215, 215, 215, 255)})
     image(name + '_trim', rows, {'t': (236, 196, 84, 255)})
 # Worn: one armour sheet (64x32) for robe and boots. The body and arms are the robe; the lower legs are the boots.
+GOLD, GOLD_DARK, LEATHER, LEATHER_DARK, INNER, SOLE = (236, 196, 84, 255), (170, 124, 40, 255), (112, 72, 40, 255), (78, 48, 26, 255), (34, 28, 48, 255), (44, 32, 24, 255)
 def robe_worn(x, y, trim):
     body = 16 <= x < 40 and 16 <= y < 32
     arms = 40 <= x < 56 and 16 <= y < 32
     feet = x < 16 and 16 <= y < 32
     if not (body or arms or feet): return (0, 0, 0, 0)
+    if feet and y < 20: return (0, 0, 0, 0)                                    # boots cover only the lower leg
+    front = body and 20 <= x < 28 and y >= 20                                  # the body's front face
     if trim:
-        if body and y >= 30: return (236, 196, 84, 255)                    # hem
-        if body and x in (27, 28) and y >= 20: return (214, 170, 60, 255)  # clasps down the front
-        if arms and y >= 30: return (236, 196, 84, 255)                    # cuffs
-        if feet and 20 <= y < 22: return (236, 196, 84, 255)               # boot tops
-        if (body or arms) and noise(x, y, 97) > 0.94: return (255, 240, 170, 255)
+        if body and y >= 31: return GOLD if (x + y) % 3 else GOLD_DARK               # a gold hem
+        if arms and y >= 31: return GOLD if (x + y) % 3 else GOLD_DARK               # cuffs
+        if feet and y == 20: return GOLD if x % 2 else GOLD_DARK                     # boot tops
         return (0, 0, 0, 0)
-    v = 205 + int(40 * noise(x, y, 91))
-    if feet and y < 20: return (0, 0, 0, 0)                                # boots cover only the lower leg
+    shade = 1.0 - 0.18 * ((y - 16) / 15.0)                                     # darker toward the hem
+    if body and (x % 4 == 1): shade *= 0.82                                    # folds
+    if arms and (x % 4 == 2): shade *= 0.86
+    v = int((200 + 45 * noise(x, y, 91)) * shade)
     return (v, v, v, 255)
-for name, trim in (('wizard_robe', False), ('wizard_robe_trim', True)):
+for name, trim in (('wizard_robe_trim', True),):
     img = Image.new('RGBA', (64, 32))
     for yy in range(32):
         for xx in range(64):
@@ -373,8 +376,33 @@ for name, trim in (('wizard_robe', False), ('wizard_robe_trim', True)):
     path = os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', name + '.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
+# The 3D parts (see WizardRobeLayer): skirt tiers, collar, mantles, sleeves, boot cuffs, toes.
+def box_uv(u, v, w, h, d):
+    return {'top': (u + d, v, w, d), 'bottom': (u + d + w, v, w, d), 'sides': (u, v + d, 2 * (w + d), h)}
+ROBE_BOXES = {'belt': (0, 0, 8, 2, 4), 'sash': (0, 8, 2, 7, 1), 'sash_short': (8, 8, 2, 5, 1)}
+base = Image.new('RGBA', (64, 64))
+trim = Image.new('RGBA', (64, 64))
+for name, (u, v, w, h, d) in ROBE_BOXES.items():
+    for face, (fu, fv, fw, fh) in box_uv(u, v, w, h, d).items():
+        for yy in range(fv, fv + fh):
+            for xx in range(fu, fu + fw):
+                if name == 'belt':   # leather, not dyed, with a gold buckle at the front
+                    dark = (xx + yy) % 4 == 0
+                    trim.putpixel((xx, yy), LEATHER_DARK if dark else LEATHER)
+                    continue
+                # the sash: cloth in the robe's dye, folds down its length, gold fringe at the end
+                g = int((210 + 40 * noise(xx, yy, 107)) * (0.85 if xx % 2 else 1.0))
+                base.putpixel((xx, yy), (g, g, g, 255))
+                if face == 'sides' and yy == fv + fh - 1: trim.putpixel((xx, yy), GOLD if xx % 2 else GOLD_DARK)
+# the buckle sits on the belt's front face (u from d to d+w, rows below the top)
+for xx in (7, 8):
+    for yy in (4, 5):
+        trim.putpixel((xx, yy), GOLD)
+for img, name in ((base, 'wizard_robe_parts'), (trim, 'wizard_robe_parts_trim')):
+    img.save(os.path.join(ASSETS, 'textures', 'entity', name + '.png'))
 write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {'humanoid': [
-    {'texture': 'omnispell:wizard_robe', 'dyeable': {'color_when_undyed': -12570202}},
+    {'texture': 'minecraft:leather', 'dyeable': {'color_when_undyed': -12570202}},
+    {'texture': 'minecraft:leather_overlay'},
     {'texture': 'omnispell:wizard_robe_trim'}]}})
 tex('wizard_hat_band', hat_band, 'item')
 # Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
