@@ -82,12 +82,32 @@ public class OmnispellClientTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		var realGenerator = SpellGenerator.transport;
-		SpellGenerator.transport = OmnispellClientTest::fakeGenerator;
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			TestServerContext server = world.getServer();
 			server.runCommand("time set noon");
 			server.runCommand("gamerule spawn_mobs false");
 			context.waitTicks(40);
+
+			// ---- optional: one real request to the Omnispell generator (set OMNISPELL_LIVE=1).
+			// "Fire" alone is a spell the website already remembers, so no AI is used.
+			if (System.getenv("OMNISPELL_LIVE") != null) {
+				server.runCommand("execute as @a run omnispell word Fire");
+				server.runCommand("execute as @a run omnispell craft attack base:Fire");
+				server.waitFor(s -> PlayerStore.get(player(s)).pending != null, 1200);
+				server.runOnServer(s -> {
+					Spell live = PlayerStore.get(player(s)).pending;
+					System.out.println("[omnispell-test] live spell: tier " + live.tier + " | " + live.description + " | " + live.effect + " | " + live.code.type + " " + live.code.primaryValue + " " + live.code.element + " " + live.code.modifiers);
+					check(!live.offline, "the real generator answered the mod");
+					check(live.description.length() > 10 && live.code.primaryValue > 0, "the real reply was understood");
+				});
+				server.runCommand("execute as @a run omnispell essence 40");
+				server.runOnServer(s -> {
+					PlayerData data = PlayerStore.get(player(s));
+					data.pending = null;
+					data.words.remove("base:Fire");
+				});
+			}
+			SpellGenerator.transport = OmnispellClientTest::fakeGenerator;
 
 			// ---- starter bundle
 			server.runOnServer(s -> {
@@ -107,6 +127,15 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 				check(bundles == 1, "exactly one starter bundle (found " + bundles + ")");
 				check(wand && book, "bundle holds a wand and the book");
+				boolean waypoints = false;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+					BundleContents contents = p.getInventory().getItem(i).get(DataComponents.BUNDLE_CONTENTS);
+					if (contents == null) continue;
+					for (ItemStack inside : contents.itemCopies().toList()) {
+						if (inside.is(OmniItems.WAYPOINT_ITEM) && inside.getCount() == 2 && !com.omnispell.waypoint.WaypointItem.pairId(inside).isEmpty()) waypoints = true;
+					}
+				}
+				check(waypoints, "bundle holds a bonded pair of waypoints");
 				PlayerData data = PlayerStore.get(p);
 				check(data.words.size() == 9, "nine starting words (have " + data.words.size() + ")");
 				check(data.spellTypes.contains("attack") && data.spellTypes.contains("exploration"), "starting spell types");
@@ -254,6 +283,49 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			check(server.computeOnServer(s -> PlayerStore.get(player(s)).essence) == 60, "using the well too early gives nothing");
 			context.takeScreenshot("24-well");
 
+			// ---- waypoints: a crafted pair bonds, links, teleports, recolours and comes back when broken
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.getInventory().setItem(4, new ItemStack(OmniItems.WAYPOINT_ITEM, 2)); // as it comes out of the crafting grid
+			});
+			context.waitTicks(5);
+			BlockPos[] ends = new BlockPos[2];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				ItemStack pair = p.getInventory().getItem(4);
+				String id = com.omnispell.waypoint.WaypointItem.pairId(pair);
+				check(!id.isEmpty() && pair.getCount() == 2, "a crafted pair of waypoints bonds in the inventory");
+				check(PlayerStore.get(p).waypointPairs == 2, "second pair for this player (count " + PlayerStore.get(p).waypointPairs + ")");
+				ends[0] = p.blockPosition().offset(3, 0, 3);
+				ends[1] = p.blockPosition().offset(40, 0, 3);
+				for (BlockPos end : ends) {
+					level.setBlockAndUpdate(end, OmniItems.WAYPOINT.defaultBlockState().setValue(com.omnispell.waypoint.WaypointBlock.COLOR, 1));
+					check(com.omnispell.waypoint.Waypoints.place(level, end, id, 1, ""), "waypoint end registered");
+				}
+				p.getInventory().setItem(4, ItemStack.EMPTY);
+				PlayerStore.get(p).mana[ManaPool.PHASE.ordinal()] = 5;
+				BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(ends[0]), Direction.UP, ends[0], false);
+				level.getBlockState(ends[0]).useWithoutItem(level, p, hit);
+			});
+			context.waitTicks(10);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(p.blockPosition().closerThan(ends[1].above(), 2), "using a waypoint travels to its partner (now at " + p.blockPosition() + ")");
+				check(PlayerStore.get(p).mana[ManaPool.PHASE.ordinal()] < 4.5, "travel spent Phase mana");
+				String id = com.omnispell.waypoint.Waypoints.pairAt(p.level(), ends[1]);
+				com.omnispell.waypoint.Waypoints.edit(s, id, "Home", 10);
+				check(p.level().getBlockState(ends[0]).getValue(com.omnispell.waypoint.WaypointBlock.COLOR) == 10
+						&& p.level().getBlockState(ends[1]).getValue(com.omnispell.waypoint.WaypointBlock.COLOR) == 10, "recolouring one end recolours both");
+			});
+			context.getInput().lookAt(ends[1]);
+			context.waitTicks(10);
+			context.takeScreenshot("25-waypoint");
+			context.runOnClient(c -> c.gui.setScreen(new com.omnispell.client.WaypointScreen("test", "Home", 10)));
+			context.waitTicks(5);
+			context.takeScreenshot("26-waypoint-screen");
+			context.runOnClient(c -> c.gui.setScreen(null));
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> player(s).getInventory().setItem(1, ItemStack.EMPTY)); // the loose wand would simply drop
 			server.runCommand("kill @a");
@@ -268,7 +340,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					ItemStack stack = p.getInventory().getItem(i);
 					if (!stack.is(Items.BUNDLE)) continue;
 					bundles++;
-					check(stack.get(DataComponents.BUNDLE_CONTENTS).size() == 2, "bundle kept its two items through death");
+					check(stack.get(DataComponents.BUNDLE_CONTENTS).size() == 3, "bundle kept its three items through death");
 				}
 				check(bundles == 1, "one bundle after respawn, not zero and not a second one (found " + bundles + ")");
 				PlayerData data = PlayerStore.get(p);

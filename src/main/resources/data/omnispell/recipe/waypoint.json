@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": "minecraft:ender_pearl",
+    "A": "minecraft:amethyst_shard",
+    "S": "minecraft:stone_bricks"
+  },
+  "pattern": [
+    " E ",
+    "ASA",
+    "SSS"
+  ],
+  "result": {
+    "id": "omnispell:waypoint",
+    "count": 2
+  }
+}

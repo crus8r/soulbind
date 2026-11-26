@@ -35,6 +35,8 @@ public class OmnispellClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.SyncVitals.TYPE, (payload, context) -> ClientState.readVitals(payload.json()));
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.BookMessage.TYPE, (payload, context) -> ClientState.say(payload.ok(), payload.text()));
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.OpenBook.TYPE, (payload, context) -> context.client().gui.setScreen(new BookScreen()));
+		ClientPlayNetworking.registerGlobalReceiver(OmniNet.OpenWaypoint.TYPE, (payload, context) ->
+				context.client().gui.setScreen(new WaypointScreen(payload.pairId(), payload.name(), payload.color())));
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.ScreenFx.TYPE, (payload, context) -> {
 			ClientState.flashKind = payload.kind();
 			ClientState.flashIntensity = payload.intensity();

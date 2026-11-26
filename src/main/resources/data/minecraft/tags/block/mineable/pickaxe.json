@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "omnispell:arcane_well"
+    "omnispell:arcane_well",
+    "omnispell:waypoint"
   ]
 }

@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "color=0": {
+      "model": "omnispell:block/waypoint_0"
+    },
+    "color=1": {
+      "model": "omnispell:block/waypoint_1"
+    },
+    "color=2": {
+      "model": "omnispell:block/waypoint_2"
+    },
+    "color=3": {
+      "model": "omnispell:block/waypoint_3"
+    },
+    "color=4": {
+      "model": "omnispell:block/waypoint_4"
+    },
+    "color=5": {
+      "model": "omnispell:block/waypoint_5"
+    },
+    "color=6": {
+      "model": "omnispell:block/waypoint_6"
+    },
+    "color=7": {
+      "model": "omnispell:block/waypoint_7"
+    },
+    "color=8": {
+      "model": "omnispell:block/waypoint_8"
+    },
+    "color=9": {
+      "model": "omnispell:block/waypoint_9"
+    },
+    "color=10": {
+      "model": "omnispell:block/waypoint_10"
+    },
+    "color=11": {
+      "model": "omnispell:block/waypoint_11"
+    },
+    "color=12": {
+      "model": "omnispell:block/waypoint_12"
+    },
+    "color=13": {
+      "model": "omnispell:block/waypoint_13"
+    },
+    "color=14": {
+      "model": "omnispell:block/waypoint_14"
+    },
+    "color=15": {
+      "model": "omnispell:block/waypoint_15"
+    },
+    "color=16": {
+      "model": "omnispell:block/waypoint_16"
+    },
+    "color=17": {
+      "model": "omnispell:block/waypoint_17"
+    },
+    "color=18": {
+      "model": "omnispell:block/waypoint_18"
+    },
+    "color=19": {
+      "model": "omnispell:block/waypoint_19"
+    }
+  }
+}

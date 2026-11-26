@@ -17,7 +17,7 @@ public final class Guide {
 		Map<String, List<String>> s = new LinkedHashMap<>();
 		s.put("Getting started", List.of(
 				"You are not a person. You are what is left of every wizard Razza erased: a pattern, an echo, come back for what was taken.",
-				"Your Soul Bind bundle holds a starter wand and this book. Both stay with you when you die, as long as they are in the bundle or soul-bound.",
+				"Your Soul Bind bundle holds a starter wand, this book and a pair of waypoints. They stay with you when you die, as long as they are in the bundle or soul-bound.",
 				"1. Open the Craft tab and build a spell from the words you know.",
 				"2. Save it. It goes into the first free slot of the wand you are holding.",
 				"3. Hold the wand and press a spell key (Z X C V B by default) or right-click to cast the selected spell. Sneak + right-click steps to the next slot.",
@@ -65,6 +65,14 @@ public final class Guide {
 				"Draw it from an Arcane Well: use the well, wait for the surge (a chime and a burst of light), then use the well again before the surge fades. Too early or too late and it slips away.",
 				"When your essence is full, hold a glass bottle at the well. Three catches fill it into an Arcane Potion, which restores essence anywhere. Potions stack to 16.",
 				"Until wells are found in the world, one can be built: stone bricks around an amethyst shard (top middle) and a water bucket (centre)."));
+		s.put("Waypoints", List.of(
+				"Waypoints come in pairs. Place both ends, then use either one to travel to the other.",
+				"Recipe (makes a pair): an ender pearl on top; amethyst shard, stone bricks, amethyst shard in the middle row; three stone bricks along the bottom.",
+				"Each pair you make takes the next of twenty colours, so you can tell your pairs apart.",
+				"Sneak and use a placed waypoint to name the pair or change its colour. Both ends change together.",
+				"Travel costs Phase mana: 1 within 500 blocks, 2 within 2,000, 3 within 8,000, 4 beyond. With no Phase mana left, an ender pearl pays instead.",
+				"Crossing between worlds always takes an ender pearl.",
+				"Breaking a waypoint returns it, still bonded to its partner. A lone waypoint from an odd stack has no partner and cannot be placed."));
 		s.put("Dark magic", List.of(
 				"Spells made with forbidden words are dark magic. Each cast adds corruption.",
 				"The higher your corruption, the more likely a dark spell fizzles or turns on you. It fades slowly with time."));

@@ -208,7 +208,7 @@ public class SoulBind implements ModInitializer {
 		player.addTag(STARTER_TAG);
 		player.addTag(STARTER_KIT_TAG);
 
-		List<ItemStack> kit = com.omnispell.Omnispell.starterKit();
+		List<ItemStack> kit = com.omnispell.Omnispell.starterKit(player);
 		if (hadBundle) {
 			// A player from before Omnispell already has their bundle: hand the new items over directly.
 			for (ItemStack stack : kit) giveOrDrop(player, stack);

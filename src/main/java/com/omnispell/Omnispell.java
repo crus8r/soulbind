@@ -37,11 +37,12 @@ public class Omnispell implements ModInitializer {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
 
-	/** What a new player finds in their Soul Bind bundle: a starter wand and the book. */
-	public static List<ItemStack> starterKit() {
+	/** What a new player finds in their Soul Bind bundle: a starter wand, the book and one pair of waypoints. */
+	public static List<ItemStack> starterKit(ServerPlayer player) {
 		List<ItemStack> kit = new java.util.ArrayList<>();
 		kit.add(WandItem.create("oak", "flint"));
 		kit.add(new ItemStack(OmniItems.GRIMOIRE));
+		kit.add(com.omnispell.waypoint.WaypointItem.newPair(player));
 		return kit;
 	}
 
@@ -51,10 +52,12 @@ public class Omnispell implements ModInitializer {
 		WordBank.load();
 		OmniItems.register();
 		PlayerStore.register();
+		com.omnispell.waypoint.Waypoints.register();
 		OmniNet.register();
 		OmniLoot.register();
 		OmniCommands.register();
 		registerMessages();
+		registerWaypointMessages();
 		registerEvents();
 		LOG.info("Omnispell ready: {} words of power", WordBank.obtainableCount());
 	}
@@ -97,6 +100,21 @@ public class Omnispell implements ModInitializer {
 		});
 	}
 
+	private static void registerWaypointMessages() {
+		ServerPlayNetworking.registerGlobalReceiver(OmniNet.EditWaypoint.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			com.omnispell.waypoint.Waypoints.Pair pair = com.omnispell.waypoint.Waypoints.pair(context.server(), payload.pairId());
+			if (pair == null) return;
+			// Only someone standing at one of the pair's ends may change it.
+			boolean near = false;
+			for (com.omnispell.waypoint.Waypoints.End end : pair.ends) {
+				if (end.is(player.level(), end.pos()) && end.pos().closerToCenterThan(player.position(), 8)) near = true;
+			}
+			if (!near) return;
+			com.omnispell.waypoint.Waypoints.edit(context.server(), payload.pairId(), payload.name(), payload.color());
+		});
+	}
+
 	private static void registerEvents() {
 		ServerPlayerEvents.JOIN.register(player -> {
 			PlayerStore.get(player);
@@ -125,6 +143,7 @@ public class Omnispell implements ModInitializer {
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved
+			com.omnispell.waypoint.Waypoints.unload();
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.save(player);
 		});
 

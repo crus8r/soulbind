@@ -74,7 +74,32 @@ public final class OmniNet {
 		}
 	}
 
+	/** Open the rename / recolour screen for a waypoint pair. */
+	public record OpenWaypoint(String pairId, String name, int color) implements CustomPacketPayload {
+		public static final Type<OpenWaypoint> TYPE = OmniNet.makeType("open_waypoint");
+		public static final StreamCodec<ByteBuf, OpenWaypoint> CODEC = StreamCodec.composite(
+				ByteBufCodecs.STRING_UTF8, OpenWaypoint::pairId, ByteBufCodecs.STRING_UTF8, OpenWaypoint::name, ByteBufCodecs.VAR_INT, OpenWaypoint::color, OpenWaypoint::new);
+
+		@Override
+		public Type<OpenWaypoint> type() {
+			return TYPE;
+		}
+	}
+
 	// ----- client -> server -----
+
+	/** Rename and recolour a waypoint pair. */
+	public record EditWaypoint(String pairId, String name, int color) implements CustomPacketPayload {
+		public static final Type<EditWaypoint> TYPE = OmniNet.makeType("edit_waypoint");
+		public static final StreamCodec<ByteBuf, EditWaypoint> CODEC = StreamCodec.composite(
+				ByteBufCodecs.STRING_UTF8, EditWaypoint::pairId, ByteBufCodecs.STRING_UTF8, EditWaypoint::name, ByteBufCodecs.VAR_INT, EditWaypoint::color, EditWaypoint::new);
+
+		@Override
+		public Type<EditWaypoint> type() {
+			return TYPE;
+		}
+	}
+
 
 	/** Cast the spell in this wand slot (0-4), or -1 for the selected slot. */
 	public record CastSpell(int slot) implements CustomPacketPayload {
@@ -126,6 +151,8 @@ public final class OmniNet {
 		PayloadTypeRegistry.clientboundPlay().register(OpenBook.TYPE, OpenBook.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(BookMessage.TYPE, BookMessage.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(ScreenFx.TYPE, ScreenFx.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(OpenWaypoint.TYPE, OpenWaypoint.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(EditWaypoint.TYPE, EditWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CastSpell.TYPE, CastSpell.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CraftSpell.TYPE, CraftSpell.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(BookAction.TYPE, BookAction.CODEC);

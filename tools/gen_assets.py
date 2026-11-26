@@ -158,6 +158,58 @@ image('arcane_well_top', [
 image('arcane_well_bottom', ['s' * 16] + ['s' + 'ld' * 7 + 's'] * 14 + ['s' * 16],
       {'s': (54, 52, 66, 255), 'l': (96, 92, 110, 255), 'd': (84, 80, 98, 255)}, 'block')
 
+# Waypoints: a carved stone with a glowing band and gem, in twenty colours.
+java_wp = open(os.path.join(ROOT, '..', 'java', 'com', 'omnispell', 'waypoint', 'Waypoints.java')).read()
+WP_COLORS = [int(c, 16) for c in re.findall(r'0x([0-9A-Fa-f]{6})', java_wp.split('COLORS = {')[1].split('}')[0])]
+assert len(WP_COLORS) == 20, len(WP_COLORS)
+def shade(c, f):
+    return (min(255, int((c >> 16 & 255) * f)), min(255, int((c >> 8 & 255) * f)), min(255, int((c & 255) * f)), 255)
+WP_SIDE = [
+    'ssssssssssssssss',
+    'sllllllllllllls.'[:15] + 's',
+    'sldddddddddddlds'[:16],
+    'ssssssssssssssss',
+    'cccccccccccccccc',
+    'bbbbbbbbbbbbbbbb',
+    'ssssssssssssssss',
+    'slllsllllllsllls',
+    'sdddsdddbddsddds',
+    'sssssssbcbssssss',
+    'sllllsbcccbsllls',
+    'sddddsdbcbdsddds',
+    'ssssssssbsssssss',
+    'slllsllllllsllls',
+    'sdddsddddddsddds',
+    'ssssssssssssssss']
+WP_TOP = [
+    'ssssssssssssssss',
+    'sllllllllllllls.'[:15] + 's',
+    'sldddddddddddlds'[:16],
+    'sldssssssssssdls',
+    'sldsbbbbbbbbsdls',
+    'sldsbccccccbsdls',
+    'sldsbcwwwwcbsdls',
+    'sldsbcwmmwcbsdls',
+    'sldsbcwmmwcbsdls',
+    'sldsbcwwwwcbsdls',
+    'sldsbccccccbsdls',
+    'sldsbbbbbbbbsdls',
+    'sldssssssssssdls',
+    'slddddddddddddls',
+    'slllllllllllllls',
+    'ssssssssssssssss']
+for i, c in enumerate(WP_COLORS):
+    pal = {'s': (62, 62, 72, 255), 'l': (122, 122, 136, 255), 'd': (96, 96, 108, 255),
+           'c': shade(c, 1.0), 'b': shade(c, 0.6), 'w': shade(c, 1.25), 'm': (255, 255, 255, 255)}
+    image(f'waypoint_side_{i}', WP_SIDE, pal, 'block')
+    image(f'waypoint_top_{i}', WP_TOP, pal, 'block')
+image('waypoint_stone', ['................', '....ssssssss....', '...slllllllls...', '...sldddddds....'[:13] + 's...', '...ssssssssss...'] +
+      ['...s........s...'] * 2 + ['...ssssssssss...', '...slllsllls....'[:12] + 's...', '...sdddsddds....'[:12] + 's...', '...ssssssssss...',
+       '...slllllllls...', '...sdddddddds...', '...ssssssssss...', '................', '................'],
+      {'s': (62, 62, 72, 255), 'l': (122, 122, 136, 255), 'd': (96, 96, 108, 255)})
+image('waypoint_gem', ['................'] * 5 + ['....cccccccc....', '....bbbbbbbb....'] + ['................'] * 9,
+      {'c': (255, 255, 255, 255), 'b': (170, 170, 170, 255)})
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -178,6 +230,20 @@ write(os.path.join(ASSETS, 'models', 'block', 'arcane_well.json'), {
 write(os.path.join(ASSETS, 'blockstates', 'arcane_well.json'), {'variants': {'': {'model': 'omnispell:block/arcane_well'}}})
 write(os.path.join(ASSETS, 'items', 'arcane_well.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/arcane_well'}})
 
+variants = {}
+for i in range(20):
+    write(os.path.join(ASSETS, 'models', 'block', f'waypoint_{i}.json'), {
+        'parent': 'minecraft:block/cube_bottom_top',
+        'textures': {'top': f'omnispell:block/waypoint_top_{i}', 'bottom': 'omnispell:block/arcane_well_bottom',
+                     'side': f'omnispell:block/waypoint_side_{i}'}})
+    variants[f'color={i}'] = {'model': f'omnispell:block/waypoint_{i}'}
+write(os.path.join(ASSETS, 'blockstates', 'waypoint.json'), {'variants': variants})
+flat_item('waypoint', ['waypoint_stone', 'waypoint_gem'])
+write(os.path.join(ASSETS, 'items', 'waypoint.json'), {'model': {
+    'type': 'minecraft:model', 'model': 'omnispell:item/waypoint',
+    'tints': [{'type': 'minecraft:constant', 'value': -1},
+              {'type': 'minecraft:custom_model_data', 'index': 0, 'default': 0xB0B0B8}]}})
+
 # ---------------------------------------------------------------- names
 lang = {
     'item.omnispell.wand': 'Wand',
@@ -185,6 +251,7 @@ lang = {
     'item.omnispell.word_scroll': 'Word Scroll',
     'item.omnispell.arcane_potion': 'Arcane Potion',
     'block.omnispell.arcane_well': 'Arcane Well',
+    'block.omnispell.waypoint': 'Waypoint',
     'enchantment.omnispell.reservoir': 'Reservoir',
     'enchantment.omnispell.wellspring': 'Wellspring',
     'key.category.omnispell.omnispell': 'Omnispell',
@@ -218,6 +285,12 @@ write(os.path.join(recipe_dir, 'grimoire.json'), {
     'type': 'minecraft:crafting_shapeless', 'category': 'misc',
     'ingredients': ['minecraft:book', 'minecraft:amethyst_shard', 'minecraft:lapis_lazuli'],
     'result': {'id': 'omnispell:grimoire'}})
+# Waypoints are made two at a time.
+write(os.path.join(recipe_dir, 'waypoint.json'), {
+    'type': 'minecraft:crafting_shaped', 'category': 'misc',
+    'key': {'E': 'minecraft:ender_pearl', 'A': 'minecraft:amethyst_shard', 'S': 'minecraft:stone_bricks'},
+    'pattern': [' E ', 'ASA', 'SSS'],
+    'result': {'id': 'omnispell:waypoint', 'count': 2}})
 # Until arcane wells generate in structures, one can be built.
 write(os.path.join(recipe_dir, 'arcane_well.json'), {
     'type': 'minecraft:crafting_shaped', 'category': 'misc',
@@ -229,7 +302,7 @@ write(os.path.join(DATA, 'loot_table', 'blocks', 'arcane_well.json'), {
     'pools': [{'rolls': 1, 'conditions': [{'condition': 'minecraft:survives_explosion'}],
                'entries': [{'type': 'minecraft:item', 'name': 'omnispell:arcane_well'}]}]})
 write(os.path.join(ROOT, 'data', 'minecraft', 'tags', 'block', 'mineable', 'pickaxe.json'),
-      {'replace': False, 'values': ['omnispell:arcane_well']})
+      {'replace': False, 'values': ['omnispell:arcane_well', 'omnispell:waypoint']})
 
 # ---------------------------------------------------------------- enchantments
 def enchantment(name, fallback, weight, max_level):

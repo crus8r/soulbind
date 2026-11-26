@@ -25,6 +25,11 @@ public final class OmniItems {
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(3.0f, 9.0f).sound(SoundType.AMETHYST).lightLevel(state -> 9));
 	public static final Item ARCANE_WELL_ITEM = register("arcane_well", p -> new BlockItem(ARCANE_WELL, p), new Item.Properties().useBlockDescriptionPrefix());
 
+	public static final Block WAYPOINT = registerBlock("waypoint", com.omnispell.waypoint.WaypointBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(2.5f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 11)
+					.pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE).noLootTable());
+	public static final Item WAYPOINT_ITEM = register("waypoint", p -> new com.omnispell.waypoint.WaypointItem(WAYPOINT, p), new Item.Properties().useBlockDescriptionPrefix().stacksTo(2));
+
 	private OmniItems() {
 	}
 
