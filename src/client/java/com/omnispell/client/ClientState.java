@@ -28,6 +28,8 @@ public final class ClientState {
 	/** The client tick at which each reserve was last drawn on, for the flash on its bar. */
 	/** True just after a spell was deselected, so its name is not shown as if it had been picked. */
 	public static boolean hideName;
+	/** The player's spell folders, in order. */
+	public static List<com.omnispell.player.PlayerData.Folder> folders = new ArrayList<>();
 	public static long[] manaSpentAt = new long[com.omnispell.player.ManaPool.values().length];
 	public static long[] cooldownLeft = new long[5];
 	public static long[] cooldownTotal = {1, 1, 1, 1, 1};
@@ -61,6 +63,8 @@ public final class ClientState {
 		spells = WordBank.GSON.fromJson(json.get("spells"), new TypeToken<ArrayList<Spell>>() { }.getType());
 		pending = json.has("pending") && !json.get("pending").isJsonNull() ? WordBank.GSON.fromJson(json.get("pending"), Spell.class) : null;
 		bosses = WordBank.GSON.fromJson(json.get("bosses"), new TypeToken<LinkedHashSet<String>>() { }.getType());
+		folders = json.has("folders") ? WordBank.GSON.fromJson(json.get("folders"), new TypeToken<ArrayList<com.omnispell.player.PlayerData.Folder>>() { }.getType()) : null;
+		if (folders == null) folders = new ArrayList<>();
 		maxWords = json.get("maxWords").getAsInt();
 		if (words == null) words = new LinkedHashSet<>();
 		if (spellTypes == null) spellTypes = new LinkedHashSet<>();

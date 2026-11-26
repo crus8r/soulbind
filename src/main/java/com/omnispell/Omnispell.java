@@ -107,6 +107,11 @@ public class Omnispell implements ModInitializer {
 				case "equip" -> SpellCrafting.equip(player, payload.arg());
 				case "rename" -> SpellCrafting.rename(player, payload.arg());
 				case "archive" -> SpellCrafting.archive(player, payload.arg());
+				case "move" -> SpellCrafting.move(player, payload.arg());
+				case "folder_new" -> SpellCrafting.newFolder(player, payload.arg());
+				case "folder_rename" -> SpellCrafting.renameFolder(player, payload.arg());
+				case "folder_toggle" -> SpellCrafting.toggleFolder(player, payload.arg());
+				case "folder_delete" -> SpellCrafting.deleteFolder(player, payload.arg());
 				case "select" -> {
 					ItemStack wand = WandItem.heldWand(player);
 					try {

@@ -41,7 +41,10 @@ public class BookScreen extends Screen {
 	private static int activeSlot = 0;
 	private static String dictFilter = "base";
 	private static String selectedSpell;
-	private static boolean showArchived;
+	/** Which folder the spellbook list shows: null is the main list. */
+	private static String viewFolder;
+	/** What the text box is naming: "spell", "folder" (renaming the viewed folder) or "new" (a new folder). */
+	private String naming = "spell";
 	private boolean renaming;
 	private static String guideSection = "Getting started";
 	private static String loreSection = "Enchantments";
@@ -208,7 +211,7 @@ public class BookScreen extends Screen {
 		g.horizontalLine(px + 4, px + pw - 5, py + 25, LINE);
 
 		search.visible = tab == 0 || (tab == 2 && renaming) || (tab == 1 && ClientState.pending == null);
-		search.setHint(Component.literal(tab == 2 ? "Nickname..." : "Search words..."));
+		search.setHint(Component.literal(tab != 2 ? "Search words..." : naming.equals("spell") ? "Nickname..." : "Folder name..."));
 
 		switch (tab) {
 			case 0 -> dictionary(g);
@@ -545,25 +548,92 @@ public class BookScreen extends Screen {
 
 	// ------------------------------------------------------------------ spellbook
 
-	private void spellbook(GuiGraphicsExtractor g) {
-		int archivedCount = 0;
-		List<Spell> spells = new ArrayList<>();
-		for (Spell spell : ClientState.spells) {
-			if (spell.archived) archivedCount++;
-			if (spell.archived == showArchived) spells.add(spell);
+	/** The folder after this one, in order; "" (the main list) after the last. */
+	private static String nextFolder(String current) {
+		List<com.omnispell.player.PlayerData.Folder> folders = ClientState.folders;
+		if (folders.isEmpty()) return "";
+		if (current == null) return folders.get(0).name;
+		for (int i = 0; i < folders.size(); i++) {
+			if (folders.get(i).name.equalsIgnoreCase(current)) return i + 1 < folders.size() ? folders.get(i + 1).name : "";
 		}
-		if (showArchived && archivedCount == 0) showArchived = false;
-		int lx = px + 8, lw = 150, top = py + 32, bottom = py + ph - 74 - 14, rh = 13;
-		int shelved = archivedCount;
-		button(g, lx, bottom + 1, lw, 12, showArchived ? "Back to spellbook" : "Archived (" + shelved + ")", showArchived || shelved > 0, showArchived, () -> {
-			showArchived = !showArchived;
+		return "";
+	}
+
+	/** Two rows under the spell list: which folder is shown, and what can be done with it. */
+	private void folderBar(GuiGraphicsExtractor g, int x, int y, int w, com.omnispell.player.PlayerData.Folder viewing) {
+		String title = viewing == null ? "Spellbook" : viewing.name;
+		button(g, x, y, 14, 12, "<", !ClientState.folders.isEmpty(), false, () -> {
+			List<com.omnispell.player.PlayerData.Folder> folders = ClientState.folders;
+			int at = -1;
+			for (int i = 0; i < folders.size(); i++) if (folders.get(i).name.equalsIgnoreCase(viewFolder)) at = i;
+			viewFolder = at < 0 ? folders.get(folders.size() - 1).name : at == 0 ? null : folders.get(at - 1).name;
 			selectedSpell = null;
 			listScroll = 0;
 		});
+		g.fill(x + 16, y, x + w - 34, y + 12, INSET);
+		g.centeredText(font(), fit(title, w - 54), x + 16 + (w - 50) / 2, y + 2, viewing == null ? TEXT : GOLD);
+		button(g, x + w - 32, y, 14, 12, ">", !ClientState.folders.isEmpty(), false, () -> {
+			viewFolder = nextFolder(viewFolder);
+			if (viewFolder.isEmpty()) viewFolder = null;
+			selectedSpell = null;
+			listScroll = 0;
+		});
+		button(g, x + w - 16, y, 16, 12, "+", ClientState.folders.size() < com.omnispell.spell.SpellCrafting.MAX_FOLDERS, false, () -> {
+			renaming = true;
+			naming = "new";
+			search.setValue("");
+			setFocused(search);
+			search.setFocused(true);
+		});
+		if (over(x + w - 16, y, 16, 12)) {
+			tooltip = new ArrayList<>();
+			tooltip.add(Component.literal("New folder: type its name above, then Save"));
+		}
+		int y2 = y + 14;
+		if (viewing == null) {
+			g.text(font(), ClientState.folders.isEmpty() ? "+ makes a folder" : "< > to see each folder", x + 2, y2 + 2, DIM, false);
+			return;
+		}
+		com.omnispell.player.PlayerData.Folder folder = viewing;
+		button(g, x, y2, 62, 12, folder.shown ? "In main: on" : "In main: off", true, folder.shown, () -> send("folder_toggle", folder.name));
+		if (over(x, y2, 62, 12)) {
+			tooltip = new ArrayList<>();
+			tooltip.add(Component.literal("Whether this folder's spells also show in the main list"));
+		}
+		button(g, x + 64, y2, 44, 12, "Rename", true, false, () -> {
+			renaming = true;
+			naming = "folder";
+			search.setValue(folder.name);
+			setFocused(search);
+			search.setFocused(true);
+		});
+		button(g, x + 110, y2, w - 110, 12, "Delete", true, false, () -> {
+			send("folder_delete", folder.name);
+			viewFolder = null;
+		});
+		if (over(x + 110, y2, w - 110, 12)) {
+			tooltip = new ArrayList<>();
+			tooltip.add(Component.literal("Removes the folder. Its spells go back to the main list."));
+		}
+	}
+
+	private void spellbook(GuiGraphicsExtractor g) {
+		com.omnispell.player.PlayerData.Folder viewing = null;
+		for (com.omnispell.player.PlayerData.Folder folder : ClientState.folders) if (folder.name.equalsIgnoreCase(viewFolder)) viewing = folder;
+		if (viewing == null) viewFolder = null;
+		List<Spell> spells = new ArrayList<>();
+		for (Spell spell : ClientState.spells) {
+			com.omnispell.player.PlayerData.Folder home = null;
+			for (com.omnispell.player.PlayerData.Folder folder : ClientState.folders) if (folder.name.equalsIgnoreCase(spell.folder)) home = folder;
+			boolean inView = viewing == null ? (home == null || home.shown) : home == viewing;
+			if (inView) spells.add(spell);
+		}
+		int lx = px + 8, lw = 150, top = py + 32, bottom = py + ph - 74 - 28, rh = 13;
+		folderBar(g, lx, bottom + 1, lw, viewing);
 		g.fill(lx, top - 2, lx + lw, bottom, INSET);
 		int rows = (bottom - top) / rh;
 		listScroll = Math.max(0, Math.min(listScroll, Math.max(0, spells.size() - rows)));
-		if (spells.isEmpty()) g.text(font(), "No spells yet.", lx + 6, top + 4, DIM, false);
+		if (spells.isEmpty()) g.text(font(), viewFolder == null ? "No spells yet." : "Empty. Use Move on a spell.", lx + 6, top + 4, DIM, false);
 		Spell selected = null;
 		for (Spell spell : spells) if (spell.id.equals(selectedSpell)) selected = spell;
 		if (selected == null && !spells.isEmpty()) {
@@ -593,13 +663,23 @@ public class BookScreen extends Screen {
 			// Renaming: press Rename, type in the box that appears, press Save. An empty box takes the name away.
 			if (renaming) {
 				button(g, px + pw - 128 - 40, py + 30, 36, 14, "Save", true, true, () -> {
-					send("rename", shown.id + "|" + search.getValue().replace("|", " "));
+					String text = search.getValue().replace("|", " ");
+					switch (naming) {
+						case "new" -> send("folder_new", text);
+						case "folder" -> {
+							send("folder_rename", viewFolder + "|" + text);
+							if (!text.isBlank()) viewFolder = text.strip();
+						}
+						default -> send("rename", shown.id + "|" + text);
+					}
 					renaming = false;
+					naming = "spell";
 					search.setValue("");
 				});
 			} else {
 				button(g, px + pw - 8 - 50, py + 30, 50, 14, "Rename", true, false, () -> {
 					renaming = true;
+					naming = "spell";
 					search.setValue(shown.nickname == null ? "" : shown.nickname);
 					setFocused(search);
 					search.setFocused(true);
@@ -618,10 +698,14 @@ public class BookScreen extends Screen {
 			} else {
 				g.text(font(), "Hold a wand to equip.", dx, by + 4, DIM, false);
 			}
-			button(g, dx + dw - 44 - 52, by, 48, 15, shown.archived ? "Restore" : "Archive", true, false, () -> {
-				send("archive", shown.id);
-				selectedSpell = null;
-			});
+			// Move steps the spell through the folders and back to the main list.
+			String moveTo = nextFolder(shown.folder);
+			button(g, dx + dw - 44 - 52, by, 48, 15, "Move", !ClientState.folders.isEmpty(), false, () -> send("move", shown.id + "|" + moveTo));
+			if (!ClientState.folders.isEmpty() && over(dx + dw - 44 - 52, by, 48, 15)) {
+				tooltip = new ArrayList<>();
+				tooltip.add(Component.literal("Now in: " + (shown.folder == null ? "main list" : shown.folder)));
+				tooltip.add(Component.literal("Click to move to: " + (moveTo.isEmpty() ? "main list" : moveTo)).withStyle(net.minecraft.ChatFormatting.GRAY));
+			}
 			button(g, dx + dw - 44, by, 44, 15, "Forget", true, false, () -> {
 				send("forget", shown.id);
 				selectedSpell = null;

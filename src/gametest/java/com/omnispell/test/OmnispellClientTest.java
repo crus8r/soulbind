@@ -655,10 +655,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|Earth Tunnel");
 				check("Earth Tunnel".equals(PlayerStore.get(p).spell(carveSpell.id).label()) && "Earth Tunnel".equals(WandItem.spell(p.getMainHandItem(), 0).label()), "a spell can be given a nickname, and the wand shows it too");
 				com.omnispell.spell.SpellCrafting.archive(p, carveSpell.id);
-				check(PlayerStore.get(p).spell(carveSpell.id).archived && WandItem.spell(p.getMainHandItem(), 0) != null, "a spell can be archived and still sits on its wand");
+				check("Archive".equals(PlayerStore.get(p).spell(carveSpell.id).folder) && WandItem.spell(p.getMainHandItem(), 0) != null, "a spell can be archived and still sits on its wand");
 				com.omnispell.spell.SpellCrafting.archive(p, carveSpell.id);
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|");
-				check(!PlayerStore.get(p).spell(carveSpell.id).archived && carveSpell.name.equals(PlayerStore.get(p).spell(carveSpell.id).label()), "and restored, and un-named");
+				PlayerStore.get(p).folders.clear();
+				check(PlayerStore.get(p).spell(carveSpell.id).folder == null && carveSpell.name.equals(PlayerStore.get(p).spell(carveSpell.id).label()), "and restored, and un-named");
 				wand = p.getMainHandItem();
 
 				// Fire magic cooks; Sparsus exists and is rare.
@@ -1249,6 +1250,52 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.takeScreenshot("28-book-lore");
 			context.runOnClient(c -> c.gui.setScreen(null));
 			context.waitTicks(5);
+
+			// ---- spell folders: make one, move a spell in, hide and show it, rename it, remove it
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				PlayerData data = PlayerStore.get(p);
+				String id = data.spells.get(0).id;
+				com.omnispell.spell.SpellCrafting.newFolder(p, "Earth Work");
+				check(data.folder("Earth Work") != null && !data.folder("Earth Work").shown, "a folder can be made, hidden from the main list at first");
+				com.omnispell.spell.SpellCrafting.move(p, id + "|Earth Work");
+				check("Earth Work".equals(data.spell(id).folder), "a spell can be moved into a folder");
+				com.omnispell.spell.SpellCrafting.toggleFolder(p, "Earth Work");
+				check(data.folder("Earth Work").shown, "a folder can be shown in the main list");
+				com.omnispell.spell.SpellCrafting.renameFolder(p, "Earth Work|Builders");
+				check(data.folder("Builders") != null && "Builders".equals(data.spell(id).folder), "renaming a folder takes its spells with it");
+				com.omnispell.spell.SpellCrafting.deleteFolder(p, "Builders");
+				check(data.folders.isEmpty() && data.spell(id).folder == null && data.spells.size() == 15, "removing a folder returns its spells and forgets nothing");
+			});
+
+			// ---- the Arcanist: an unemployed villager walks to an Arcane Well and takes up the trade
+			net.minecraft.world.entity.npc.villager.Villager[] seeker = new net.minecraft.world.entity.npc.villager.Villager[1];
+			server.runCommand("time set noon");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos b = site[0].offset(0, 0, 40);
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-8, -1, -8), b.offset(8, -1, 8))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(b.offset(-8, 0, -8), b.offset(8, 4, 8))) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+				BlockPos villageWell = com.omnispell.world.Arcanist.placeWell(level, b);
+				check(villageWell != null && level.getBlockState(villageWell).is(OmniItems.ARCANE_WELL), "a village well finds a place in the open");
+				var villager = EntityTypes.VILLAGER.create(level, EntitySpawnReason.COMMAND);
+				villager.snapTo(b.getX() + 5.5, b.getY(), b.getZ() + 5.5, 0f, 0f);
+				villager.setPersistenceRequired();
+				level.addFreshEntity(villager);
+				seeker[0] = villager;
+			});
+			for (int wait = 0; wait < 60; wait++) {
+				context.waitTicks(40);
+				if (server.computeOnServer(s -> !seeker[0].getVillagerData().profession().is(net.minecraft.world.entity.npc.villager.VillagerProfession.NONE))) break;
+			}
+			server.runOnServer(s -> {
+				check(seeker[0].getVillagerData().profession().is(com.omnispell.world.Arcanist.PROFESSION), "an unemployed villager takes up the Arcane Well and becomes an Arcanist (is " + seeker[0].getVillagerData().profession().getRegisteredName() + ")");
+				player(s).teleportTo(player(s).level(), seeker[0].getX() + 3, seeker[0].getY(), seeker[0].getZ() + 3, java.util.Set.of(), 135f, 10f, true);
+			});
+			context.waitTicks(20);
+			context.takeScreenshot("31-arcanist");
+			server.runOnServer(s -> seeker[0].discard());
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {

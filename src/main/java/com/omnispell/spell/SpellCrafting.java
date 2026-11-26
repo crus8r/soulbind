@@ -282,15 +282,98 @@ public final class SpellCrafting {
 		tell(player, true, name.isEmpty() ? spell.name + " goes by its own name again." : spell.name + " is now called " + name + ".");
 	}
 
-	/** Puts a spell away, or brings it back. An archived spell is kept and still works on a wand; it is only out of the list. */
-	public static void archive(ServerPlayer player, String id) {
-		Spell spell = PlayerStore.get(player).spell(id);
-		if (spell == null) return;
-		spell.archived = !spell.archived;
+	public static final int MAX_FOLDERS = 12;
+
+	private static String folderName(String text) {
+		String name = text == null ? "" : text.replace("|", " ").strip();
+		return name.length() > 24 ? name.substring(0, 24) : name;
+	}
+
+	/** Makes a new folder. New folders start hidden from the main list. */
+	public static void newFolder(ServerPlayer player, String text) {
+		PlayerData data = PlayerStore.get(player);
+		String name = folderName(text);
+		if (name.isEmpty()) return;
+		if (data.folder(name) != null) {
+			tell(player, false, "You already have a folder called " + name + ".");
+			return;
+		}
+		if (data.folders.size() >= MAX_FOLDERS) {
+			tell(player, false, "You can keep at most " + MAX_FOLDERS + " folders.");
+			return;
+		}
+		data.folders.add(new PlayerData.Folder(name, false));
+		folderChanged(player, "Folder " + name + " made.");
+	}
+
+	/** "old|new": renames a folder, and every spell in it follows. */
+	public static void renameFolder(ServerPlayer player, String arg) {
+		PlayerData data = PlayerStore.get(player);
+		int bar = arg.indexOf('|');
+		if (bar < 0) return;
+		PlayerData.Folder folder = data.folder(arg.substring(0, bar));
+		String name = folderName(arg.substring(bar + 1));
+		if (folder == null || name.isEmpty()) return;
+		PlayerData.Folder clash = data.folder(name);
+		if (clash != null && clash != folder) {
+			tell(player, false, "You already have a folder called " + name + ".");
+			return;
+		}
+		for (Spell spell : data.spells) if (folder.name.equalsIgnoreCase(spell.folder)) spell.folder = name;
+		folder.name = name;
+		folderChanged(player, "Folder renamed to " + name + ".");
+	}
+
+	/** Whether a folder's spells also show in the main list. */
+	public static void toggleFolder(ServerPlayer player, String name) {
+		PlayerData.Folder folder = PlayerStore.get(player).folder(name);
+		if (folder == null) return;
+		folder.shown = !folder.shown;
+		folderChanged(player, folder.name + (folder.shown ? " is shown in the main list." : " is hidden from the main list."));
+	}
+
+	/** Removes a folder. Its spells go back to the main list; nothing is forgotten. */
+	public static void deleteFolder(ServerPlayer player, String name) {
+		PlayerData data = PlayerStore.get(player);
+		PlayerData.Folder folder = data.folder(name);
+		if (folder == null) return;
+		for (Spell spell : data.spells) if (folder.name.equalsIgnoreCase(spell.folder)) spell.folder = null;
+		data.folders.remove(folder);
+		folderChanged(player, "Folder " + folder.name + " removed. Its spells are back in the main list.");
+	}
+
+	/** "id|folder": puts a spell in a folder; an empty folder name takes it back to the main list. */
+	public static void move(ServerPlayer player, String arg) {
+		PlayerData data = PlayerStore.get(player);
+		int bar = arg.lastIndexOf('|');
+		if (bar < 0) return;
+		Spell spell = data.spell(arg.substring(0, bar));
+		String name = arg.substring(bar + 1);
+		PlayerData.Folder folder = data.folder(name);
+		if (spell == null || (!name.isEmpty() && folder == null)) return;
+		spell.folder = folder == null ? null : folder.name;
 		refreshWands(player, spell);
+		folderChanged(player, spell.label() + (folder == null ? " is back in the main list." : " moved to " + folder.name + "."));
+	}
+
+	/** The old single archive: puts a spell into a hidden folder called Archive, or brings it back. */
+	public static void archive(ServerPlayer player, String id) {
+		PlayerData data = PlayerStore.get(player);
+		Spell spell = data.spell(id);
+		if (spell == null) return;
+		if ("Archive".equalsIgnoreCase(spell.folder)) {
+			spell.folder = null;
+		} else {
+			if (data.folder("Archive") == null) data.folders.add(new PlayerData.Folder("Archive", false));
+			spell.folder = data.folder("Archive").name;
+		}
+		folderChanged(player, spell.label() + (spell.folder == null ? " is back in your spellbook." : " is archived."));
+	}
+
+	private static void folderChanged(ServerPlayer player, String message) {
 		PlayerStore.save(player);
 		PlayerStore.syncState(player);
-		tell(player, true, spell.label() + (spell.archived ? " is archived." : " is back in your spellbook."));
+		tell(player, true, message);
 	}
 
 	private static void refreshWands(ServerPlayer player, Spell spell) {

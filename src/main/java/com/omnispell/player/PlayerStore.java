@@ -55,6 +55,14 @@ public final class PlayerStore {
 		}
 		if (data == null) data = new PlayerData();
 		if (data.mana == null || data.mana.length != ManaPool.values().length) data.mana = new double[ManaPool.values().length];
+		if (data.folders == null) data.folders = new java.util.ArrayList<>();
+		// The single archive of older saves becomes a folder called Archive, hidden from the main list.
+		for (com.omnispell.spell.Spell spell : data.spells) {
+			if (!spell.archived) continue;
+			spell.archived = false;
+			spell.folder = "Archive";
+			if (data.folder("Archive") == null) data.folders.add(new PlayerData.Folder("Archive", false));
+		}
 		if (!data.initialized) {
 			data.initialized = true;
 			for (Word word : WordBank.words()) {
@@ -102,6 +110,7 @@ public final class PlayerStore {
 		json.add("spells", WordBank.GSON.toJsonTree(data.spells));
 		json.add("pending", WordBank.GSON.toJsonTree(data.pending));
 		json.add("bosses", WordBank.GSON.toJsonTree(data.bosses));
+		json.add("folders", WordBank.GSON.toJsonTree(data.folders));
 		json.addProperty("maxWords", creative ? 7 : WandItem.bestWordBudget(player));
 		ServerPlayNetworking.send(player, new OmniNet.SyncState(json.toString()));
 	}

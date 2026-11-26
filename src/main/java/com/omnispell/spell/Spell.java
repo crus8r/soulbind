@@ -16,7 +16,8 @@ public final class Spell {
 	public String id;            // spell type + sorted word ids: the same words always give the same spell
 	public String name;          // the incantation
 	public String nickname;      // what the player calls it, if they have named it
-	public boolean archived;     // kept, but out of the way in the spellbook
+	public boolean archived;     // older saves only: moved into the "Archive" folder when read
+	public String folder;        // the folder it has been put in; null for the main list
 	public String type;          // attack, defense, enchantment, illusion, charm, conjuration, exploration
 	public List<String> words = new ArrayList<>();
 	public int tier = 1;

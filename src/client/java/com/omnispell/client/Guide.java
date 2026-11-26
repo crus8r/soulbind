@@ -29,6 +29,7 @@ public final class Guide {
 				"In the air with a wand in hand, double-tap sprint to walk on air: the air hardens under your feet until your Phase mana runs out, a few seconds at most. It forgives most of a fall, like hay, but not all of it. Double-tap again or sneak to let go.",
 				"To carry the wand in your off hand, shift-click it in your inventory as you would a shield, or sneak + right-click while holding it.",
 				"You know Maxima and Minima from the start. Every spell has a Charge slot on the Craft tab: click it, then pick Maxima for a stronger spell a tier higher, or Minima for a smaller, more exact one a tier lower. A charge does not count against your wand's word limit.",
+				"Spell folders: under the spell list, + makes a folder and < > step between them. Move on a spell puts it in the next folder. A folder can be shown in the main list or kept out of it, renamed, or removed (its spells go back to the main list).",
 				"Change the keys in the Spellbook tab: click the key under a slot, then press the key you want. Double-tap can be switched off there, so one press casts."));
 		s.put("Words of power", List.of(
 				"Every spell is made of words. You begin with a handful and must find the rest.",
