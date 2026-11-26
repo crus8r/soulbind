@@ -4,53 +4,34 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.omnispell.Omnispell;
 import com.omnispell.item.OmniItems;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.Model;
-import net.minecraft.client.model.geom.ModelLayerLocation;
-import net.minecraft.client.model.geom.PartPose;
-import net.minecraft.client.model.geom.builders.CubeDeformation;
-import net.minecraft.client.model.geom.builders.CubeListBuilder;
-import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.geom.builders.MeshDefinition;
-import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.component.DyedItemColor;
 
 /**
- * The robe's belt and the sash that hangs from it, drawn over the dyed leather
- * so the chestpiece reads as a robe. The texture layout must match tools/gen_assets.py.
+ * The lower half of the Wizard's Robe. The robe is worn in the chest slot, so the
+ * game draws only its upper half; this draws the skirt over the legs too, as
+ * leggings would be drawn, whenever the leg slot is empty.
  */
 public final class WizardRobeLayer extends RenderLayer<HumanoidRenderState, HumanoidModel<HumanoidRenderState>> {
-	private static final Identifier BASE = Omnispell.id("textures/entity/wizard_robe_parts.png");
-	private static final Identifier TRIM = Omnispell.id("textures/entity/wizard_robe_parts_trim.png");
-	private static final int UNDYED = 0xFF4031A6;
-	private static final ModelLayerLocation BELT = new ModelLayerLocation(Omnispell.id("wizard_robe"), "belt");
-	private static Model<Object> belt;
+	private static final Identifier SKIRT = Omnispell.id("textures/entity/equipment/humanoid_leggings/wizard_robe.png");
+	private static final Identifier SKIRT_TRIM = Omnispell.id("textures/entity/equipment/humanoid_leggings/wizard_robe_trim.png");
+	private static final int UNDYED = 0xFFB928FA;
+	private static HumanoidModel<HumanoidRenderState> skirt;
 
 	public WizardRobeLayer(RenderLayerParent<HumanoidRenderState, HumanoidModel<HumanoidRenderState>> parent) {
 		super(parent);
 	}
 
-	static LayerDefinition layer() {
-		MeshDefinition mesh = new MeshDefinition();
-		PartDefinition root = mesh.getRoot();
-		root.addOrReplaceChild("belt", CubeListBuilder.create().texOffs(0, 0).addBox(-4f, 10.2f, -2f, 8, 2, 4, new CubeDeformation(0.55f)), PartPose.ZERO);
-		root.addOrReplaceChild("sash", CubeListBuilder.create().texOffs(0, 8).addBox(1f, 11.5f, -3.1f, 2, 7, 1, new CubeDeformation(0.05f)), PartPose.rotation(0.04f, 0f, -0.06f));
-		root.addOrReplaceChild("sash_short", CubeListBuilder.create().texOffs(8, 8).addBox(2.6f, 11.5f, -3.0f, 2, 5, 1), PartPose.rotation(0.04f, 0f, -0.14f));
-		return LayerDefinition.create(mesh, 64, 64);
-	}
-
 	public static void register() {
-		ModelLayerRegistry.registerModelLayer(BELT, WizardRobeLayer::layer);
 		LivingEntityRenderLayerRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
-			if (belt == null) belt = new Model<>(context.bakeLayer(BELT), RenderTypes::entityCutout) { };
+			if (skirt == null) skirt = new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER_ARMOR.legs()));
 			if (renderer.getModel() instanceof HumanoidModel<?>) {
 				@SuppressWarnings({"unchecked", "rawtypes"})
 				RenderLayerParent<HumanoidRenderState, HumanoidModel<HumanoidRenderState>> parent = (RenderLayerParent) renderer;
@@ -61,13 +42,11 @@ public final class WizardRobeLayer extends RenderLayer<HumanoidRenderState, Huma
 
 	@Override
 	public void submit(PoseStack pose, SubmitNodeCollector collector, int light, HumanoidRenderState state, float yRot, float xRot) {
-		if (belt == null || state.chestEquipment == null || !state.chestEquipment.is(OmniItems.WIZARD_ROBE)) return;
+		if (skirt == null || state.chestEquipment == null || !state.chestEquipment.is(OmniItems.WIZARD_ROBE)) return;
+		if (state.legsEquipment != null && !state.legsEquipment.isEmpty()) return; // real leggings are drawn instead
 		DyedItemColor dyed = state.chestEquipment.get(DataComponents.DYED_COLOR);
 		int color = dyed == null ? UNDYED : 0xFF000000 | dyed.rgb();
-		pose.pushPose();
-		getParentModel().body.translateAndRotate(pose);
-		renderColoredCutoutModel(belt, BASE, pose, collector, light, state, color, 1);
-		renderColoredCutoutModel(belt, TRIM, pose, collector, light, state, -1, 2);
-		pose.popPose();
+		renderColoredCutoutModel(skirt, SKIRT, pose, collector, light, state, color, 1);
+		renderColoredCutoutModel(skirt, SKIRT_TRIM, pose, collector, light, state, -1, 2);
 	}
 }

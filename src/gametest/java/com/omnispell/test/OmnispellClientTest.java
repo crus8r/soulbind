@@ -1384,6 +1384,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					ItemStack worn = hat.copy();
 					if (k == 1) worn.remove(DataComponents.DYED_COLOR);
 					model.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, worn);
+					model.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(OmniItems.WIZARD_ROBE));
+					model.setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(OmniItems.WIZARD_BOOTS));
 					player(s).level().addFreshEntity(model);
 					hatWearers.add(model);
 				}

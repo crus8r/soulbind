@@ -368,42 +368,32 @@ def robe_worn(x, y, trim):
     if arms and (x % 4 == 2): shade *= 0.86
     v = int((200 + 45 * noise(x, y, 91)) * shade)
     return (v, v, v, 255)
-for name, trim in (('wizard_robe_trim', True),):
-    img = Image.new('RGBA', (64, 32))
-    for yy in range(32):
-        for xx in range(64):
-            img.putpixel((xx, yy), robe_worn(xx, yy, trim))
-    path = os.path.join(ASSETS, 'textures', 'entity', 'equipment', 'humanoid', name + '.png')
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
-# The 3D parts (see WizardRobeLayer): skirt tiers, collar, mantles, sleeves, boot cuffs, toes.
-def box_uv(u, v, w, h, d):
-    return {'top': (u + d, v, w, d), 'bottom': (u + d + w, v, w, d), 'sides': (u, v + d, 2 * (w + d), h)}
-ROBE_BOXES = {'belt': (0, 0, 8, 2, 4), 'sash': (0, 8, 2, 7, 1), 'sash_short': (8, 8, 2, 5, 1)}
-base = Image.new('RGBA', (64, 64))
-trim = Image.new('RGBA', (64, 64))
-for name, (u, v, w, h, d) in ROBE_BOXES.items():
-    for face, (fu, fv, fw, fh) in box_uv(u, v, w, h, d).items():
-        for yy in range(fv, fv + fh):
-            for xx in range(fu, fu + fw):
-                if name == 'belt':   # leather, not dyed, with a gold buckle at the front
-                    dark = (xx + yy) % 4 == 0
-                    trim.putpixel((xx, yy), LEATHER_DARK if dark else LEATHER)
-                    continue
-                # the sash: cloth in the robe's dye, folds down its length, gold fringe at the end
-                g = int((210 + 40 * noise(xx, yy, 107)) * (0.85 if xx % 2 else 1.0))
-                base.putpixel((xx, yy), (g, g, g, 255))
-                if face == 'sides' and yy == fv + fh - 1: trim.putpixel((xx, yy), GOLD if xx % 2 else GOLD_DARK)
-# the buckle sits on the belt's front face (u from d to d+w, rows below the top)
-for xx in (7, 8):
-    for yy in (4, 5):
-        trim.putpixel((xx, yy), GOLD)
-for img, name in ((base, 'wizard_robe_parts'), (trim, 'wizard_robe_parts_trim')):
-    img.save(os.path.join(ASSETS, 'textures', 'entity', name + '.png'))
-write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {'humanoid': [
-    {'texture': 'minecraft:leather', 'dyeable': {'color_when_undyed': -12570202}},
-    {'texture': 'minecraft:leather_overlay'},
-    {'texture': 'omnispell:wizard_robe_trim'}]}})
+# The robe as worn: the "Arcane" armour textures from the Zero Day mod (MIT licence, see
+# tools/third_party/zeroday/LICENSE), split so the dye can colour the cloth while the gold stays gold.
+ROBE_UNDYED = 0xB928FA
+def split_robe(src, base_out, trim_out):
+    im = Image.open(src).convert('RGBA')
+    base = Image.new('RGBA', im.size)
+    trim = Image.new('RGBA', im.size)
+    for yy in range(im.height):
+        for xx in range(im.width):
+            r, g, b, a = im.getpixel((xx, yy))
+            if a == 0: continue
+            if g > 120 and b < 90: trim.putpixel((xx, yy), (r, g, b, a))     # gold: kept as it is
+            else:
+                v = min(255, int(max(r, g, b) * 255 / 250))                    # cloth: its brightness, for the dye to colour
+                base.putpixel((xx, yy), (v, v, v, a))
+    for img, out in ((base, base_out), (trim, trim_out)):
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        img.save(out)
+THIRD = os.path.join(os.path.dirname(__file__), 'third_party', 'zeroday')
+EQUIP = os.path.join(ASSETS, 'textures', 'entity', 'equipment')
+split_robe(os.path.join(THIRD, 'humanoid', 'arcane.png'), os.path.join(EQUIP, 'humanoid', 'wizard_robe.png'), os.path.join(EQUIP, 'humanoid', 'wizard_robe_trim.png'))
+split_robe(os.path.join(THIRD, 'humanoid_leggings', 'arcane.png'), os.path.join(EQUIP, 'humanoid_leggings', 'wizard_robe.png'), os.path.join(EQUIP, 'humanoid_leggings', 'wizard_robe_trim.png'))
+undyed = ROBE_UNDYED - (1 << 24) if False else -(0x1000000 - ROBE_UNDYED)
+write(os.path.join(ASSETS, 'equipment', 'wizard_robe.json'), {'layers': {
+    'humanoid': [{'texture': 'omnispell:wizard_robe', 'dyeable': {'color_when_undyed': undyed}}, {'texture': 'omnispell:wizard_robe_trim'}],
+    'humanoid_leggings': [{'texture': 'omnispell:wizard_robe', 'dyeable': {'color_when_undyed': undyed}}, {'texture': 'omnispell:wizard_robe_trim'}]}})
 tex('wizard_hat_band', hat_band, 'item')
 # Worn: the 3D hat's skin (see WizardHatLayer): a grey base the dye tints, and a gold trim drawn over it.
 def box_uv(u, v, w, h, d):
@@ -531,7 +521,7 @@ for piece in ('wizard_robe', 'wizard_boots'):
     flat_item(piece, [piece, piece + '_trim'])
     write(os.path.join(ASSETS, 'items', piece + '.json'), {'model': {
         'type': 'minecraft:model', 'model': f'omnispell:item/{piece}',
-        'tints': [{'type': 'minecraft:dye', 'default': -12570202}, {'type': 'minecraft:constant', 'value': -1}]}})
+        'tints': [{'type': 'minecraft:dye', 'default': -4642566}, {'type': 'minecraft:constant', 'value': -1}]}})
 write(os.path.join(ASSETS, 'items', 'wizard_hat.json'), {'model': {
     'type': 'minecraft:model', 'model': 'omnispell:item/wizard_hat',
     'tints': [{'type': 'minecraft:dye', 'default': -12570246}, {'type': 'minecraft:constant', 'value': -1}]}})
