@@ -117,6 +117,13 @@ public final class WordBank {
 		return WORDS.values();
 	}
 
+	/** Every word of a type, including the moderator-only ones (shown only to those who have been given them). */
+	public static List<Word> allOfType(String type) {
+		List<Word> list = new ArrayList<>();
+		for (Word word : WORDS.values()) if (word.type.equals(type)) list.add(word);
+		return list;
+	}
+
 	public static List<Word> wordsOfType(String type) {
 		List<Word> list = new ArrayList<>();
 		for (Word word : WORDS.values()) {

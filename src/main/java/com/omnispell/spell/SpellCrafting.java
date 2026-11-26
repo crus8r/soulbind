@@ -57,7 +57,7 @@ public final class SpellCrafting {
 		Set<String> seen = new HashSet<>();
 		for (String id : wordIds) {
 			Word word = WordBank.word(id);
-			if (word == null || word.excluded) return "Unknown word.";
+			if (word == null || (word.excluded && !data.words.contains(id))) return "Unknown word."; // moderator-only words work for those given them
 			if (!creative && !data.words.contains(id)) return "You do not know the word " + word.shortName() + ".";
 			if (!seen.add(id)) return "A word can only be used once.";
 			int count = counts.merge(word.type, 1, Integer::sum);
@@ -153,7 +153,8 @@ public final class SpellCrafting {
 		spell.tier = Math.max(1, Math.min(5, baseWord == null ? 1 : baseWord.tierOr(2)));
 		if (spell.hasCharge("Maxima")) spell.tier = Math.min(5, spell.tier + 1);
 		if (spell.hasCharge("Minima")) spell.tier = Math.max(1, spell.tier - 1);
-		if (spell.hasCharge("Sparsus")) spell.tier = Math.min(5, spell.tier + 1); // wider: an environment spell's reach is its tier
+		if (spell.hasCharge("Sparsus")) spell.tier = Math.min(5, spell.tier + 1);
+		if (spell.words.contains("base:Infinity")) spell.tier = 5; // the moderators' word: always the fullest reach, as the website treats it // wider: an environment spell's reach is its tier
 		spell.school = "Exploration";
 		if (command == null && base != null) {
 			// A base word by itself: a cantrip. Quick, cheap, and useful every day.

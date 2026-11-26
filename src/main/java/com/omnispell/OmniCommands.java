@@ -55,7 +55,8 @@ public final class OmniCommands {
 							String name = StringArgumentType.getString(ctx, "name");
 							int learned = 0;
 							for (Word word : WordBank.words()) {
-								if (!word.excluded && (word.id.equalsIgnoreCase(name) || word.english.equalsIgnoreCase(name) || word.shortName().equalsIgnoreCase(name))) {
+								// Operators may also give the moderator-only words, such as Infinity.
+								if (word.id.equalsIgnoreCase(name) || word.english.equalsIgnoreCase(name) || word.shortName().equalsIgnoreCase(name) || word.spelling.equalsIgnoreCase(name)) {
 									PlayerStore.get(player).words.add(word.id);
 									learned++;
 								}

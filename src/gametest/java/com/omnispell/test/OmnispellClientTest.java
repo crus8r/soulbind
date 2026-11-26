@@ -727,6 +727,17 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				hunter.discard();
 				p.removeAllEffects();
 
+				// Infinity: a moderator-only word. Not handed out by "words all", given only by the word command, then usable.
+				check(!PlayerStore.get(p).words.contains("base:Infinity"), "Infinity is not among the words everyone can learn");
+				level.getServer().getCommands().performPrefixedCommand(level.getServer().createCommandSourceStack().withEntity(p).withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.OWNER), "omnispell word Infinity");
+				check(PlayerStore.get(p).words.contains("base:Infinity"), "an operator can give Infinity with /omnispell word Infinity");
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Infinity", "command:Sever", "intention:Malice"));
+				com.omnispell.spell.Spell endless = PlayerStore.get(p).pending;
+				check(endless != null && endless.tier == 5, "a spell of Infinity can be crafted, and reaches as far as any can (tier " + (endless == null ? 0 : endless.tier) + ")");
+				PlayerStore.get(p).pending = null;
+				PlayerStore.get(p).words.remove("base:Infinity");
+
 				// Nicknames and the archive.
 				com.omnispell.spell.Spell carveSpell = WandItem.spell(wand, 0);
 				com.omnispell.spell.SpellCrafting.rename(p, carveSpell.id + "|Earth Tunnel");

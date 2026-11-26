@@ -252,14 +252,14 @@ public class BookScreen extends Screen {
 		List<Word> all = WordBank.wordsOfType(dictFilter);
 		String query = search.getValue().trim().toLowerCase();
 		List<Word> known = new ArrayList<>();
-		for (Word word : all) {
+		for (Word word : WordBank.allOfType(dictFilter)) {
 			if (!ClientState.words.contains(word.id)) continue;
 			if (!query.isEmpty() && !word.english.toLowerCase().contains(query) && !word.spelling.toLowerCase().contains(query)) continue;
 			known.add(word);
 		}
 		known.sort((a, b) -> a.spelling.compareToIgnoreCase(b.spelling));
 		int knownOfType = 0;
-		for (Word word : all) if (ClientState.words.contains(word.id)) knownOfType++;
+		for (Word word : all) if (ClientState.words.contains(word.id)) knownOfType++; // moderator-only words are not counted
 
 		int top = py + 50, bottom = py + ph - 28;
 		int cols = 3, cw = (pw - 16) / cols, rh = 12;
@@ -461,7 +461,7 @@ public class BookScreen extends Screen {
 		String query = search.getValue().trim().toLowerCase();
 		List<Word> fits = new ArrayList<>();
 		List<Word> odd = new ArrayList<>();
-		for (Word word : WordBank.wordsOfType(wordType)) {
+		for (Word word : WordBank.allOfType(wordType)) {
 			if (!ClientState.words.contains(word.id) || slotWords.contains(word.id)) continue;
 			if (!query.isEmpty() && !word.english.toLowerCase().contains(query) && !word.spelling.toLowerCase().contains(query)) continue;
 			boolean suits = wordType.equals("intention") ? WordBank.intentionFits(craftType, word) : !wordType.equals("attribute") || WordBank.attributeFits(craftType, word);

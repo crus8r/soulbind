@@ -102,6 +102,7 @@ public final class PlayerStore {
 		if (creative) {
 			words = new java.util.LinkedHashSet<>();
 			for (Word word : WordBank.words()) if (!word.excluded) words.add(word.id);
+			words.addAll(data.words); // and any moderator-only word this player has been given
 			types = new java.util.LinkedHashSet<>();
 			for (WordBank.SpellType type : WordBank.spellTypes()) types.add(type.id);
 		}
