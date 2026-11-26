@@ -75,7 +75,7 @@ public final class ManaHud {
 		// The name appears only after a key press, and fades.
 		long age = ClientState.clientTick - ClientState.shownAtTick;
 		int slot = ClientState.shownSlot;
-		if (slot >= 0 && slot < WandItem.SLOTS && age >= 0 && age < 50) {
+		if (!ClientState.hideName && slot >= 0 && slot < WandItem.SLOTS && age >= 0 && age < 50) {
 			Spell spell = WandItem.spell(wand, slot);
 			int alpha = age < 35 ? 255 : Math.max(16, 255 - (int) ((age - 35) * 16));
 			String text = spell == null ? "Empty" : spell.name;

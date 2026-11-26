@@ -134,6 +134,16 @@ public class OmnispellClient implements ClientModInitializer {
 		long since = ClientState.clientTick - ClientState.shownAtTick;
 		// A held key repeats within the same tick or the next; that is not a second press.
 		boolean second = ClientState.shownSlot == slot && since >= 2 && since <= settings.doubleTapTicks;
+		// Pressing the key of the spell that is already selected, without it being a double-tap, puts the wand back to no spell: left-click is then the plain bolt.
+		if (settings.doubleTap && !second && since >= 2 && WandItem.selected(wand) == slot && WandItem.spell(wand, slot) != null) {
+			ClientPlayNetworking.send(new OmniNet.BookAction("select", "-1"));
+			client.player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("No spell selected: left-click throws a bolt"));
+			ClientState.shownSlot = slot;          // a quick second press still casts it
+			ClientState.shownAtTick = ClientState.clientTick;
+			ClientState.hideName = true;
+			return;
+		}
+		ClientState.hideName = false;
 		ClientState.shownSlot = slot;
 		ClientState.shownAtTick = ClientState.clientTick;
 		if (WandItem.spell(wand, slot) == null) return;

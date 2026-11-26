@@ -34,16 +34,16 @@ public final class Terraform {
 	private static final String[] INTENTIONS = {"destruction", "protection", "discovery", "concealment", "manipulation", "traversal"};
 	/** What each kind of command does with each kind of intention. Rows follow COMMANDS, columns INTENTIONS. */
 	private static final String[][] TABLE = {
-			/* launch  */ {"carve", "platform", "reveal", "smoke_screen", "push", "grapple"},
-			/* envelop */ {"dry", "mend_land", "true_sight", "invisibility", "solidify", "phase"},
+			/* launch  */ {"carve", "platform", "survey", "smoke_screen", "push", "grapple"},
+			/* envelop */ {"dry", "mend_land", "true_sight", "invisibility", "solidify", "launch"},
 			/* scatter */ {"crater", "calm", "illuminate", "decoy", "weather", "teleport"},
 			/* form    */ {"pit", "raise_wall", "prospect", "mirage", "golem", "bridge"},
-			/* bind    */ {"moat", "anchor", "track", "silent_step", "gather", "tether"},
+			/* bind    */ {"moat", "anchor", "track", "silent_step", "gather", "phase"},
 			/* summon  */ {"strike", "guardian", "scout", "phantom", "conjure", "mount"},
-			/* channel */ {"drill", "attune", "prospect", "camouflage", "current", "stairs"},
-			/* shift   */ {"transmute", "ring", "scout", "fade", "path", "pillar"},
+			/* channel */ {"drill", "attune", "echo", "lull", "current", "stairs"},
+			/* shift   */ {"transmute", "ring", "augury", "polymorph", "path", "pillar"},
 			/* pulse   */ {"flatten", "dome", "reveal", "blackout", "field", "dash"},
-			/* grow    */ {"clear", "growth", "illuminate", "thicket", "tree", "leap"},
+			/* grow    */ {"clear", "growth", "waymark", "thicket", "tree", "leap"},
 	};
 
 	/** The effect of an environment spell: the command's kind and the intention's kind decide it. */
@@ -59,7 +59,7 @@ public final class Terraform {
 		return switch (toggle == null ? "" : toggle) {
 			case "carve", "drill", "crater", "pit", "moat", "flatten", "dry", "clear", "raise_wall", "ring", "dome", "platform", "mend_land",
 					"calm", "attune", "growth", "illuminate", "prospect", "thicket", "solidify", "weather", "gather", "conjure", "path", "tree",
-					"stairs", "pillar", "strike", "field" -> true;
+					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull" -> true;
 			default -> false;
 		};
 	}
@@ -106,6 +106,12 @@ public final class Terraform {
 			case "stairs" -> "Builds a stair of " + stuff + " climbing " + (carveLength(t) + 2) + " blocks the way you face.";
 			case "strike" -> "Calls " + bolt(spell) + " down where you look. It strikes everything within " + (2 + t) + " blocks and leaves its element's mark on the ground.";
 			case "field" -> "Lays a field of " + (spell.element == null ? "magic" : spell.element) + " where you look, " + ((2 + t) * 2 + 1) + " blocks across, for " + (6 + 3 * t) + " seconds: " + fieldEffect(spell.element) + ".";
+			case "launch" -> "Throws you " + (8 + 6 * t) + " blocks straight up, and sets you down gently.";
+			case "survey" -> "Points the way to the nearest village and tells you how far it is.";
+			case "echo" -> "Shows the chests, barrels, spawners and other workings hidden within " + (8 + 4 * t) + " blocks.";
+			case "augury" -> "Reads the place you stand in: its biome, depth, weather and the light.";
+			case "waymark" -> "The first cast marks where you stand. Cast it again anywhere to be shown the way back.";
+			case "lull" -> "Every creature within " + (8 + 3 * t) + " blocks forgets it was hunting you, for a while.";
 			case "pillar" -> "Lifts you on a pillar of " + stuff + ", " + (2 + t * 3) + " blocks high.";
 			default -> OLD.getOrDefault(toggle, "Its effect is its own.");
 		};
@@ -141,7 +147,8 @@ public final class Terraform {
 			java.util.Map.entry("bridge", "Spans the gap ahead with a bridge that fades."),
 			java.util.Map.entry("mount", "Calls a steed for a while."),
 			java.util.Map.entry("dash", "A burst of speed forward."),
-			java.util.Map.entry("leap", "A great leap, and a soft landing."));
+			java.util.Map.entry("polymorph", "Turns the creature you look at into something harmless for a while."),
+			java.util.Map.entry("leap", "A great leap forward, and a soft landing."));
 
 	/** Every element leaves its own mark on whatever an environment spell touches. */
 	public static String mark(String element) {
@@ -220,7 +227,7 @@ public final class Terraform {
 
 	public static double cooldownSeconds(String toggle) {
 		return switch (toggle) {
-			case "carve", "drill", "platform", "pillar", "gather", "path", "stairs" -> 6;
+			case "carve", "drill", "platform", "pillar", "gather", "path", "stairs", "launch", "augury", "waymark" -> 6;
 			case "attune", "weather", "calm", "dome", "ring", "thicket" -> 20;
 			default -> 10;
 		};
@@ -473,6 +480,83 @@ public final class Terraform {
 					});
 				}
 				job.changed++;
+			}
+			case "launch" -> {
+				double up = 0.42 * Math.sqrt(2 * 0.08 * (8 + 6 * tier)) / 0.4; // enough to rise about 8 + 6 x tier blocks
+				p.setDeltaMovement(p.getDeltaMovement().x, Math.min(3.6, up * 1.18), p.getDeltaMovement().z);
+				p.syncVelocity = true;
+				p.fallDistance = 0;
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOW_FALLING, 200 + 60 * tier, 0, false, false));
+				Fx.impact(level, p.position(), fx, tier);
+				level.playSound(null, p.blockPosition(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0f, 0.8f);
+				job.changed++;
+			}
+			case "survey" -> {
+				BlockPos found = level.findNearestMapStructure(net.minecraft.tags.StructureTags.VILLAGE, p.blockPosition(), 48, false);
+				if (found == null) return c.fail("No village lies within reach of this spell.");
+				Vec3 to = new Vec3(found.getX() + 0.5 - p.getX(), 0, found.getZ() + 0.5 - p.getZ());
+				c.tell("A village lies " + (int) to.length() + " blocks to the " + compass(to) + ".");
+				Fx.line(level, p.getEyePosition(), p.getEyePosition().add(to.normalize().scale(12)), 0xFFE08A, net.minecraft.core.particles.ParticleTypes.END_ROD, 3);
+				job.changed++;
+			}
+			case "echo" -> {
+				BlockPos center = p.blockPosition();
+				int r = 8 + 4 * tier;
+				java.util.Map<String, Integer> found = new java.util.TreeMap<>();
+				int shown = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(center.offset(-r, -r, -r), center.offset(r, r, r))) {
+					BlockState state = level.getBlockState(pos);
+					if (state.isAir() || !state.hasBlockEntity()) continue;
+					found.merge(state.getBlock().getName().getString(), 1, Integer::sum);
+					if (shown++ < 40) marker(level, pos, tier);
+				}
+				if (found.isEmpty()) c.tell("Nothing answers within " + r + " blocks.");
+				else {
+					StringBuilder text = new StringBuilder("Nearby: ");
+					found.forEach((name, n) -> text.append(n).append(' ').append(name).append(", "));
+					c.tell(text.substring(0, text.length() - 2) + ".");
+				}
+				job.changed++;
+			}
+			case "augury" -> {
+				BlockPos at = p.blockPosition();
+				String biome = level.getBiome(at).unwrapKey().map(key -> key.identifier().getPath().replace('_', ' ')).orElse("an unnamed place");
+				int surface = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, at.getX(), at.getZ());
+				String depth = at.getY() >= surface - 1 ? "under open sky" : (surface - at.getY()) + " blocks under the surface";
+				String sky = level.isThundering() ? "a storm overhead" : level.isRaining() ? "rain overhead" : "clear weather";
+				c.tell("You stand in " + biome + " at height " + at.getY() + ", " + depth + ". " + (level.isDarkOutside() ? "It is dark out" : "It is light out") + ", with " + sky
+						+ ". Light here: " + level.getMaxLocalRawBrightness(at) + " of 15" + (level.getMaxLocalRawBrightness(at) < 8 ? ", dark enough for monsters." : "."));
+				job.changed++;
+			}
+			case "waymark" -> {
+				String here = level.dimension().identifier() + "|" + p.getBlockX() + "|" + p.getBlockY() + "|" + p.getBlockZ();
+				String mark = MARKS.get(p.getUUID());
+				String[] parts = mark == null ? new String[0] : mark.split("\\|");
+				boolean near = parts.length == 4 && parts[0].equals(level.dimension().identifier().toString())
+						&& Math.abs(Integer.parseInt(parts[1]) - p.getBlockX()) + Math.abs(Integer.parseInt(parts[3]) - p.getBlockZ()) < 6;
+				if (mark == null || near) {
+					MARKS.put(p.getUUID(), here);
+					c.tell("This place is marked. Cast again elsewhere to be shown the way back.");
+				} else if (!parts[0].equals(level.dimension().identifier().toString())) {
+					c.tell("Your mark lies in another realm (" + parts[0] + "). Cast here twice to move it.");
+					MARKS.remove(p.getUUID());
+				} else {
+					Vec3 to = new Vec3(Integer.parseInt(parts[1]) + 0.5 - p.getX(), 0, Integer.parseInt(parts[3]) + 0.5 - p.getZ());
+					c.tell("Your mark lies " + (int) to.length() + " blocks to the " + compass(to) + ", at height " + parts[2] + ".");
+					Fx.line(level, p.getEyePosition(), p.getEyePosition().add(to.normalize().scale(12)), 0x9AE6FF, net.minecraft.core.particles.ParticleTypes.END_ROD, 3);
+				}
+				job.changed++;
+			}
+			case "lull" -> {
+				int ticks = 100 + 60 * tier;
+				for (net.minecraft.world.entity.LivingEntity e : Targeting.around(p, p.position(), 8 + 3 * tier, false)) {
+					if (!(e instanceof net.minecraft.world.entity.Mob mob) || MobControl.immune(e)) continue;
+					MobControl.apply(p, mob, "distracted", ticks, null);
+					mob.setTarget(null);
+					job.changed++;
+				}
+				Fx.impact(level, p.position().add(0, 1, 0), fx, tier);
+				if (job.changed == 0) return c.fail("Nothing nearby is hunting you.");
 			}
 			case "drill" -> {
 				Vec3 eye = p.getEyePosition();
@@ -981,6 +1065,30 @@ public final class Terraform {
 			caster.fallDistance = 0;
 			caster.syncVelocity = true;
 		}
+	}
+
+	/** Where each player last set a waymark: realm|x|y|z. Kept until the server stops. */
+	private static final java.util.Map<java.util.UUID, String> MARKS = new java.util.HashMap<>();
+
+	private static String compass(Vec3 to) {
+		double angle = Math.toDegrees(Math.atan2(to.x, -to.z)); // 0 = north, 90 = east
+		String[] names = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+		return names[Math.floorMod((int) Math.round(angle / 45.0), 8)];
+	}
+
+	/** A glowing mark, seen through walls, on one block for a short while. */
+	private static void marker(ServerLevel level, BlockPos pos, int tier) {
+		net.minecraft.world.entity.monster.Shulker marker = net.minecraft.world.entity.EntityTypes.SHULKER.create(level, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+		if (marker == null) return;
+		marker.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
+		marker.setNoAi(true);
+		marker.setInvisible(true);
+		marker.setPermanentlyInvulnerable(true);
+		marker.setSilent(true);
+		marker.setGlowingTag(true);
+		marker.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY, 400, 0, false, false));
+		Summons.track(marker, 200 + 60 * tier);
+		level.addFreshEntity(marker);
 	}
 
 	private static boolean solidBeside(ServerLevel level, BlockPos pos) {

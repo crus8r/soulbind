@@ -86,11 +86,11 @@ public class WandItem extends Item {
 	}
 
 	public static int selected(ItemStack stack) {
-		return Math.max(0, Math.min(SLOTS - 1, tag(stack).getIntOr(SELECTED, 0)));
+		return Math.max(-1, Math.min(SLOTS - 1, tag(stack).getIntOr(SELECTED, 0))); // -1: no spell selected
 	}
 
 	public static void select(ItemStack stack, int slot) {
-		CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putInt(SELECTED, Math.max(0, Math.min(SLOTS - 1, slot))));
+		CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putInt(SELECTED, Math.max(-1, Math.min(SLOTS - 1, slot))));
 		refreshLook(stack);
 	}
 
@@ -117,10 +117,11 @@ public class WandItem extends Item {
 	/** The wand in the main hand, else the off hand, else nothing. */
 	/** Steps the wand to its next slot and says which spell is there. */
 	public static void cycle(ServerPlayer player, ItemStack stack) {
-		int next = (selected(stack) + 1) % SLOTS;
+		int next = selected(stack) + 1;
+		if (next >= SLOTS) next = -1; // after the last slot comes "none": the wand's plain bolt
 		select(stack, next);
-		Spell spell = spell(stack, next);
-		player.sendOverlayMessage(Component.literal("Slot " + (next + 1) + ": " + (spell == null ? "empty" : spell.name)));
+		Spell spell = next < 0 ? null : spell(stack, next);
+		player.sendOverlayMessage(Component.literal(next < 0 ? "No spell selected: left-click throws a bolt" : "Slot " + (next + 1) + ": " + (spell == null ? "empty" : spell.name)));
 	}
 
 	public static ItemStack heldWand(Player player) {

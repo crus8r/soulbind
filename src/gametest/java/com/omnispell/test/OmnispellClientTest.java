@@ -585,6 +585,26 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.teleportTo(level, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
 				PlayerStore.get(p).pending = null;
 
+				// Launch: Air + Envelop + Liberation throws the caster upward.
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Air", "command:Envelop", "intention:Liberation"));
+				com.omnispell.spell.Spell launch = PlayerStore.get(p).pending;
+				check(launch != null && "launch".equals(launch.toggle), "Air + Envelop + Liberation is a launch (got " + (launch == null ? "nothing" : launch.toggle) + ")");
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, launch)) && p.getDeltaMovement().y > 1.2, "the launch throws the caster up (upward speed " + p.getDeltaMovement().y + ")");
+				p.setDeltaMovement(0, 0, 0);
+				p.removeAllEffects();
+				PlayerStore.get(p).pending = null;
+				// No two pairings of command and intention give the same effect.
+				java.util.Set<String> effects = new java.util.HashSet<>();
+				for (String command : new String[]{"launch", "envelop", "scatter", "form", "bind", "summon", "channel", "shift", "pulse", "grow"}) {
+					for (String intention : new String[]{"destruction", "protection", "discovery", "concealment", "manipulation", "traversal"}) {
+						check(effects.add(com.omnispell.spell.Terraform.effectFor(command, intention)), command + " + " + intention + " has an effect of its own (" + com.omnispell.spell.Terraform.effectFor(command, intention) + ")");
+					}
+				}
+				// Deselecting: with no spell selected, the wand reports none and left-click is the bolt.
+				WandItem.select(wand, -1);
+				check(WandItem.selected(wand) == -1, "a wand can have no spell selected");
+				WandItem.select(wand, 4);
+
 				// The wand's ward: holding right-click turns 70% of a hit aside for Barrier mana.
 				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 50;
 				p.startUsingItem(net.minecraft.world.InteractionHand.MAIN_HAND);

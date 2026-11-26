@@ -26,6 +26,8 @@ public final class ClientState {
 	public static double[] mana = new double[com.omnispell.player.ManaPool.values().length];
 	public static double[] manaMax = {1, 1, 1, 1, 1, 1};
 	/** The client tick at which each reserve was last drawn on, for the flash on its bar. */
+	/** True just after a spell was deselected, so its name is not shown as if it had been picked. */
+	public static boolean hideName;
 	public static long[] manaSpentAt = new long[com.omnispell.player.ManaPool.values().length];
 	public static long[] cooldownLeft = new long[5];
 	public static long[] cooldownTotal = {1, 1, 1, 1, 1};

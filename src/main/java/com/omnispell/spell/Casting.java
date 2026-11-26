@@ -42,7 +42,7 @@ public final class Casting {
 	 */
 	public static void primary(ServerPlayer player, ItemStack wand) {
 		int slot = WandItem.selected(wand);
-		Spell spell = WandItem.spell(wand, slot);
+		Spell spell = slot < 0 ? null : WandItem.spell(wand, slot);
 		long now = Tasks.now();
 		Cooldown cd = spell == null ? null : COOLDOWNS.computeIfAbsent(player.getUUID(), k -> new HashMap<>()).get(spell.id);
 		if (spell != null && (cd == null || cd.ready <= now)) {
