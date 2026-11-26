@@ -323,9 +323,10 @@ public final class ExploreEffects {
 				yield true;
 			}
 			case "phase" -> {
-				if (Mana.spend(p, ManaPool.PHASE, 1) < 1) yield c.fail("Your Phase mana is spent.");
 				BlockHitResult hit = Targeting.block(p, 5);
-				if (hit.getType() == HitResult.Type.MISS) yield c.fail("There is no wall in front of you to pass through.");
+				// Nothing to pass through: the same freedom takes you upward instead.
+				if (hit.getType() == HitResult.Type.MISS) yield Terraform.cast(c, "launch");
+				if (Mana.spend(p, ManaPool.PHASE, 1) < 1) yield c.fail("Your Phase mana is spent.");
 				Vec3 flat = new Vec3(look.x, 0, look.z);
 				if (flat.lengthSqr() < 0.01) flat = new Vec3(0, look.y > 0 ? 1 : -1, 0);
 				Vec3 dir = flat.lengthSqr() > 0.9 ? flat.normalize() : look;

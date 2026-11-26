@@ -35,10 +35,10 @@ public final class Terraform {
 	/** What each kind of command does with each kind of intention. Rows follow COMMANDS, columns INTENTIONS. */
 	private static final String[][] TABLE = {
 			/* launch  */ {"carve", "platform", "survey", "smoke_screen", "push", "grapple"},
-			/* envelop */ {"dry", "mend_land", "true_sight", "invisibility", "solidify", "launch"},
+			/* envelop */ {"dry", "mend_land", "true_sight", "invisibility", "solidify", "phase"},
 			/* scatter */ {"crater", "calm", "illuminate", "decoy", "weather", "teleport"},
 			/* form    */ {"pit", "raise_wall", "prospect", "mirage", "golem", "bridge"},
-			/* bind    */ {"moat", "anchor", "track", "silent_step", "gather", "phase"},
+			/* bind    */ {"moat", "anchor", "track", "silent_step", "gather", "launch"},
 			/* summon  */ {"strike", "guardian", "scout", "phantom", "conjure", "mount"},
 			/* channel */ {"drill", "attune", "echo", "lull", "current", "stairs"},
 			/* shift   */ {"transmute", "ring", "augury", "polymorph", "path", "pillar"},
@@ -142,7 +142,7 @@ public final class Terraform {
 			java.util.Map.entry("current", "A current carries you swiftly the way you face."),
 			java.util.Map.entry("grapple", "Pulls you to the point you look at."),
 			java.util.Map.entry("tether", "Pulls you to the point you look at."),
-			java.util.Map.entry("phase", "Lets you step through a wall."),
+			java.util.Map.entry("phase", "Steps you through the wall in front of you. With no wall there, it throws you high into the air instead."),
 			java.util.Map.entry("teleport", "Carries you instantly to where you look."),
 			java.util.Map.entry("bridge", "Spans the gap ahead with a bridge that fades."),
 			java.util.Map.entry("mount", "Calls a steed for a while."),

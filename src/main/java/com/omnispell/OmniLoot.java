@@ -29,6 +29,16 @@ public final class OmniLoot {
 	}
 
 	public static void register() {
+		// Fire magic cooks what it kills: raw food among a creature's drops comes off cooked.
+		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
+			if (!(context.getOptional(LootContextParams.LAST_DAMAGE_PLAYER) instanceof ServerPlayer killer)) return;
+			if (context.getOptional(LootContextParams.THIS_ENTITY) instanceof ServerPlayer) return;
+			if (!com.omnispell.spell.Casting.fireMagicActive(killer)) return;
+			for (int i = 0; i < drops.size(); i++) {
+				net.minecraft.world.item.Item cooked = cooked(drops.get(i).getItem());
+				if (cooked != null) drops.set(i, new net.minecraft.world.item.ItemStack(cooked, drops.get(i).getCount()));
+			}
+		});
 		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
 			String name = table.getRegisteredName();
 			int colon = name.indexOf(':');
@@ -71,6 +81,18 @@ public final class OmniLoot {
 				}
 			}
 		});
+	}
+
+	/** The cooked form of a raw food, found by name (beef -> cooked_beef), so other mods' meats work too. Null if it has none. */
+	public static net.minecraft.world.item.Item cooked(net.minecraft.world.item.Item raw) {
+		net.minecraft.resources.Identifier id = BuiltInRegistries.ITEM.getKey(raw);
+		String path = id.getPath();
+		if (path.startsWith("cooked_") || !new net.minecraft.world.item.ItemStack(raw).has(net.minecraft.core.component.DataComponents.FOOD)) {
+			return raw == net.minecraft.world.item.Items.POTATO ? net.minecraft.world.item.Items.BAKED_POTATO : null;
+		}
+		String name = path.startsWith("raw_") ? path.substring(4) : path;
+		if (raw == net.minecraft.world.item.Items.POTATO) return net.minecraft.world.item.Items.BAKED_POTATO;
+		return BuiltInRegistries.ITEM.getOptional(net.minecraft.resources.Identifier.fromNamespaceAndPath(id.getNamespace(), "cooked_" + name)).orElse(null);
 	}
 
 	/** Scrolls get scarcer as the dictionary fills: full chance when empty, 40% of it when complete. */

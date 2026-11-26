@@ -588,11 +588,40 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				// Launch: Air + Envelop + Liberation throws the caster upward.
 				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Air", "command:Envelop", "intention:Liberation"));
 				com.omnispell.spell.Spell launch = PlayerStore.get(p).pending;
-				check(launch != null && "launch".equals(launch.toggle), "Air + Envelop + Liberation is a launch (got " + (launch == null ? "nothing" : launch.toggle) + ")");
-				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, launch)) && p.getDeltaMovement().y > 1.2, "the launch throws the caster up (upward speed " + p.getDeltaMovement().y + ")");
+				check(launch != null && "phase".equals(launch.toggle), "Air + Envelop + Liberation is phase (got " + (launch == null ? "nothing" : launch.toggle) + ")");
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, wand, launch)) && p.getDeltaMovement().y > 1.2, "with no wall in front, phase throws the caster up instead (upward speed " + p.getDeltaMovement().y + ")");
 				p.setDeltaMovement(0, 0, 0);
 				p.removeAllEffects();
 				PlayerStore.get(p).pending = null;
+				// Fire magic cooks; Sparsus exists and is rare.
+				check(com.omnispell.OmniLoot.cooked(Items.BEEF) == Items.COOKED_BEEF && com.omnispell.OmniLoot.cooked(Items.SALMON) == Items.COOKED_SALMON
+						&& com.omnispell.OmniLoot.cooked(Items.POTATO) == Items.BAKED_POTATO && com.omnispell.OmniLoot.cooked(Items.BONE) == null, "raw food has a cooked form and other drops do not");
+				var sparsus = com.omnispell.data.WordBank.word("charge:Sparsus (Area of effect)");
+				check(sparsus != null && sparsus.rarity == 4, "Sparsus is a rare charge word");
+				// A cow killed by a fire spell drops cooked beef.
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Fire", "command:Summon", "intention:Malice"));
+				com.omnispell.spell.Spell fireStrike = PlayerStore.get(p).pending;
+				PlayerStore.get(p).pending = null;
+				var cow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
+				cow.snapTo(b.getX() + 0.5, b.getY(), b.getZ() - 3.5, 0f, 0f);
+				cow.setNoAi(true);
+				cow.setHealth(1f);
+				level.addFreshEntity(cow);
+				p.setXRot(25f);
+				ItemStack fireWand = WandItem.create("oak", "nether_star");
+				WandItem.setSpell(fireWand, 0, fireStrike);
+				p.getInventory().setItem(6, fireWand);
+				com.omnispell.spell.Casting.cast(p, fireWand, 0);
+				p.getInventory().setItem(6, ItemStack.EMPTY);
+				boolean cookedBeef = false, rawBeef = false;
+				for (var item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(cow.blockPosition()).inflate(4))) {
+					if (item.getItem().is(Items.COOKED_BEEF)) cookedBeef = true;
+					if (item.getItem().is(Items.BEEF)) rawBeef = true;
+					item.discard();
+				}
+				check(fireStrike != null && "strike".equals(fireStrike.toggle) && !cow.isAlive(), "the fire strike killed the cow");
+				check(!rawBeef, "a cow killed by fire magic drops no raw beef" + (cookedBeef ? " (cooked beef dropped)" : " (it dropped no beef this time)"));
+				p.setXRot(0f);
 				// No two pairings of command and intention give the same effect.
 				java.util.Set<String> effects = new java.util.HashSet<>();
 				for (String command : new String[]{"launch", "envelop", "scatter", "form", "bind", "summon", "channel", "shift", "pulse", "grow"}) {

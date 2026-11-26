@@ -79,6 +79,21 @@ public final class CombatEffects {
 
 	// ----- attack -----
 
+	/** Sparsus: the spell washes over everything within a few blocks of where it lands, at a little over half strength. */
+	private static int spread(Cast cast, LivingEntity first, Vec3 center, double base) {
+		Spell.EffectCode code = cast.spell.code;
+		double radius = 3.5 + 0.5 * cast.spell.tier;
+		int hit = 0;
+		for (LivingEntity other : Targeting.around(cast.player, center, radius, false)) {
+			if (other == first || !other.isAlive() || com.omnispell.familiar.Familiars.isFamiliar(other)) continue;
+			if (base > 0 && (cast.spell.type.equals("attack") || code.type.equals("damage"))) strike(cast, other, base * 0.6, false);
+			if (!code.status.equals("none") && !code.status.equals("null") && other.isAlive()) status(cast, other, code.status, Math.max(1, code.duration));
+			hit++;
+		}
+		Fx.ring(cast.level, center.add(0, 0.3, 0), radius, Fx.color(cast.spell.visual.color1), null);
+		return hit;
+	}
+
 	private static boolean attack(Cast cast) {
 		ServerPlayer player = cast.player;
 		Spell.EffectCode code = cast.spell.code;
@@ -87,6 +102,7 @@ public final class CombatEffects {
 		if (target == null) {
 			Vec3 end = Targeting.point(player, cast.range);
 			Fx.play(cast.level, cast.spell.visual, hand, end);
+			if (cast.spell.hasCharge("Sparsus") && spread(cast, null, end, code.primaryValue > 0 ? code.primaryValue : cast.spell.tier * 10.0) > 0) return true;
 			cast.cooldownFactor = 0.5; // a miss costs less
 			return true;
 		}
@@ -96,6 +112,7 @@ public final class CombatEffects {
 		if (!code.status.equals("none") && !code.status.equals("null") && target.isAlive()) {
 			status(cast, target, code.status, Math.max(1, code.duration));
 		}
+		if (cast.spell.hasCharge("Sparsus")) spread(cast, target, target.position(), base);
 		return true;
 	}
 
@@ -236,6 +253,7 @@ public final class CombatEffects {
 		}
 		// Offensive spell types that debuff still sting a little, scaled well below a true attack.
 		if (cast.spell.type.equals("attack") && code.primaryValue > 0) strike(cast, target, code.primaryValue, true);
+		if (cast.spell.hasCharge("Sparsus")) spread(cast, target, target.position(), 0);
 		return true;
 	}
 

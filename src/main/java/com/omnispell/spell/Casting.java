@@ -32,6 +32,12 @@ public final class Casting {
 	}
 
 	private static final Map<UUID, Long> BOLT_READY = new HashMap<>();
+	/** Until when a player's kills count as made by fire magic, so the meat comes off cooked. */
+	private static final Map<UUID, Long> FIRE_UNTIL = new HashMap<>();
+
+	public static boolean fireMagicActive(ServerPlayer player) {
+		return FIRE_UNTIL.getOrDefault(player.getUUID(), 0L) > Tasks.now();
+	}
 	/** Force mana per bolt: a full starting reserve is twelve bolts, then about one every ten seconds. */
 	public static final double BOLT_COST = 5.0;
 
@@ -103,6 +109,7 @@ public final class Casting {
 		}
 
 		Modifiers.noteCast(player);
+		if ("fire".equals(spell.code.element) || "fire".equals(spell.element)) FIRE_UNTIL.put(player.getUUID(), now + (spell.isExploration() ? 500 : 100));
 		boolean done;
 		try {
 			done = spell.isExploration() ? ExploreEffects.cast(cast) : CombatEffects.cast(cast);

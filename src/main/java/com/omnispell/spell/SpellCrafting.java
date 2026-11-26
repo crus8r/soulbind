@@ -152,6 +152,7 @@ public final class SpellCrafting {
 		spell.tier = Math.max(1, Math.min(5, baseWord == null ? 1 : baseWord.tierOr(2)));
 		if (spell.hasCharge("Maxima")) spell.tier = Math.min(5, spell.tier + 1);
 		if (spell.hasCharge("Minima")) spell.tier = Math.max(1, spell.tier - 1);
+		if (spell.hasCharge("Sparsus")) spell.tier = Math.min(5, spell.tier + 1); // wider: an environment spell's reach is its tier
 		spell.school = "Exploration";
 		if (entry == null) {
 			spell.fizzle = true;

@@ -61,6 +61,15 @@ public final class WordBank {
 		JsonObject root = read("words.json");
 		List<Word> words = GSON.fromJson(root.get("words"), new TypeToken<List<Word>>() { }.getType());
 		for (Word word : words) WORDS.put(word.id, word);
+		// Sparsus is the mod's own charge word: it spreads a spell over everything near its target. A rare find.
+		Word sparsus = new Word();
+		sparsus.id = "charge:Sparsus (Area of effect)";
+		sparsus.type = "charge";
+		sparsus.english = "Sparsus (Area of effect)";
+		sparsus.spelling = "Sparsus";
+		sparsus.description = "Spreads the spell over everything near its target";
+		sparsus.rarity = 4;
+		WORDS.put(sparsus.id, sparsus);
 		List<SpellType> types = GSON.fromJson(root.get("spellTypes"), new TypeToken<List<SpellType>>() { }.getType());
 		for (SpellType type : types) {
 			// Enchantment, illusion and charm are retired: four kinds of spell remain.
