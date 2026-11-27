@@ -2802,6 +2802,19 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					if (st.is(Blocks.STONE_BRICK_WALL) || st.is(Blocks.STONE_BRICKS) || st.is(Blocks.LANTERN) || st.getBlock() instanceof net.minecraft.world.level.block.StainedGlassBlock) fdLeft++;
 				}
 				check(fdLeft == 0, "when its time is up, all of it is gone, railings and lanterns too (" + fdLeft + " left)");
+				// A conjured thunderbird is a parrot underneath, but it never settles on its caster's shoulder.
+				ServerPlayer p = player(s);
+				com.omnispell.spell.Spell fdBird = new com.omnispell.spell.Spell();
+				fdBird.type = "conjuration";
+				fdBird.tier = 3;
+				fdBird.code.element = "arcane";
+				fdBird.name = "Crimson_Stormtalon";
+				fdBird.words.addAll(java.util.List.of("base:Thunder", "command:Sever", "intention:Malice", "attribute:Red"));
+				com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), fdBird), "Crimson_Stormtalon", 10, 20);
+				var fdParrots = fdLevel.getEntitiesOfClass(net.minecraft.world.entity.animal.parrot.Parrot.class, p.getBoundingBox().inflate(16));
+				check(!fdParrots.isEmpty() && fdParrots.stream().allMatch(bird -> ((com.omnispell.mixin.MobGoalsAccessor) bird).omnispell$goalSelector().getAvailableGoals().stream()
+						.noneMatch(g -> g.getGoal() instanceof net.minecraft.world.entity.ai.goal.LandOnOwnersShoulderGoal)), "a conjured bird never perches on its caster's shoulder (" + fdParrots.size() + " birds)");
+				fdParrots.forEach(net.minecraft.world.entity.Entity::discard);
 				player(s).teleportTo(fdLevel, cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
 			});
 			context.waitTicks(5);

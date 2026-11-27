@@ -10,4 +10,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface MobGoalsAccessor {
 	@Accessor("targetSelector")
 	GoalSelector omnispell$targetSelector();
+
+	@Accessor("goalSelector")
+	GoalSelector omnispell$goalSelector();
 }

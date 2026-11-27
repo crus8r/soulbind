@@ -319,6 +319,8 @@ public final class Conjuring {
 		mob.setTarget(null);
 		mob.setPersistenceRequired();
 		if (mob instanceof net.minecraft.world.entity.TamableAnimal pet) pet.tame(player);
+		// A conjured bird is there to fight: it never settles on its caster's shoulder.
+		((com.omnispell.mixin.MobGoalsAccessor) mob).omnispell$goalSelector().removeAllGoals(goal -> goal instanceof net.minecraft.world.entity.ai.goal.LandOnOwnersShoulderGoal);
 		if (mob instanceof net.minecraft.world.entity.animal.golem.IronGolem golem) golem.setPlayerCreated(true);
 		if (mob instanceof net.minecraft.world.entity.monster.Vex vex) vex.setLimitedLife((int) Math.max(40, cast.turns(turns) + 20));
 		if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
@@ -598,10 +600,20 @@ public final class Conjuring {
 			Vec3 step = to.subtract(from);
 			int n = Math.max(1, (int) Math.ceil(step.length()));
 			net.minecraft.core.particles.DustParticleOptions dust = new net.minecraft.core.particles.DustParticleOptions(tintFor(cast.spell), 1.6f);
+			// Rings of the creature's colour along the way, like the warden's shockwaves (whose own particle is always blue).
+			Vec3 dir = step.normalize();
+			Vec3 up = Math.abs(dir.y) > 0.9 ? new Vec3(1, 0, 0) : new Vec3(0, 1, 0);
+			Vec3 ringA = dir.cross(up).normalize();
+			Vec3 ringB = dir.cross(ringA).normalize();
 			for (int i = 1; i <= n; i++) {
 				Vec3 q = from.add(step.scale(i / (double) n));
-				cast.level.sendParticles(net.minecraft.core.particles.ParticleTypes.SONIC_BOOM, q.x, q.y, q.z, 1, 0, 0, 0, 0);
-				cast.level.sendParticles(dust, q.x, q.y, q.z, 6, 0.25, 0.25, 0.25, 0);
+				double r = 0.35 + 0.25 * Math.sin(i * 0.9);
+				for (int k = 0; k < 10; k++) {
+					double t = k * Math.PI * 2 / 10;
+					Vec3 o = q.add(ringA.scale(Math.cos(t) * r)).add(ringB.scale(Math.sin(t) * r));
+					cast.level.sendParticles(dust, o.x, o.y, o.z, 1, 0, 0, 0, 0);
+				}
+				cast.level.sendParticles(dust, q.x, q.y, q.z, 2, 0.05, 0.05, 0.05, 0);
 			}
 			cast.level.playSound(null, mob.blockPosition(), net.minecraft.sounds.SoundEvents.WARDEN_SONIC_BOOM, net.minecraft.sounds.SoundSource.PLAYERS, 0.7f, 1.3f);
 		} else {
