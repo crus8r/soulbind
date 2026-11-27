@@ -1909,6 +1909,23 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(com.omnispell.spell.Wards.describe(windShield).contains("arrows aside") && com.omnispell.spell.Wards.describe(windShield).contains("sent back"), "a wind shield with Reflect turns arrows aside and sends spells back");
 			});
 
+			// ---- ice on lava in the Nether holds only for a while
+			BlockPos netherLava = new BlockPos(8, 100, 8);
+			server.runOnServer(s -> {
+				ServerLevel nether = s.getLevel(net.minecraft.world.level.Level.NETHER);
+				ServerLevel overworld = player(s).level();
+				nether.setBlockAndUpdate(netherLava.below(), Blocks.NETHERRACK.defaultBlockState());
+				nether.setBlockAndUpdate(netherLava, Blocks.LAVA.defaultBlockState());
+				check(com.omnispell.spell.TempBlocks.scorching(nether, netherLava) && !com.omnispell.spell.TempBlocks.scorching(overworld, player(s).blockPosition()), "the Nether is scorching and the Overworld is not");
+				check(com.omnispell.spell.TempBlocks.freezeLava(nether, netherLava, 1) && nether.getBlockState(netherLava).is(Blocks.PACKED_ICE), "ice magic freezes Nether lava over");
+			});
+			context.waitTicks(205);
+			server.runOnServer(s -> {
+				ServerLevel nether = s.getLevel(net.minecraft.world.level.Level.NETHER);
+				check(nether.getBlockState(netherLava).is(Blocks.LAVA), "and after ten seconds it melts back to lava");
+				nether.setBlockAndUpdate(netherLava, Blocks.AIR.defaultBlockState());
+			});
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {
 				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop

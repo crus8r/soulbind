@@ -603,6 +603,10 @@ public final class ExploreEffects {
 				int radius = power > 1 ? 2 : 1;
 				int changed = 0;
 				for (BlockPos pos : BlockPos.betweenClosed(hit.getBlockPos().offset(-radius, -radius, -radius), hit.getBlockPos().offset(radius, radius, radius))) {
+					if (element.equals("ice") && TempBlocks.scorching(level, pos) && TempBlocks.freezeLava(level, pos, tier)) {
+						changed++;
+						continue;
+					}
 					Block result = transmuted(level.getBlockState(pos), element);
 					if (result != null) {
 						level.setBlockAndUpdate(pos.immutable(), result.defaultBlockState());

@@ -285,7 +285,7 @@ public final class Terraform {
 			case "illuminate" -> "Hangs " + (4 + t * 4) + " lasting lights in the air around you, out to " + (6 + t * 4) + " blocks.";
 			case "prospect" -> "Shows the ores hidden within " + (6 + t * 4) + " blocks and tells you what they are.";
 			case "thicket" -> "Grows a thicket of leaves around you to hide in, " + (domeRadius(t) * 2 + 1) + " blocks across.";
-			case "solidify" -> "Hardens liquid within " + mendRadius(t) + " blocks: water to ice, lava to stone.";
+			case "solidify" -> "Hardens liquid within " + mendRadius(t) + " blocks: water to ice, lava to stone." + ("ice".equals(spell.element) ? " In the Nether's heat, ice only holds lava for " + (10 + (t - 1) * 5 / 2) + " seconds before it melts back." : "");
 			case "weather" -> "Changes the weather: brings rain if the sky is clear, clears it if it is raining." + (t >= 4 ? " At this tier it can call a thunderstorm." : "");
 			case "gather" -> "Draws every loose item and experience orb within " + (8 * t) + " blocks to you.";
 			case "conjure" -> "Calls " + conjured(spell.element, stuff) + " into being where you look.";
@@ -298,7 +298,7 @@ public final class Terraform {
 			case "nourish" -> "Waters what you look at: crops and saplings grow as with bone meal, dry farmland is wetted, a flame is put out. Costs 5 Restoration.";
 			case "gust" -> "A gust under your feet: cast it in the air for a second jump. Costs half a point of Phase.";
 			case "clod" -> "Sets one block of " + stuff + " where you look. Look at the ground under you and it lifts you up on it, so you can tower without carrying blocks. Costs 2 Force.";
-			case "chill" -> "Freezes the water you look at and dusts the ground with snow. Costs 2 Force.";
+			case "chill" -> "Freezes the water you look at and dusts the ground with snow. Lava freezes over too, but only for ten seconds before it melts back. Costs 2 Force.";
 			case "glimmer" -> "Hangs one lasting light where you look.";
 			case "blink" -> "Steps you a few blocks the way you face. Costs 1 Phase.";
 			case "shade" -> "Hides you from sight for five seconds. Costs 1 Phase.";
@@ -778,6 +778,15 @@ public final class Terraform {
 				BlockHitResult hit = p.level().clip(new net.minecraft.world.level.ClipContext(p.getEyePosition(), p.getEyePosition().add(p.getLookAngle().scale(8)),
 						net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.SOURCE_ONLY, p));
 				if (hit.getType() == HitResult.Type.MISS) return c.fail("There is nothing within reach to chill.");
+				// Lava freezes over for a little while, then melts back.
+				int frozen = 0;
+				for (BlockPos at : BlockPos.betweenClosed(hit.getBlockPos().offset(-1, -1, -1), hit.getBlockPos().offset(1, 0, 1))) if (TempBlocks.freezeLava(level, at, tier)) frozen++;
+				if (frozen > 0) {
+					if (!p.getAbilities().instabuild) com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.FORCE, 2);
+					level.sendParticles(net.minecraft.core.particles.ParticleTypes.SNOWFLAKE, hit.getLocation().x, hit.getLocation().y + 0.5, hit.getLocation().z, 16, 0.6, 0.3, 0.6, 0.02);
+					job.changed++;
+					break;
+				}
 				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.FORCE, 2) < 2) return c.fail("Not enough Force mana.");
 				BlockPos pos = hit.getBlockPos();
 				for (BlockPos at : BlockPos.betweenClosed(pos.offset(-1, 0, -1), pos.offset(1, 1, 1))) {
@@ -980,6 +989,11 @@ public final class Terraform {
 					boolean liquidBlock = state.getBlock() instanceof net.minecraft.world.level.block.LiquidBlock;
 					if (toggle.equals("solidify")) {
 						if (!liquidBlock || !state.getFluidState().isSource()) continue;
+						// Ice magic on lava in the Nether only freezes it for a while.
+						if (lava && "ice".equals(c.spell.element) && TempBlocks.scorching(level, pos)) {
+							if (TempBlocks.freezeLava(level, pos, tier)) job.changed++;
+							continue;
+						}
 						level.setBlockAndUpdate(pos, (water ? Blocks.ICE : Blocks.STONE).defaultBlockState());
 						job.changed++;
 					} else if (toggle.equals("dry")) {

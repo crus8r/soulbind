@@ -49,4 +49,31 @@ public final class TempBlocks {
 		});
 		return true;
 	}
+
+	/** True where water boils away: the Nether and anywhere else that hot. */
+	public static boolean scorching(ServerLevel level, BlockPos pos) {
+		return Boolean.TRUE.equals(level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.WATER_EVAPORATES, pos));
+	}
+
+	/**
+	 * Ice magic laid on lava where it is too hot to hold: the lava freezes over, then melts back
+	 * to lava after ten seconds at the weakest and twenty at the strongest.
+	 */
+	public static boolean freezeLava(ServerLevel level, BlockPos pos, int tier) {
+		BlockState state = level.getBlockState(pos);
+		if (!state.getFluidState().is(net.minecraft.tags.FluidTags.LAVA) || !state.getFluidState().isSource()) return false;
+		BlockPos fixed = pos.immutable();
+		int ticks = 200 + 50 * (Math.max(1, Math.min(5, tier)) - 1);
+		level.setBlockAndUpdate(fixed, Blocks.PACKED_ICE.defaultBlockState());
+		level.sendParticles(ParticleTypes.SNOWFLAKE, fixed.getX() + 0.5, fixed.getY() + 1.0, fixed.getZ() + 0.5, 4, 0.3, 0.1, 0.3, 0.01);
+		Tasks.later(ticks - 40, () -> {
+			if (level.getBlockState(fixed).is(Blocks.PACKED_ICE)) level.sendParticles(ParticleTypes.DRIPPING_LAVA, fixed.getX() + 0.5, fixed.getY() + 1.0, fixed.getZ() + 0.5, 3, 0.3, 0.0, 0.3, 0.0);
+		});
+		Tasks.later(ticks, () -> {
+			if (!level.getBlockState(fixed).is(Blocks.PACKED_ICE)) return;
+			level.setBlockAndUpdate(fixed, Blocks.LAVA.defaultBlockState());
+			level.sendParticles(ParticleTypes.LAVA, fixed.getX() + 0.5, fixed.getY() + 1.0, fixed.getZ() + 0.5, 2, 0.2, 0.0, 0.2, 0.0);
+		});
+		return true;
+	}
 }
