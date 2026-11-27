@@ -330,6 +330,7 @@ public final class Conjuring {
 	public static boolean spawn(Cast cast, String name, double damage, double turns) {
 		if (Masonry.structure(cast.spell) != null) return Masonry.build(cast);
 		Spell spell = cast.spell;
+		if (Masonry.alsoShelter(spell)) Masonry.build(cast, "shelter");
 		double life = turns;
 		if (giant(spell)) life *= 0.6;
 		if (spell.hasCharge("Minima")) life *= 1.3;
@@ -509,7 +510,8 @@ public final class Conjuring {
 			case "serpent" -> "a serpent that swims through the air";
 			case "eagle" -> "a great bird";
 			case "spirit" -> colourWord(spell) != null ? "a featureless sprite of " + colourWord(spell).toLowerCase(Locale.ROOT) + " light" : "a spirit";
-			case "hollow_knight" -> "a hollow knight: an empty suit of " + (colourWord(spell) == null ? "" : colourWord(spell).toLowerCase(Locale.ROOT) + " ") + "armour, sword and shield in hand, with nothing inside but magic";
+			case "hollow_knight" -> "a hollow knight: an empty suit of " + (colourWord(spell) == null ? "" : colourWord(spell).toLowerCase(Locale.ROOT) + " ") + "armour, sword and shield in hand, with nothing inside but magic and a ring of its colour turning about it"
+					+ (Masonry.alsoShelter(spell) ? ". It comes with a bulwark: a domed shelter raised around you, its doorway of hardened air" : "");
 			case "golem" -> "a golem";
 			default -> "a " + body.id;
 		};
@@ -859,6 +861,17 @@ public final class Conjuring {
 
 	/** A faint haze of its element, so you can tell a fire wolf from a frost one at a glance. */
 	private static void aura(ServerLevel level, Mob mob, Active a) {
+		if (a.body.id.equals("hollow_knight")) {
+			// A slow ring of its colour turning around it, at the height of its chest.
+			net.minecraft.core.particles.DustParticleOptions ring = new net.minecraft.core.particles.DustParticleOptions(tintFor(a.cast.spell), 1.2f);
+			double r = 0.9 + mob.getBbWidth();
+			double spin = mob.tickCount * 0.08;
+			double y = mob.getY() + mob.getBbHeight() * 0.6;
+			for (int k = 0; k < 12; k++) {
+				double t = spin + k * Math.PI * 2 / 12;
+				level.sendParticles(ring, mob.getX() + Math.cos(t) * r, y + Math.sin(t * 2) * 0.15, mob.getZ() + Math.sin(t) * r, 1, 0, 0, 0, 0);
+			}
+		}
 		var particle = switch (AttackForms.element(a.cast.spell)) {
 			case "fire" -> net.minecraft.core.particles.ParticleTypes.SMALL_FLAME;
 			case "ice" -> net.minecraft.core.particles.ParticleTypes.SNOWFLAKE;

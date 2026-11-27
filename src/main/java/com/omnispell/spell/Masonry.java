@@ -138,6 +138,7 @@ public final class Masonry {
 	/** Seconds the structure stands, before Duratus. */
 	public static int seconds(Spell spell) {
 		int tier = Math.max(1, Math.min(5, spell.tier));
+		if (alsoShelter(spell)) return 20 + 4 * tier; // the bulwark stands as long as its warden, more or less
 		return "cage".equals(structure(spell)) ? 8 + 2 * tier : 40 + 8 * tier;
 	}
 
@@ -155,11 +156,30 @@ public final class Masonry {
 		return ("cage".equals(what) ? "It closes " : "It raises ") + kind + ", built in its element's own stone. It stands about " + secs + " seconds: near the end it turns to glass, so you can see it going, and then it is gone.";
 	}
 
+	/**
+	 * A strong guarding conjuration of a colour (tier 4 or more) calls its hollow knight and raises the
+	 * shelter around you as well: a bulwark and its warden.
+	 */
+	public static boolean alsoShelter(Spell spell) {
+		if (!"conjuration".equals(spell.type) || spell.tier < 4 || Conjuring.colourWord(spell) == null || !Conjuring.guarding(spell)) return false;
+		String kind = "", intention = "";
+		for (String id : spell.words) {
+			com.omnispell.data.Word w = com.omnispell.data.WordBank.word(id);
+			if (w == null) continue;
+			if (w.type.equals("command")) kind = w.explore == null ? "" : w.explore;
+			if (w.type.equals("intention")) intention = w.english;
+		}
+		return kind.equals("envelop") && !java.util.Set.of("Malice", "Weakening", "Banishment", "Binding", "Nullification").contains(intention);
+	}
+
 	public static boolean build(Cast cast) {
+		return build(cast, structure(cast.spell));
+	}
+
+	public static boolean build(Cast cast, String what) {
 		ServerPlayer p = cast.player;
 		ServerLevel level = cast.level;
 		Spell spell = cast.spell;
-		String what = structure(spell);
 		if (what == null) return false;
 		Palette pal = palette(AttackForms.element(spell));
 		boolean big = spell.hasCharge("Maxima");

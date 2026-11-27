@@ -2922,7 +2922,12 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				hkSprite.words.addAll(java.util.List.of("base:Fire", "command:Summon", "intention:Malice", "attribute:Blue"));
 				check("spirit".equals(com.omnispell.spell.Conjuring.bodyFor(hkSprite, null).id()) && com.omnispell.spell.Conjuring.describe(hkSprite, "Blue Wisp").contains("sprite of blue"),
 						"a colour word with no creature calls a featureless sprite of that colour: " + com.omnispell.spell.Conjuring.describe(hkSprite, "Blue Wisp"));
+				check(com.omnispell.spell.Masonry.alsoShelter(hkSpell), "at tier 4 it raises the shelter as well");
 				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hkSpell), "Yellow Guardian", 10, 20), "the hollow knight is conjured");
+				int hkWalls = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-5, 0, -5), hkAt.offset(5, 5, 5))) if (com.omnispell.spell.Masonry.isConjured(pos.immutable())) hkWalls++;
+				check(hkWalls >= 40, "and a shelter rises around the caster with it (" + hkWalls + " blocks)");
+				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-5, -1, -5), hkAt.offset(5, 5, 5))) com.omnispell.spell.Masonry.breakBlock(hkLevel, pos.immutable());
 				var hkKnights = hkLevel.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.AbstractSkeleton.class, p.getBoundingBox().inflate(10));
 				var hkKnight = hkKnights.isEmpty() ? null : hkKnights.get(0);
 				check(hkKnight != null && hkKnight.hasEffect(MobEffects.INVISIBILITY) && hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE)
