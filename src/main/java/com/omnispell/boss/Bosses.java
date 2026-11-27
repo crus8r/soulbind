@@ -196,6 +196,15 @@ public final class Bosses {
 				}
 			}
 			if (near.isEmpty()) continue;
+			// A boss fights only those it can see (or who stand right beside it): nothing reaches up through
+			// the floor of a lair, or through the walls of a base, at someone who has walked away.
+			List<ServerPlayer> seen = new ArrayList<>();
+			for (ServerPlayer player : near) {
+				if (player.distanceToSqr(mob) < 6 * 6 || mob.hasLineOfSight(player)) seen.add(player);
+			}
+			if (mob.getTarget() instanceof ServerPlayer hunted && !seen.contains(hunted)) mob.setTarget(null);
+			if (seen.isEmpty()) continue;
+			near.retainAll(seen);
 			if (mob.getTarget() == null) {
 				for (ServerPlayer player : near) {
 					if (!player.getAbilities().invulnerable && player.distanceToSqr(mob) < 30 * 30) {

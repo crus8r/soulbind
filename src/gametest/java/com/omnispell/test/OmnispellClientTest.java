@@ -2870,6 +2870,33 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- a boss walled off underground cannot reach a player standing above it
+			net.minecraft.world.entity.Mob[] bsBoss = new net.minecraft.world.entity.Mob[1];
+			float[] bsHealth = new float[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel bsLevel = p.level();
+				BlockPos bsAt = BlockPos.containing(cHome[0]).offset(60, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(bsAt.offset(-6, -12, -6), bsAt.offset(6, -1, 6))) bsLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(bsAt.offset(-6, 0, -6), bsAt.offset(6, 5, 6))) bsLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(bsAt.offset(-2, -9, -2), bsAt.offset(2, -6, 2))) bsLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState()); // a sealed chamber below
+				p.teleportTo(bsLevel, bsAt.getX() + 0.5, bsAt.getY(), bsAt.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				p.setHealth(p.getMaxHealth());
+				p.removeAllEffects();
+				bsBoss[0] = com.omnispell.boss.Bosses.spawn(bsLevel, Vec3.atBottomCenterOf(bsAt.offset(0, -9, 0)), com.omnispell.boss.BossDef.ALL.get("frostweaver_arachne"));
+				bsBoss[0].setNoAi(true);
+				bsHealth[0] = p.getHealth();
+			});
+			context.waitTicks(400);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(p.getHealth() >= bsHealth[0] && bsBoss[0].getTarget() == null && !p.hasEffect(MobEffects.SLOWNESS),
+						"a boss sealed underground leaves the player above alone (health " + p.getHealth() + ", target " + bsBoss[0].getTarget() + ")");
+				bsBoss[0].discard();
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
