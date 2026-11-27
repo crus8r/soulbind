@@ -134,7 +134,7 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_ROBE));
 					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_BOOTS));
 					output.accept(new net.minecraft.world.item.ItemStack(ALCHEMY_CAULDRON_ITEM));
-					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM, 2));
+					output.accept(new net.minecraft.world.item.ItemStack(WAYPOINT_ITEM)); // one to a slot: the creative menu refuses anything else
 					output.accept(new net.minecraft.world.item.ItemStack(BOSS_ALTAR_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(FOREST_GATE_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(WITHERED_GATE_ITEM));
