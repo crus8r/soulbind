@@ -223,7 +223,7 @@ public final class Masonry {
 	}
 
 	/** A bridge at work: what it does to whoever is on it, near it, or falling from it, every quarter second while it stands. */
-	static final class BridgeWork {
+	public static final class BridgeWork {
 		final Cast cast;
 		final ServerLevel level;
 		final ServerPlayer owner;

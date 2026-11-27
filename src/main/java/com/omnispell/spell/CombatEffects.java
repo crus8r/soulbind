@@ -101,19 +101,27 @@ public final class CombatEffects {
 		return hit;
 	}
 
+	/** The spell's look on its way from the wand: lightning as a jagged bolt, everything else as its manifest says. */
+	private static void send(Cast cast, Vec3 from, Vec3 to) {
+		if (Beams.storm(cast.spell)) Beams.bolt(cast.level, from, to, Conjuring.tintFor(cast.spell));
+		else Fx.play(cast.level, cast.spell.visual, from, to);
+	}
+
 	private static boolean attack(Cast cast) {
+		// A spell that says it is a beam (a beam, ray, lance, jet, stream, torrent) pierces everything in its path.
+		if (Beams.piercing(cast.spell)) return Beams.attack(cast);
 		ServerPlayer player = cast.player;
 		Spell.EffectCode code = cast.spell.code;
 		LivingEntity target = Targeting.entity(player, cast.range);
 		Vec3 hand = Targeting.hand(player);
 		if (target == null) {
 			Vec3 end = Targeting.point(player, cast.range);
-			Fx.play(cast.level, cast.spell.visual, hand, end);
+			send(cast, hand, end);
 			if (cast.spell.hasCharge("Sparsus") && spread(cast, null, end, code.primaryValue > 0 ? code.primaryValue : cast.spell.tier * 10.0) > 0) return true;
 			cast.cooldownFactor = 0.5; // a miss costs less
 			return true;
 		}
-		Fx.play(cast.level, cast.spell.visual, hand, target.getBoundingBox().getCenter());
+		send(cast, hand, target.getBoundingBox().getCenter());
 		double base = code.primaryValue > 0 ? code.primaryValue : cast.spell.tier * 10.0;
 		strike(cast, target, base, true);
 		if (!code.status.equals("none") && !code.status.equals("null") && target.isAlive()) {
@@ -187,16 +195,7 @@ public final class CombatEffects {
 
 		if (!mayRepeat) return;
 		double chain = Modifiers.value(player, "chain_lightning");
-		if (chain > 0) {
-			int jumps = 0;
-			Vec3 from = target.getBoundingBox().getCenter();
-			for (LivingEntity other : Targeting.around(player, target.position(), 6, false)) {
-				if (other == target || jumps >= 3) continue;
-				Fx.line(cast.level, from, other.getBoundingBox().getCenter(), Fx.color(cast.spell.visual.color1), ParticleTypes.ELECTRIC_SPARK, 2);
-				strike(cast, other, websiteDamage * chain / 100.0, false);
-				jumps++;
-			}
-		}
+		if (chain > 0) Beams.chain(cast, target, websiteDamage * chain / 100.0);
 		double multi = Modifiers.value(player, "multi_strike");
 		if (multi > 0 && target.isAlive() && player.getRandom().nextDouble() * 100 < multi) {
 			target.setInvulnerableTime(0);

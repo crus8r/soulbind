@@ -67,15 +67,23 @@ public final class ExploreEffects {
 		};
 	}
 
+	/** A line out of the wand: a lightning bolt for a lightning spell, otherwise the usual line of the spell's colour. */
+	private static void ray(boolean storm, ServerLevel level, Vec3 from, Vec3 to, int color, ParticleOptions extra, int intensity) {
+		if (storm) Beams.bolt(level, from, to, color);
+		else Fx.line(level, from, to, color, extra, intensity);
+	}
+
 	public static boolean cast(Cast c) {
 		Spell spell = c.spell;
 		ServerPlayer p = c.player;
 		ServerLevel level = c.level;
 		String element = spell.element == null ? "stone" : spell.element;
 		WordBank.Flavor flavor = WordBank.flavor(element);
-		int color = Fx.color(flavor == null ? "arcane" : flavor.color);
-		ParticleOptions extra = Fx.themed(flavor == null ? "sparks" : flavor.particle);
-		String fxElement = flavor == null ? "arcane" : flavor.element;
+		// Lightning and thunder explore like the wind, but they are lightning: they look it, and leave the wand as bolts.
+		boolean storm = Beams.stormWords(spell);
+		int color = storm ? Fx.color("storm") : Fx.color(flavor == null ? "arcane" : flavor.color);
+		ParticleOptions extra = storm ? ParticleTypes.ELECTRIC_SPARK : Fx.themed(flavor == null ? "sparks" : flavor.particle);
+		String fxElement = storm ? "storm" : flavor == null ? "arcane" : flavor.element;
 		int tier = spell.tier;
 		double power = spell.hasCharge("Maxima") ? 1.5 : spell.hasCharge("Minima") ? 0.7 : 1.0;
 		double lasting = spell.hasCharge("Duratus") ? 1.6 : 1.0;
@@ -106,14 +114,14 @@ public final class ExploreEffects {
 			case "projectile" -> {
 				LivingEntity target = Targeting.entity(p, c.range);
 				Vec3 end = target != null ? target.getBoundingBox().getCenter() : Targeting.point(p, c.range);
-				Fx.line(level, hand, end, color, extra, 3);
+				ray(storm, level, hand, end, color, extra, 3);
 				Fx.burst(level, end, color, extra, 2);
 				if (target != null) hurt(c, target, (6 + 2 * tier) * power, fxElement);
 				yield true;
 			}
 			case "beam" -> {
 				Vec3 end = Targeting.block(p, c.range).getLocation();
-				Fx.line(level, hand, end, color, extra, 4);
+				ray(storm, level, hand, end, color, extra, 4);
 				Fx.line(level, hand.add(0, 0.15, 0), end.add(0, 0.15, 0), color, null, 2);
 				for (LivingEntity e : Targeting.along(p, c.range, 0.7)) hurt(c, e, (4 + 2 * tier) * power, fxElement);
 				yield true;
@@ -121,7 +129,7 @@ public final class ExploreEffects {
 			case "area_damage" -> {
 				Vec3 at = Targeting.point(p, c.range);
 				double radius = 4.5 * Math.sqrt(power);
-				Fx.line(level, hand, at, color, null, 2);
+				ray(storm, level, hand, at, color, null, 2);
 				Fx.ring(level, at, radius, color, extra);
 				Fx.burst(level, at.add(0, 0.8, 0), color, extra, 4);
 				for (LivingEntity e : Targeting.around(p, at, radius, false)) hurt(c, e, (5 + 2 * tier) * power, fxElement);
@@ -130,7 +138,7 @@ public final class ExploreEffects {
 			case "shrapnel" -> {
 				for (int i = 0; i < 7; i++) {
 					Vec3 dir = look.add((p.getRandom().nextDouble() - 0.5) * 0.7, (p.getRandom().nextDouble() - 0.5) * 0.4, (p.getRandom().nextDouble() - 0.5) * 0.7).normalize();
-					Fx.line(level, hand, hand.add(dir.scale(8)), color, i % 2 == 0 ? extra : null, 1);
+					ray(storm, level, hand, hand.add(dir.scale(8)), color, i % 2 == 0 ? extra : null, 1);
 				}
 				for (LivingEntity e : Targeting.cone(p, 8, 35)) hurt(c, e, (4 + tier) * power, fxElement);
 				yield true;
@@ -262,7 +270,7 @@ public final class ExploreEffects {
 			}
 			case "construct_weapon" -> {
 				p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, (int) (600 * lasting), tier >= 3 || power > 1 ? 1 : 0));
-				Fx.line(level, hand, hand.add(look.scale(1.5)), color, extra, 3);
+				ray(storm, level, hand, hand.add(look.scale(1.5)), color, extra, 3);
 				c.tell("A weapon of " + (flavor == null ? "magic" : flavor.material) + " forms around your hand.");
 				yield true;
 			}
@@ -294,7 +302,7 @@ public final class ExploreEffects {
 				Vec3 at = blackout ? p.position() : Targeting.point(p, c.range);
 				double radius = (blackout ? 10 : 6) * Math.sqrt(power);
 				int ticks = (int) ((blackout ? 200 : 160) * lasting);
-				if (!blackout) Fx.line(level, hand, at, color, extra, 2);
+				if (!blackout) ray(storm, level, hand, at, color, extra, 2);
 				ParticleOptions smoke = blackout ? ParticleTypes.SQUID_INK : ParticleTypes.CAMPFIRE_COSY_SMOKE;
 				Tasks.repeat(10, ticks / 10, () -> level.sendParticles(smoke, at.x, at.y + 1.2, at.z, 14, radius * 0.4, 0.8, radius * 0.4, 0.005));
 				for (LivingEntity e : Targeting.around(p, at, radius, false)) {
@@ -417,7 +425,7 @@ public final class ExploreEffects {
 				if (target != null) {
 					Vec3 pull = p.position().subtract(target.position());
 					shove(target, pull, Math.min(2.2, 0.4 + pull.length() * 0.12));
-					Fx.line(level, hand, target.getBoundingBox().getCenter(), color, extra, 2);
+					ray(storm, level, hand, target.getBoundingBox().getCenter(), color, extra, 2);
 					yield true;
 				}
 				BlockHitResult hit = Targeting.block(p, 30 * power);
@@ -429,7 +437,7 @@ public final class ExploreEffects {
 				p.syncVelocity = true;
 				p.fallDistance = 0;
 				p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 60, 0, false, false));
-				Fx.line(level, hand, hit.getLocation(), color, extra, 2);
+				ray(storm, level, hand, hit.getLocation(), color, extra, 2);
 				yield true;
 			}
 			case "current" -> {
@@ -507,13 +515,13 @@ public final class ExploreEffects {
 			// ----- manipulation -----
 			case "push" -> {
 				for (LivingEntity e : Targeting.cone(p, 9, 30)) shove(e, look, 1.6 * Math.sqrt(power));
-				Fx.line(level, hand, hand.add(look.scale(8)), color, extra, 3);
+				ray(storm, level, hand, hand.add(look.scale(8)), color, extra, 3);
 				yield true;
 			}
 			case "stun", "charm", "restraint", "entangle" -> {
 				LivingEntity target = Targeting.entity(p, c.range);
 				if (target == null) {
-					Fx.line(level, hand, Targeting.point(p, c.range), color, extra, 2);
+					ray(storm, level, hand, Targeting.point(p, c.range), color, extra, 2);
 					c.cooldownFactor = 0.4;
 					yield true;
 				}
@@ -528,7 +536,7 @@ public final class ExploreEffects {
 				};
 				MobControl.apply(p, target, kind, c.turns(paid), null);
 				if (spell.toggle.equals("entangle")) MobControl.dot(p, target, (float) (1 + tier * 0.5), (int) Math.ceil(paid), fxElement);
-				Fx.line(level, hand, target.getBoundingBox().getCenter(), color, extra, 2);
+				ray(storm, level, hand, target.getBoundingBox().getCenter(), color, extra, 2);
 				Fx.helix(level, target.position(), target.getBbHeight(), 0.7, color, extra);
 				yield true;
 			}

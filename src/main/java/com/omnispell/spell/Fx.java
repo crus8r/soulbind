@@ -38,6 +38,7 @@ public final class Fx {
 			case "spirit" -> 0x94D1D1;
 			case "poison" -> 0x3F981B;
 			case "neutral" -> 0x99A3B8;
+			case "storm", "lightning", "thunder", "electric" -> 0xB8DCFF;
 			default -> 0x7052EB; // arcane
 		};
 	}

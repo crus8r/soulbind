@@ -664,6 +664,7 @@ public final class Conjuring {
 						float bitten = Math.max(0, before - foe.getHealth());
 						if (a.traits.contains("link")) owner.heal(bitten * 0.2f);
 						soulLink(owner, bitten);
+						if (Modifiers.value(owner, "chain_lightning") > 0 && mob.getRandom().nextInt(3) == 0) chainFrom(a, foe); // now and then a bite arcs on
 					}
 					// The spell's own magic, cast at what it fights.
 					if (a.boltReady <= 0 && dist < 14 && mob.hasLineOfSight(foe)) {
@@ -737,6 +738,16 @@ public final class Conjuring {
 				cast.level.sendParticles(dust, q.x, q.y, q.z, 2, 0.05, 0.05, 0.05, 0);
 			}
 			cast.level.playSound(null, mob.blockPosition(), net.minecraft.sounds.SoundEvents.WARDEN_SONIC_BOOM, net.minecraft.sounds.SoundSource.PLAYERS, 0.7f, 1.3f);
+		} else if (Beams.beamClaim(cast.spell)) {
+			// A creature whose spell breathes or casts a beam sends it through its foe and on.
+			float beforeBeam = foe.getHealth();
+			Beams.creature(cast, mob, foe, a.base * 0.35);
+			ServerPlayer beamOwner = cast.player;
+			if (beamOwner.isAlive()) soulLink(beamOwner, Math.max(0, beforeBeam - foe.getHealth()));
+			chainFrom(a, foe);
+			return;
+		} else if (Beams.storm(cast.spell)) {
+			Beams.bolt(cast.level, from, foe.getBoundingBox().getCenter(), tintFor(cast.spell));
 		} else {
 			Fx.play(cast.level, cast.spell.visual, from, foe.getBoundingBox().getCenter());
 			Fx.sound(cast.level, mob.position(), cast.spell.code.element, Math.max(1, cast.spell.visual.intensity - 1));
@@ -744,6 +755,7 @@ public final class Conjuring {
 		foe.setInvulnerableTime(0);
 		float before = foe.getHealth();
 		CombatEffects.strike(cast, foe, a.base * 0.35, false);
+		chainFrom(a, foe);
 		ServerPlayer owner = cast.player;
 		if (owner.isAlive()) soulLink(owner, Math.max(0, before - foe.getHealth()));
 		Spell.EffectCode code = cast.spell.code;
@@ -770,6 +782,12 @@ public final class Conjuring {
 		for (LivingEntity near : level.getEntitiesOfClass(LivingEntity.class, foe.getBoundingBox().inflate(1.6), e -> e != foe && e != mob && e.isAlive() && hostileTo(owner, e))) {
 			near.hurtServer(level, level.damageSources().mobAttack(mob), a.bite * 0.5f);
 		}
+	}
+
+	/** When the spell carries chain lightning, a creature's blows leap on from its foe as the caster's would. */
+	private static void chainFrom(Active a, LivingEntity foe) {
+		double chain = Modifiers.value(a.cast.player, "chain_lightning");
+		if (chain > 0) Beams.chain(a.cast, foe, a.base * 0.35 * chain / 100.0);
 	}
 
 	/** An archer's arrow, tipped with the spell's element. */

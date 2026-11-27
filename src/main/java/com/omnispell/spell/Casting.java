@@ -121,6 +121,7 @@ public final class Casting {
 		try {
 			done = spell.isExploration() ? ExploreEffects.cast(cast) : Weapons.cast(cast) || CombatEffects.cast(cast);
 			if (done && spell.isExploration()) Wonders.afterCast(cast); // a spell may carry a second working
+			if (done && spell.isExploration()) Beams.afterExplore(cast); // lightning that moves you lands with a discharge
 		} catch (Exception e) {
 			Omnispell.LOG.error("Spell {} failed", spell.id, e);
 			cast.failure = "The spell unravels. (An error was logged.)";

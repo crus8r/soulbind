@@ -2899,6 +2899,13 @@ public class OmnispellClientTest implements FabricClientGameTest {
 
 			// ---- a colour word conjures a being of that colour; the shelter's doorway is hardened air you crouch through
 			java.util.List<net.minecraft.world.entity.Entity> hkMobs = new java.util.ArrayList<>();
+			// Go there first and let that ground load: creatures spawned in the same instant as a long teleport land in an unloaded patch.
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				BlockPos preKnight = BlockPos.containing(cHome[0]).offset(-60, 0, -90);
+				p.teleportTo(p.level(), preKnight.getX() + 0.5, preKnight.getY() + 1, preKnight.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(30);
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				ServerLevel hkLevel = p.level();
@@ -2983,6 +2990,13 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			// ---- bridges do what their spells claim, and a bridge that claims nothing stays plain
 			net.minecraft.world.entity.Mob[] brFoes = new net.minecraft.world.entity.Mob[2];
 			BlockPos[] brAt = new BlockPos[4];
+			// Go there first and let that ground load: creatures spawned in the same instant as a long teleport land in an unloaded patch.
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				BlockPos preBridge = BlockPos.containing(cHome[0]).offset(108, 0, -100);
+				p.teleportTo(p.level(), preBridge.getX() + 0.5, preBridge.getY() + 1, preBridge.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(30);
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				ServerLevel brLevel = p.level();
@@ -3173,6 +3187,140 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.removeAllEffects();
 				p.setAbsorptionAmount(0f);
 				p.setHealth(p.getMaxHealth());
+			});
+			context.waitTicks(5);
+
+			// ---- lightning out of the wand, chain lightning that chains, beams that pierce, a beam that holds
+			net.minecraft.world.entity.Mob[] lbFoes = new net.minecraft.world.entity.Mob[3];
+			net.minecraft.world.entity.animal.wolf.Wolf[] lbWolf = new net.minecraft.world.entity.animal.wolf.Wolf[1];
+			// Go there first and let that ground load: creatures spawned in the same instant as a long teleport land in an unloaded patch.
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				BlockPos preBolt = BlockPos.containing(cHome[0]).offset(0, 0, 50);
+				p.teleportTo(p.level(), preBolt.getX() + 0.5, preBolt.getY() + 1, preBolt.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(30);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel lbLevel = p.level();
+				BlockPos lbAt = BlockPos.containing(cHome[0]).offset(0, 0, 40);
+				for (BlockPos pos : BlockPos.betweenClosed(lbAt.offset(-8, -1, -3), lbAt.offset(8, -1, 22))) lbLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(lbAt.offset(-8, 0, -3), lbAt.offset(8, 6, 22))) lbLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(lbAt.offset(-8, 0, 22), lbAt.offset(8, 6, 22))) lbLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				p.teleportTo(lbLevel, lbAt.getX() + 0.5, lbAt.getY(), lbAt.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				p.removeAllEffects();
+				for (int i = 0; i < 3; i++) {
+					var z = EntityTypes.ZOMBIE.create(lbLevel, EntitySpawnReason.COMMAND);
+					z.snapTo(lbAt.getX() + 0.5, lbAt.getY(), lbAt.getZ() + 4.5 + 3 * i, 180f, 0f);
+					z.setNoAi(true);
+					z.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200);
+					z.setHealth(200f);
+					z.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 2000, 0));
+					lbLevel.addFreshEntity(z);
+					lbFoes[i] = z;
+				}
+				var wolf = EntityTypes.WOLF.create(lbLevel, EntitySpawnReason.COMMAND);
+				wolf.snapTo(lbAt.getX() + 4.5, lbAt.getY(), lbAt.getZ() + 7.5, 0f, 0f);
+				wolf.setNoAi(true);
+				lbLevel.addFreshEntity(wolf);
+				wolf.tame(p);
+				lbWolf[0] = wolf;
+				// Chain lightning: Thunder + Release + Malice with the chain toggle leaps from the first zombie to the next, and on, never to the wolf.
+				com.omnispell.spell.Spell lbBolt = new com.omnispell.spell.Spell();
+				lbBolt.type = "attack";
+				lbBolt.tier = 3;
+				lbBolt.code.type = "damage";
+				lbBolt.code.element = "arcane";
+				lbBolt.code.primaryValue = 20;
+				lbBolt.description = "Unleashes a strike of malicious lightning that chains shocking energy.";
+				lbBolt.code.modifiers.add("chain_lightning:50:1");
+				lbBolt.words.addAll(java.util.List.of("base:Thunder", "command:Release", "intention:Malice"));
+				check(com.omnispell.spell.Beams.storm(lbBolt) && !com.omnispell.spell.Beams.piercing(lbBolt), "a thunder attack leaves the wand as lightning, and is not a beam");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
+				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbBolt)), "the lightning is cast");
+				check(lbFoes[0].getHealth() < 200f && lbFoes[1].getHealth() < 200f && lbFoes[2].getHealth() < 200f && wolf.getHealth() >= wolf.getMaxHealth(),
+						"chain lightning leaps zombie to zombie to zombie, and spares the wolf (" + lbFoes[0].getHealth() + ", " + lbFoes[1].getHealth() + ", " + lbFoes[2].getHealth() + ")");
+				com.omnispell.spell.Modifiers.add(p, "chain_lightning", 0, 1);
+				for (var z : lbFoes) {
+					z.setHealth(200f);
+					z.snapTo(z.getX(), lbAt.getY(), z.getZ(), 180f, 0f);
+					z.setDeltaMovement(0, 0, 0);
+				}
+			});
+			context.waitTicks(25);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel lbLevel = p.level();
+				BlockPos lbAt = BlockPos.containing(cHome[0]).offset(0, 0, 40);
+				for (int i = 0; i < 3; i++) {
+					lbFoes[i].setHealth(200f);
+					lbFoes[i].teleportTo(lbAt.getX() + 0.5, lbAt.getY(), lbAt.getZ() + 4.5 + 3 * i);
+					lbFoes[i].setDeltaMovement(0, 0, 0);
+				}
+				// A beam pierces: Light + Illuminate + Malice that says it fires a beam strikes all three in its path.
+				com.omnispell.spell.Spell lbBeam = new com.omnispell.spell.Spell();
+				lbBeam.type = "attack";
+				lbBeam.tier = 3;
+				lbBeam.code.type = "damage";
+				lbBeam.code.element = "light";
+				lbBeam.code.primaryValue = 20;
+				lbBeam.description = "Fires a searing beam of radiant light that burns through its target.";
+				lbBeam.words.addAll(java.util.List.of("base:Light", "command:Illuminate", "intention:Malice"));
+				check(com.omnispell.spell.Beams.piercing(lbBeam) && !com.omnispell.spell.Beams.storm(lbBeam), "Light that says it is a beam pierces");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbBeam));
+				check(lbFoes[0].getHealth() < 200f && lbFoes[1].getHealth() < 200f && lbFoes[2].getHealth() < 200f && lbFoes[2].hasEffect(MobEffects.GLOWING) && lbWolf[0].getHealth() >= lbWolf[0].getMaxHealth(),
+						"the beam strikes everything in its path and lights it up (" + lbFoes[0].getHealth() + ", " + lbFoes[1].getHealth() + ", " + lbFoes[2].getHealth() + ")");
+				// A spell that does not say so stays a single strike.
+				for (var z : lbFoes) z.setHealth(200f);
+				com.omnispell.spell.Spell lbPlain = new com.omnispell.spell.Spell();
+				lbPlain.type = "attack";
+				lbPlain.tier = 3;
+				lbPlain.code.type = "damage";
+				lbPlain.code.element = "fire";
+				lbPlain.code.primaryValue = 20;
+				lbPlain.description = "Hurls a ball of fire at the target.";
+				lbPlain.words.addAll(java.util.List.of("base:Fire", "command:Illuminate", "intention:Malice"));
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbPlain));
+				check(lbFoes[0].getHealth() < 200f && lbFoes[2].getHealth() >= 200f, "a fireball that is no beam strikes only what it hits first");
+				// A lightning environment spell: a grapple leaves the wand as a bolt and pulls you; landing, it jolts the foes around you.
+				com.omnispell.spell.Spell lbGrap = new com.omnispell.spell.Spell();
+				lbGrap.type = "exploration";
+				lbGrap.toggle = "grapple";
+				lbGrap.element = "wind";
+				lbGrap.tier = 2;
+				lbGrap.words.addAll(java.util.List.of("base:Lightning", "command:Release", "intention:Transportation"));
+				check(com.omnispell.spell.Beams.stormWords(lbGrap) && com.omnispell.spell.Beams.storm(lbGrap), "Lightning in an environment spell is lightning, not wind");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(lbAt.offset(0, 2, 22)));
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbGrap)) && p.getDeltaMovement().length() > 0.3, "the lightning grapple pulls you");
+				p.setDeltaMovement(0, 0, 0);
+				p.teleportTo(lbLevel, lbAt.getX() + 0.5, lbAt.getY(), lbAt.getZ() + 6.0, java.util.Set.of(), 0f, 0f, true);
+				for (var z : lbFoes) z.setHealth(200f);
+				int arcs = com.omnispell.spell.Beams.discharge(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbGrap), p.position(), 5);
+				check(arcs >= 2 && lbFoes[0].getHealth() < 200f && lbWolf[0].getHealth() >= lbWolf[0].getMaxHealth(), "landing, it arcs to the zombies near you and not to the wolf (" + arcs + " arcs)");
+				// A healing beam holds: Light + Guide + Restoration that says it is a beam keeps mending the wolf.
+				com.omnispell.spell.Spell lbLink = new com.omnispell.spell.Spell();
+				lbLink.id = "defense|test-link";
+				lbLink.type = "defense";
+				lbLink.tier = 3;
+				lbLink.code.type = "heal";
+				lbLink.code.element = "light";
+				lbLink.description = "Projects a radiant healing beam that mends an ally over time.";
+				lbLink.words.addAll(java.util.List.of("base:Light", "command:Guide", "intention:Restoration"));
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.RESTORATION.ordinal()] = 100;
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbWolf[0].getBoundingBox().getCenter());
+				check("lifeline".equals(com.omnispell.spell.Defenses.form(lbLink)) && com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbLink), 3), "the healing beam is cast at the wolf");
+				lbWolf[0].setHealth(5f);
+			});
+			context.waitTicks(50);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(lbWolf[0].getHealth() > 5f, "the beam holds and keeps mending the wolf (" + lbWolf[0].getHealth() + ")");
+				for (var z : lbFoes) z.discard();
+				lbWolf[0].discard();
+				p.removeAllEffects();
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
 			});
 			context.waitTicks(5);
 

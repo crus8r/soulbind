@@ -409,7 +409,9 @@ public final class Defenses {
 				LivingEntity who = target == null ? p : target;
 				give(cast, who, amount, heal, ticks);
 				boon(p, who, element, Math.min(ticks, 400));
-				if (who != p) {
+				if (who != p && Beams.beamClaim(spell)) {
+					link(cast, who, amount, heal, ticks, element, color); // a beam that holds while it lasts
+				} else if (who != p) {
 					Fx.line(level, Targeting.hand(p), who.getBoundingBox().getCenter(), color, ParticleTypes.END_ROD, 4);
 					level.playSound(null, who.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 1.4f);
 					if (who instanceof ServerPlayer friend) friend.sendOverlayMessage(net.minecraft.network.chat.Component.literal(p.getName().getString() + "'s spell reaches you.").withStyle(net.minecraft.ChatFormatting.AQUA));
@@ -677,6 +679,29 @@ public final class Defenses {
 		}
 	}
 
+	/**
+	 * A lifeline that says it is a beam (a beam, ray, stream...) holds as one: a beam joins you to the friend
+	 * for as long as the spell lasts, and while it holds (within twenty-four blocks, in sight) it keeps
+	 * mending them, or keeps their shield topped up.
+	 */
+	private static void link(Cast cast, LivingEntity who, float amount, boolean heal, int ticks, String element, int color) {
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		int life = Math.min(ticks, 1200);
+		if (who instanceof ServerPlayer friend) friend.sendOverlayMessage(net.minecraft.network.chat.Component.literal(p.getName().getString() + "'s beam holds you.").withStyle(net.minecraft.ChatFormatting.AQUA));
+		for (int t = 0; t < life; t += 10) {
+			int at = t;
+			Tasks.later(t, () -> {
+				if (!p.isAlive() || !who.isAlive() || p.level() != who.level() || p.distanceToSqr(who) > 24 * 24 || !p.hasLineOfSight(who)) return;
+				Beams.beam(level, Targeting.hand(p), who.getBoundingBox().getCenter(), element, color);
+				if (at % 40 == 0) {
+					if (heal) who.heal(Math.max(1f, amount * 0.1f));
+					else if (who.getAbsorptionAmount() < amount * 0.5f) shield(cast, who, amount * 0.5f, 60);
+				}
+			});
+		}
+	}
+
 	/** A barrier wall two blocks in front of you, in the element's colour, gone when the spell ends. */
 	private static void barrier(Cast cast, String element, int ticks) {
 		ServerPlayer p = cast.player;
@@ -708,7 +733,8 @@ public final class Defenses {
 			case "bulwark" -> "It roots you like a statue: blows land much softer and nothing moves you, but you walk slowly. You also take " + gift + ".";
 			case "mend" -> "It mends you over time, and makes crops nearby grow.";
 			case "aegis" -> "It bursts outward: you and every friend near you (players, pets, golems, villagers, familiars, conjured creatures) get " + gift + " and " + boonText(element) + ".";
-			case "lifeline" -> "It reaches out to the friend you look at (or the nearest one hurt), giving them " + gift + " and " + boonText(element) + ". With no friend near, it is yours.";
+			case "lifeline" -> "It reaches out to the friend you look at (or the nearest one hurt), giving them " + gift + " and " + boonText(element) + ". With no friend near, it is yours."
+					+ (Beams.beamClaim(spell) ? " The beam holds while the spell lasts, as long as they stay in sight and within twenty-four blocks, and keeps " + (heal ? "mending them." : "their shield topped up.") : "");
 			case "sanctuary" -> "It marks a circle on the ground around you. Friends standing in it " + (heal ? "mend every second" : "keep a shield") + " while it lasts, and hostile creatures in it are slowed.";
 			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
 			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
