@@ -1818,6 +1818,55 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				hatWearers.forEach(net.minecraft.world.entity.Entity::discard);
 			});
 
+			// ---- conjuration: the creature word picks the body, the base word colours it, and it casts the spell
+			net.minecraft.world.entity.monster.zombie.Zombie[] conjPrey = new net.minecraft.world.entity.monster.zombie.Zombie[1];
+			float[] casterHealth = new float[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				BlockPos conjAt = p.blockPosition();
+				for (BlockPos pos : BlockPos.betweenClosed(conjAt.offset(-8, -1, -4), conjAt.offset(8, -1, 14))) level.setBlockAndUpdate(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(conjAt.offset(-8, 0, -4), conjAt.offset(8, 5, 14))) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				p.setHealth(p.getMaxHealth());
+				casterHealth[0] = p.getHealth();
+				String[][] kinds = {{"water", "", "Water Serpent", "-35"}, {"ice", "attribute:Wolf", "Frost Hound", "0"}, {"fire", "attribute:Fox", "Ember Fox", "35"}};
+				String[] expect = {"serpent", "wolf", "fox"};
+				for (int i = 0; i < kinds.length; i++) {
+					com.omnispell.spell.Spell conj = new com.omnispell.spell.Spell();
+					conj.type = "conjuration";
+					conj.tier = 3;
+					conj.code.element = kinds[i][0];
+					if (!kinds[i][1].isEmpty()) conj.words.add(kinds[i][1]);
+					conj.name = kinds[i][2];
+					check(expect[i].equals(com.omnispell.spell.Conjuring.bodyFor(conj, kinds[i][2]).id()), kinds[i][2] + " takes the body of a " + expect[i] + " (" + com.omnispell.spell.Conjuring.bodyFor(conj, kinds[i][2]).id() + ")");
+					p.setYRot(Float.parseFloat(kinds[i][3]));
+					p.setXRot(0f);
+					check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), conj), kinds[i][2], 10, 20), kinds[i][2] + " is conjured");
+				}
+				p.setYRot(0f);
+				var conjZombie = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				conjZombie.snapTo(conjAt.getX() + 0.5, conjAt.getY(), conjAt.getZ() + 9.5, 180f, 0f);
+				conjZombie.setNoAi(true);
+				conjZombie.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 2000, 0));
+				level.addFreshEntity(conjZombie);
+				conjPrey[0] = conjZombie;
+				p.hurtServer(level, level.damageSources().mobAttack(conjZombie), 0.01f); // the zombie "hit" the caster, so the creatures know their foe
+				casterHealth[0] = p.getHealth();
+				p.teleportTo(level, conjAt.getX() + 0.5, conjAt.getY(), conjAt.getZ() - 3.5, java.util.Set.of(), 0f, 10f, true);
+			});
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+			context.waitTicks(25);
+			context.takeScreenshot("32-conjured-creatures");
+			context.waitTicks(80);
+			server.runOnServer(s -> {
+				var conjZombie = conjPrey[0];
+				boolean harmed = (conjZombie.isRemoved() && conjZombie.getRemovalReason() == net.minecraft.world.entity.Entity.RemovalReason.KILLED) || conjZombie.getHealth() < conjZombie.getMaxHealth();
+				check(harmed, "the conjured creatures fight the zombie (health " + conjZombie.getHealth() + ")");
+				check(player(s).getHealth() >= casterHealth[0] - 0.01f, "and never hurt their caster");
+				if (!conjZombie.isRemoved()) conjZombie.discard();
+				for (var e : player(s).level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player(s).getBoundingBox().inflate(30), com.omnispell.spell.Conjuring::isConjured)) com.omnispell.spell.Summons.dismiss(e);
+			});
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {
 				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop

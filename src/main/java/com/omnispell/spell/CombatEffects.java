@@ -376,24 +376,6 @@ public final class CombatEffects {
 			}
 			if (parts.length > 3 && !parts[3].isBlank()) name = parts[3].trim().replace('_', ' ');
 		}
-		Wolf wolf = EntityTypes.WOLF.create(cast.level, EntitySpawnReason.MOB_SUMMONED);
-		if (wolf == null) return cast.fail("The conjuration finds no purchase here.");
-		Vec3 at = player.position().add(player.getLookAngle().multiply(1.5, 0, 1.5));
-		wolf.snapTo(at.x, player.getY(), at.z, player.getYRot(), 0);
-		wolf.tame(player);
-		wolf.setCustomName(Component.literal(name));
-		wolf.setCustomNameVisible(true);
-		AttributeInstance attack = wolf.getAttribute(Attributes.ATTACK_DAMAGE);
-		if (attack != null) attack.setBaseValue(Math.max(2.0, damage * cast.scale * cast.damageBonus(cast.spell.code.element)));
-		AttributeInstance health = wolf.getAttribute(Attributes.MAX_HEALTH);
-		if (health != null) health.setBaseValue(12 + cast.spell.tier * 6);
-		wolf.setHealth(wolf.getMaxHealth());
-		wolf.addEffect(new MobEffectInstance(MobEffects.GLOWING, cast.turns(turns), 0, false, false));
-		Summons.track(wolf, cast.turns(turns)); // before it enters the world, or it would be taken for a stray
-		cast.level.addFreshEntity(wolf);
-		Fx.play(cast.level, cast.spell.visual, Targeting.hand(player), wolf.position());
-		LivingEntity target = Targeting.entity(player, cast.range);
-		if (target != null && target != wolf) wolf.setTarget(target);
-		return true;
+		return Conjuring.spawn(cast, name, damage, turns);
 	}
 }

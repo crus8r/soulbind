@@ -28,6 +28,7 @@ public class OmnispellClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		FamiliarRender.register();
+		SerpentRender.register();
 		WizardHatLayer.register();
 		WizardRobeLayer.register();
 		// Double-tap sprint while in the air with a wand: walk on air.
@@ -91,6 +92,13 @@ public class OmnispellClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.Shroud.TYPE, (payload, context) -> {
 			if (payload.ticks() <= 0) ClientState.shrouded.remove(payload.entityId());
 			else ClientState.shrouded.put(payload.entityId(), ClientState.clientTick + payload.ticks());
+		});
+		ClientPlayNetworking.registerGlobalReceiver(OmniNet.ConjureTint.TYPE, (payload, context) -> {
+			int c = payload.color();
+			int r = (c >> 16 & 255), g = (c >> 8 & 255), b = (c & 255);
+			r = (r * 3 + 255) / 4; g = (g * 3 + 255) / 4; b = (b * 3 + 255) / 4; // keep the creature's own markings readable
+			if (ClientState.conjureTints.size() > 256) ClientState.conjureTints.clear();
+			ClientState.conjureTints.put(payload.entityId(), 0xFF000000 | r << 16 | g << 8 | b);
 		});
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.ScreenFx.TYPE, (payload, context) -> {
 			ClientState.flashKind = payload.kind();

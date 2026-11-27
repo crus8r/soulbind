@@ -19,6 +19,10 @@ public final class ClientState {
 	public static Spell pending;
 	public static Set<String> bosses = new LinkedHashSet<>();
 	public static int maxWords = 3;
+	/** Conjured creatures' colours, by entity id, as the server sent them. Lightened so the creature's markings still show. */
+	public static final java.util.Map<Integer, Integer> conjureTints = new java.util.HashMap<>();
+	/** The render states this frame that belong to a tinted creature. */
+	public static final java.util.Map<Object, Integer> tintedStates = new java.util.WeakHashMap<>();
 	/** Whether sprinting with a wand in hand gives the Phase-powered speed boost. Kept on the server. */
 	public static boolean wandSprint = true;
 

@@ -534,6 +534,25 @@ for species, skin in FAM_SKINS.items():
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
 
+# The conjured serpent: pale scales, so the spell's colour can tint them, with darker bands and a light belly.
+img = Image.new('RGBA', (64, 32), (0, 0, 0, 0))
+for y in range(32):
+    for x in range(64):
+        n = noise(x, y, 91)
+        v = 205 + int(40 * n)
+        if (x + y) % 4 == 0: v -= 28          # scale lines
+        if y >= 12 and (x // 5) % 3 == 0: v -= 22  # bands down the body
+        if x >= 40 and y < 6: v = 235           # horns and fin
+        v = max(60, min(255, v))
+        img.putpixel((x, y), (v, v, v, 255))
+for (ex, ey) in ((7, 7), (10, 7)):
+    img.putpixel((ex, ey), (250, 220, 60, 255))
+    img.putpixel((ex, ey + 1), (30, 20, 10, 255))
+path = os.path.join(ASSETS, 'textures', 'entity', 'conjured_serpent.png')
+os.makedirs(os.path.dirname(path), exist_ok=True)
+img.save(path)
+lang_extra = {'entity.omnispell.conjured_serpent': 'Conjured Serpent'}
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
@@ -793,6 +812,7 @@ lang = {
     'item.omnispell.arcane_potion': 'Arcane Potion',
     'block.omnispell.arcane_well': 'Arcane Well',
     'block.omnispell.hardened_air': 'Hardened Air',
+    'entity.omnispell.conjured_serpent': 'Conjured Serpent',
     'block.omnispell.waypoint': 'Waypoint',
     'block.omnispell.boss_altar': 'Boss Seal',
     'block.omnispell.alchemy_cauldron': 'Alchemy Cauldron',

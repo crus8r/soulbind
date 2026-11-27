@@ -57,6 +57,7 @@ public class Omnispell implements ModInitializer {
 		OmniItems.register();
 		com.omnispell.charm.Charms.register();
 		com.omnispell.familiar.Familiars.register();
+		com.omnispell.spell.Conjuring.register();
 		com.omnispell.boss.Lairs.register();
 		com.omnispell.world.Cauldrons.register();
 		com.omnispell.world.ForestFeatures.register();
@@ -240,6 +241,7 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.player.AirWalk.tick(server);
 			com.omnispell.item.Attire.tick(server);
 			int tick = server.getTickCount();
+			com.omnispell.spell.Conjuring.tick(server);
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) com.omnispell.item.CoreAbilities.tick(player);
 			if (tick % 10 == 0) {
 				MobControl.tick();

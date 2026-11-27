@@ -206,6 +206,7 @@ public final class Modifiers {
 
 	/** Fortify, resistances and mana shield change how much a hit does. Called from the damage mixin. */
 	public static float modifyIncoming(LivingEntity entity, DamageSource source, float amount) {
+		if (amount > 0 && Conjuring.spares(entity, source)) return 0;
 		if (amount > 0 && !(entity instanceof ServerPlayer)) {
 			if (com.omnispell.familiar.Familiars.spared(entity, source)) return 0;
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));

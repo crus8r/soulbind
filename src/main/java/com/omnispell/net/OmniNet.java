@@ -62,6 +62,17 @@ public final class OmniNet {
 		}
 	}
 
+	/** A conjured creature's colour, so a fire wolf looks like one. */
+	public record ConjureTint(int entityId, int color) implements CustomPacketPayload {
+		public static final Type<ConjureTint> TYPE = OmniNet.makeType("conjure_tint");
+		public static final StreamCodec<ByteBuf, ConjureTint> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, ConjureTint::entityId, ByteBufCodecs.INT, ConjureTint::color, ConjureTint::new);
+
+		@Override
+		public Type<ConjureTint> type() {
+			return TYPE;
+		}
+	}
+
 	/** A screen flash or shake for a spell, from the spell's visual manifest. */
 	/** A player is fully shrouded (armour and held items hidden too) for this many ticks; 0 ends it. */
 	public record Shroud(int entityId, int ticks) implements CustomPacketPayload {
@@ -163,6 +174,7 @@ public final class OmniNet {
 		PayloadTypeRegistry.clientboundPlay().register(BookMessage.TYPE, BookMessage.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(ScreenFx.TYPE, ScreenFx.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(Shroud.TYPE, Shroud.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(ConjureTint.TYPE, ConjureTint.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(OpenWaypoint.TYPE, OpenWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(EditWaypoint.TYPE, EditWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CastSpell.TYPE, CastSpell.CODEC);
