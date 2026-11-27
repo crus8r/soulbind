@@ -85,10 +85,10 @@ public final class OmniNet {
 		}
 	}
 
-	/** A conjured creature's colour, so a fire wolf looks like one. */
-	public record ConjureTint(int entityId, int color) implements CustomPacketPayload {
+	/** A conjured creature's colour and the element whose markings it wears, so a fire wolf looks like one. */
+	public record ConjureTint(int entityId, int color, String element) implements CustomPacketPayload {
 		public static final Type<ConjureTint> TYPE = OmniNet.makeType("conjure_tint");
-		public static final StreamCodec<ByteBuf, ConjureTint> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, ConjureTint::entityId, ByteBufCodecs.INT, ConjureTint::color, ConjureTint::new);
+		public static final StreamCodec<ByteBuf, ConjureTint> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, ConjureTint::entityId, ByteBufCodecs.INT, ConjureTint::color, ByteBufCodecs.STRING_UTF8, ConjureTint::element, ConjureTint::new);
 
 		@Override
 		public Type<ConjureTint> type() {

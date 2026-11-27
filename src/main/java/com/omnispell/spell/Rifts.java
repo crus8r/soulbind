@@ -157,7 +157,7 @@ public final class Rifts {
 	}
 
 	private static void hurt(Cast c, LivingEntity target, double amount, String element) {
-		float damage = (float) (amount * c.damageBonus(element));
+		float damage = (float) (amount * c.damageBonus(element)) * CombatEffects.versusPlayers(c, target);
 		Modifiers.withSpellElement(element, () -> target.hurtServer(c.level, c.level.damageSources().indirectMagic(c.player, c.player), damage));
 	}
 

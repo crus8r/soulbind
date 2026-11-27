@@ -32,6 +32,7 @@ public class OmnispellClient implements ClientModInitializer {
 		WizardHatLayer.register();
 		WizardRobeLayer.register();
 		VeinLayer.register();
+		ElementLayer.register();
 		// Double-tap sprint while in the air with a wand: walk on air.
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) return;
@@ -108,8 +109,12 @@ public class OmnispellClient implements ClientModInitializer {
 			int c = payload.color();
 			int r = (c >> 16 & 255), g = (c >> 8 & 255), b = (c & 255);
 			r = (r * 3 + 255) / 4; g = (g * 3 + 255) / 4; b = (b * 3 + 255) / 4; // keep the creature's own markings readable
-			if (ClientState.conjureTints.size() > 256) ClientState.conjureTints.clear();
+			if (ClientState.conjureTints.size() > 256) {
+				ClientState.conjureTints.clear();
+				ClientState.conjureElements.clear();
+			}
 			ClientState.conjureTints.put(payload.entityId(), 0xFF000000 | r << 16 | g << 8 | b);
+			if (ElementLayer.knows(payload.element())) ClientState.conjureElements.put(payload.entityId(), payload.element());
 		});
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.ScreenFx.TYPE, (payload, context) -> {
 			ClientState.flashKind = payload.kind();

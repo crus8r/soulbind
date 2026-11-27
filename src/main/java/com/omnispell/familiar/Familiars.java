@@ -453,7 +453,9 @@ public final class Familiars {
 					if (active.cooldown <= 0) {
 						active.cooldown = Math.max(8, 22 - active.stats[Stat.SWIFTNESS.ordinal()]);
 						float damage = (float) (2.0 + 0.6 * active.stats[Stat.POWER.ordinal()]);
+						float before = foe.getHealth();
 						foe.hurtServer(level, level.damageSources().mobAttack(mob), damage);
+						com.omnispell.spell.Conjuring.soulLink(owner, Math.max(0, before - foe.getHealth()));
 						if (active.species.id().equals("phoenix")) foe.igniteForSeconds(3);
 					}
 				} else {

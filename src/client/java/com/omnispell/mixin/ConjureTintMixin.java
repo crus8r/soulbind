@@ -18,6 +18,9 @@ public abstract class ConjureTintMixin {
 		Integer tint = ClientState.conjureTints.get(entity.getId());
 		if (tint != null) ClientState.tintedStates.put(state, tint);
 		else ClientState.tintedStates.remove(state);
+		String element = ClientState.conjureElements.get(entity.getId());
+		if (element != null) ClientState.elementStates.put(state, element);
+		else ClientState.elementStates.remove(state);
 		// A corrupted player's veins, for the vein layer to draw.
 		int veins = entity instanceof net.minecraft.world.entity.player.Player ? com.omnispell.client.VeinLayer.stage(ClientState.corruptionOf(entity)) : 0;
 		if (veins > 0) ClientState.veinStates.put(state, veins);

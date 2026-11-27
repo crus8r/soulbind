@@ -67,6 +67,9 @@ public final class AttackForms {
 			case "Sever", "Cleave", "Pierce", "Fracture", "Breach", "Wither", "Decay" -> {
 				return "rend";
 			}
+			case "Disintegrate", "Erode" -> {
+				return "crumble";
+			}
 			case "Banish", "Repel", "Displace", "Dismiss" -> {
 				return word.english.equals("Displace") || word.english.equals("Dismiss") ? "displace" : "blast";
 			}
@@ -177,6 +180,12 @@ public final class AttackForms {
 			case "linger" -> "left hurting and slowed for a while";
 			case "pull" -> "dragged toward you";
 			case "rend" -> "cut deep, bleeding for a while";
+			case "crumble" -> switch (element) {
+				case "stone" -> "swallowed by the ground crumbling to sand beneath it";
+				case "fire" -> "burned toward ash, and weakened";
+				case "light" -> "seared by the glare of its unmaking, blinded and weakened";
+				default -> "crumbling, blinded by its own dust and weakened";
+			};
 			default -> "struck";
 		};
 	}
@@ -237,8 +246,8 @@ public final class AttackForms {
 			case "engulf" -> {
 				switch (element) {
 					case "fire" -> {
-						target.igniteForSeconds(4 + tier);
-						for (LivingEntity near : Targeting.around(player, at, 2.5, false)) if (near != target) near.igniteForSeconds(2 + tier / 2);
+						CombatEffects.burn(cast, target, 4 + tier);
+						for (LivingEntity near : Targeting.around(player, at, 2.5, false)) if (near != target) CombatEffects.burn(cast, near, 2 + tier / 2);
 						level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 1, at.z, 40, 0.5, 0.8, 0.5, 0.05);
 					}
 					case "water" -> {
@@ -311,7 +320,7 @@ public final class AttackForms {
 				level.sendParticles(ParticleTypes.PORTAL, from.x, from.y + 1, from.z, 40, 0.4, 0.6, 0.4, 0.5);
 			}
 			case "linger" -> {
-				MobControl.dot(player, target, (float) Math.max(1.0, base * cast.scale * 0.15), 3, element);
+				MobControl.dot(player, target, (float) Math.max(1.0, base * cast.scale * 0.15) * CombatEffects.versusPlayers(cast, target), 3, element);
 				target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 0), player);
 			}
 			case "pull" -> {
@@ -323,8 +332,30 @@ public final class AttackForms {
 				target.setDeltaMovement(v.x, 0.3, v.z);
 				target.syncVelocity = true;
 			}
+			case "crumble" -> {
+				BlockState ground = level.getBlockState(target.blockPosition().below());
+				if (element.equals("stone") && !steadfast(target) && target.onGround()) {
+					// Earth comes apart under it: it sinks into sand for a moment, held fast.
+					Rifts.sink(cast, target, 30 + 10 * tier, "stone", Blocks.SAND.defaultBlockState());
+				} else if (element.equals("fire")) {
+					CombatEffects.burn(cast, target, 3 + tier);
+					target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80 + 20 * tier, 1), player);
+					level.sendParticles(ParticleTypes.ASH, at.x, at.y + 1, at.z, 40, 0.4, 0.6, 0.4, 0.02);
+				} else {
+					target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40 + 10 * tier, 0), player);
+					target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80 + 20 * tier, 0), player);
+					MobControl.dot(player, target, (float) Math.max(1.0, base * cast.scale * 0.1) * CombatEffects.versusPlayers(cast, target), 3, element);
+				}
+				if (element.equals("light")) {
+					// Light does not leave dust: it unmakes with glare.
+					level.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 1.2, at.z, 24, 0.4, 0.6, 0.4, 0.05);
+				} else {
+					BlockState dust = ground.isAir() ? Blocks.SAND.defaultBlockState() : ground;
+					level.sendParticles(new BlockParticleOption(ParticleTypes.FALLING_DUST, dust), at.x, at.y + 1.2, at.z, 30, 0.5, 0.6, 0.5, 0.0);
+				}
+			}
 			case "rend" -> {
-				MobControl.dot(player, target, (float) Math.max(1.0, base * cast.scale * 0.12), 3, "blood");
+				MobControl.dot(player, target, (float) Math.max(1.0, base * cast.scale * 0.12) * CombatEffects.versusPlayers(cast, target), 3, "blood");
 				level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, at.x, at.y + 1, at.z, 6, 0.3, 0.4, 0.3, 0.1);
 			}
 			default -> {

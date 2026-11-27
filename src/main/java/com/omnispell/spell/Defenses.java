@@ -61,6 +61,9 @@ public final class Defenses {
 		return "";
 	}
 
+	/** The commands that drive a wall out instead of raising it. */
+	private static final java.util.Set<String> SURGING = java.util.Set.of("Repel", "Throw", "Release", "Banish", "Dismiss", "Displace", "Disperse", "Scatter", "Move");
+
 	/** The spell's shape. */
 	public static String form(Spell spell) {
 		for (String id : spell.words) {
@@ -72,7 +75,8 @@ public final class Defenses {
 					return "veil";
 				}
 				case "attribute:Wall", "attribute:Tower", "attribute:Door" -> {
-					return "barrier";
+					// A wall that is driven (Repel, Throw, Banish...) rolls out and pushes enemies away; otherwise it stands.
+					return SURGING.contains(command(spell, false)) ? "surge" : "barrier";
 				}
 				case "attribute:Statue" -> {
 					return "bulwark";
@@ -417,6 +421,10 @@ public final class Defenses {
 				give(cast, p, amount * 0.5f, heal, ticks);
 				barrier(cast, element, ticks);
 			}
+			case "surge" -> {
+				give(cast, p, amount * 0.4f, heal, ticks);
+				Surges.roll(cast, false);
+			}
 			case "guardian" -> {
 				give(cast, p, amount * 0.5f, heal, ticks);
 				Conjuring.guardian(cast, Math.max(4, turns) * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
@@ -554,20 +562,22 @@ public final class Defenses {
 		String element = AttackForms.element(spell);
 		boolean heal = healing(spell);
 		String gift = heal ? "healing" : "a shield of extra hearts";
+		String littleGift = heal ? "a little healing" : "a small shield of extra hearts";
 		String what = switch (form) {
 			case "veil" -> "It hides you: you turn invisible, take " + gift + ", and some blows pass through you.";
-			case "boon" -> "It blesses you with " + boonText(element) + ", and a little " + gift + ".";
+			case "boon" -> "It blesses you with " + boonText(element) + ", and " + littleGift + ".";
 			case "bulwark" -> "It roots you like a statue: blows land much softer and nothing moves you, but you walk slowly. You also take " + gift + ".";
 			case "mend" -> "It mends you over time, and makes crops nearby grow.";
 			case "aegis" -> "It bursts outward: you and every friend near you (players, pets, golems, villagers, familiars, conjured creatures) get " + gift + " and " + boonText(element) + ".";
 			case "lifeline" -> "It reaches out to the friend you look at (or the nearest one hurt), giving them " + gift + " and " + boonText(element) + ". With no friend near, it is yours.";
 			case "sanctuary" -> "It marks a circle on the ground around you. Friends standing in it " + (heal ? "mend every second" : "keep a shield") + " while it lasts, and hostile creatures in it are slowed.";
 			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
+			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
-			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get a little " + gift + ".";
-			case "daze" -> "It leaves every hostile creature around you reeling and confused. The weak are lost longest; bosses and the like are not moved. You also get a little " + gift + ".";
-			case "stagger" -> "It stuns every hostile creature around you where it stands. The weak are held longest; bosses and the like are not. You also get a little " + gift + ".";
-			case "enthrall" -> "It charms every hostile creature around you: for a while they will not fight you. The weak stay charmed longest; bosses and the like are not moved. You also get a little " + gift + ".";
+			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get " + littleGift + ".";
+			case "daze" -> "It leaves every hostile creature around you reeling and confused. The weak are lost longest; bosses and the like are not moved. You also get " + littleGift + ".";
+			case "stagger" -> "It stuns every hostile creature around you where it stands. The weak are held longest; bosses and the like are not. You also get " + littleGift + ".";
+			case "enthrall" -> "It charms every hostile creature around you: for a while they will not fight you. The weak stay charmed longest; bosses and the like are not moved. You also get " + littleGift + ".";
 			default -> "It gives you " + gift + ". " + Wards.describe(spell);
 		};
 		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Maxima carries it out to your friends nearby too, at half strength.";

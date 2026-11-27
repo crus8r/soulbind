@@ -294,7 +294,8 @@ public final class SpellCrafting {
 			if (spell.description == null || !spell.description.contains(ward)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + ward;
 		}
 		if ("attack".equals(spell.type)) {
-			String forms = AttackForms.describe(spell);
+			// A Wall (with no weapon word) rolls out as a surging wall instead of the command's own shape.
+			String forms = Surges.wallAttack(spell) && Weapons.kind(spell) == null ? Surges.describe(true, AttackForms.element(spell)) : AttackForms.describe(spell);
 			if (!forms.isEmpty() && (spell.description == null || !spell.description.contains(forms))) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + forms;
 		}
 		PlayerData data = PlayerStore.get(player);

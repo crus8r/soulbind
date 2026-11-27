@@ -1869,6 +1869,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
 			context.waitTicks(25);
 			context.takeScreenshot("32-conjured-creatures");
+			check(context.computeOnClient(c -> ClientState.conjureElements.containsValue("water") && ClientState.conjureElements.containsValue("ice") && ClientState.conjureElements.containsValue("fire")),
+					"each conjured creature wears its element's markings (" + context.computeOnClient(c -> String.valueOf(ClientState.conjureElements.values())) + ")");
 			context.waitTicks(80);
 			server.runOnServer(s -> {
 				var conjZombie = conjPrey[0];
@@ -2364,6 +2366,130 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(10);
 			context.takeScreenshot("36-wand-name");
+
+			// ---- surging walls, crumbling earth, soul links, and a tenth of the harm for other players
+			net.minecraft.world.entity.Mob[] surgeMobs = new net.minecraft.world.entity.Mob[6];
+			double[] surgeStart = new double[6];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel sgLevel = p.level();
+				BlockPos sgArena = BlockPos.containing(cHome[0]).offset(0, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(sgArena.offset(-12, -1, -6), sgArena.offset(12, -1, 16))) sgLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(sgArena.offset(-12, 0, -6), sgArena.offset(12, 6, 16))) sgLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				// a stone wall twelve blocks out: the surge carries what it catches up to it, and no further
+				for (BlockPos pos : BlockPos.betweenClosed(sgArena.offset(-6, 0, 12), sgArena.offset(6, 3, 12))) sgLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				p.teleportTo(sgLevel, sgArena.getX() + 0.5, sgArena.getY(), sgArena.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(sgArena.offset(0, 1, 8)));
+				// two zombies and a tamed wolf in its path, and a cow off to the side for the crumbling earth
+				for (int i = 0; i < 4; i++) {
+					net.minecraft.world.entity.Mob sgA = i < 2 ? EntityTypes.ZOMBIE.create(sgLevel, EntitySpawnReason.COMMAND) : i == 2 ? EntityTypes.WOLF.create(sgLevel, EntitySpawnReason.COMMAND) : EntityTypes.COW.create(sgLevel, EntitySpawnReason.COMMAND);
+					sgA.snapTo(sgArena.getX() + (i == 0 ? 0.5 : i == 1 ? 2.5 : i == 2 ? -1.5 : -9.5), sgArena.getY(), sgArena.getZ() + 3.5 + (i == 3 ? 0 : i), 0f, 0f);
+					sgA.setNoAi(true);
+					if (i < 2) {
+						sgA.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200);
+						sgA.setHealth(200f);
+					}
+					if (sgA instanceof net.minecraft.world.entity.TamableAnimal sgPet) sgPet.tame(p);
+					sgLevel.addFreshEntity(sgA);
+					surgeMobs[i] = sgA;
+					surgeStart[i] = sgA.getZ();
+				}
+				com.omnispell.spell.Spell sgSpell = new com.omnispell.spell.Spell();
+				sgSpell.type = "attack";
+				sgSpell.tier = 3;
+				sgSpell.code.type = "damage";
+				sgSpell.code.element = "water";
+				sgSpell.code.primaryValue = 20;
+				sgSpell.words.addAll(java.util.List.of("base:Water", "command:Throw", "attribute:Wall"));
+				check(com.omnispell.data.WordBank.attributeFits("attack", com.omnispell.data.WordBank.word("attribute:Wall")) && com.omnispell.spell.Surges.wallAttack(sgSpell), "Wall fits an attack spell, and makes it a surging wall");
+				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sgSpell)), "a Water + Throw + Wall attack rolls out");
+			});
+			context.waitTicks(45);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel sgLevel = p.level();
+				BlockPos sgArena = BlockPos.containing(cHome[0]).offset(0, 0, -90);
+				var sgA = surgeMobs[0];
+				var sgB = surgeMobs[1];
+				var sgPet = surgeMobs[2];
+				check(sgA.getZ() > surgeStart[0] + 4 && sgB.getZ() > surgeStart[1] + 3, "the wall of water carries both zombies along (" + String.format("%.1f", sgA.getZ() - surgeStart[0]) + " and " + String.format("%.1f", sgB.getZ() - surgeStart[1]) + " blocks)");
+				check(sgA.getZ() < sgArena.getZ() + 12 && sgB.getZ() < sgArena.getZ() + 12 && sgLevel.getBlockState(sgArena.offset(0, 1, 12)).is(Blocks.STONE), "it passes through the stone wall, but they stop against it (" + String.format("%.1f", sgA.getZ() - sgArena.getZ()) + ")");
+				check(sgA.getHealth() < 200f && sgB.getHealth() < 200f, "each zombie it sweeps up is struck (" + sgA.getHealth() + ", " + sgB.getHealth() + ")");
+				check(Math.abs(sgPet.getZ() - surgeStart[2]) < 0.3 && sgPet.getHealth() >= sgPet.getMaxHealth(), "the tamed wolf in its path is left alone (moved " + String.format("%.2f", sgPet.getZ() - surgeStart[2]) + ")");
+				sgA.discard();
+				sgB.discard();
+				sgPet.discard();
+				// A defense: Air + Repel + Wall drives hostile creatures back and leaves the cow be.
+				var sgFoe = EntityTypes.ZOMBIE.create(sgLevel, EntitySpawnReason.COMMAND);
+				sgFoe.snapTo(sgArena.getX() + 0.5, sgArena.getY(), sgArena.getZ() + 3.5, 0f, 0f);
+				sgFoe.setNoAi(true);
+				sgLevel.addFreshEntity(sgFoe);
+				var sgCow = EntityTypes.COW.create(sgLevel, EntitySpawnReason.COMMAND);
+				sgCow.snapTo(sgArena.getX() + 2.5, sgArena.getY(), sgArena.getZ() + 3.5, 0f, 0f);
+				sgCow.setNoAi(true);
+				sgLevel.addFreshEntity(sgCow);
+				surgeMobs[4] = sgFoe;
+				surgeMobs[5] = sgCow;
+				surgeStart[4] = sgFoe.getZ();
+				surgeStart[5] = sgCow.getZ();
+				com.omnispell.spell.Spell sgDef = new com.omnispell.spell.Spell();
+				sgDef.id = "defense|test-surge";
+				sgDef.type = "defense";
+				sgDef.tier = 3;
+				sgDef.code.type = "shield";
+				sgDef.code.element = "wind";
+				sgDef.words.addAll(java.util.List.of("base:Air", "command:Repel", "attribute:Wall"));
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				check("surge".equals(com.omnispell.spell.Defenses.form(sgDef)) && com.omnispell.spell.Defenses.describe(sgDef).contains("wall of wind"), "Air + Repel + Wall is a surging wall: " + com.omnispell.spell.Defenses.describe(sgDef));
+				check(com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sgDef), 3), "the surging wall of wind is cast");
+				com.omnispell.spell.Spell sgWall = new com.omnispell.spell.Spell();
+				sgWall.type = "defense";
+				sgWall.code.element = "stone";
+				sgWall.words.addAll(java.util.List.of("base:Earth", "command:Shield", "attribute:Wall"));
+				check("barrier".equals(com.omnispell.spell.Defenses.form(sgWall)), "a Wall with a shielding command still raises a plain barrier");
+				// Crumble: an Earth + Disintegrate attack swallows its target into the ground for a moment.
+				com.omnispell.spell.Spell sgDust = new com.omnispell.spell.Spell();
+				sgDust.type = "attack";
+				sgDust.tier = 3;
+				sgDust.code.element = "earth";
+				sgDust.words.addAll(java.util.List.of("base:Earth", "command:Disintegrate", "intention:Malice"));
+				check("crumble".equals(com.omnispell.spell.AttackForms.commandForm(sgDust)) && com.omnispell.spell.AttackForms.describe(sgDust).contains("sand"), "Earth + Disintegrate crumbles the ground under its target: " + com.omnispell.spell.AttackForms.describe(sgDust));
+				var crumbleCow = surgeMobs[3];
+				surgeStart[3] = crumbleCow.getY();
+				com.omnispell.spell.AttackForms.manifest(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sgDust), crumbleCow, "crumble", "stone", 10);
+				// A tenth for other players: only attack spells, and never villagers or animals.
+				net.fabricmc.fabric.api.entity.FakePlayer sgFriend = net.fabricmc.fabric.api.entity.FakePlayer.get(sgLevel);
+				com.omnispell.spell.Cast sgCast = new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sgDust);
+				var sgVillager = EntityTypes.VILLAGER.create(sgLevel, EntitySpawnReason.COMMAND);
+				check(Math.abs(com.omnispell.spell.CombatEffects.versusPlayers(sgCast, sgFriend) - 0.1f) < 1e-6f && com.omnispell.spell.CombatEffects.versusPlayers(sgCast, sgCow) == 1f
+						&& com.omnispell.spell.CombatEffects.versusPlayers(sgCast, sgVillager) == 1f && com.omnispell.spell.CombatEffects.versusPlayers(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sgDef), sgFriend) == 1f,
+						"attack spells hurt other players at a tenth; villagers, animals and other kinds of spell are untouched");
+				var sgArrow = new net.minecraft.world.entity.projectile.arrow.Arrow(sgLevel, p, new ItemStack(Items.ARROW), null);
+				sgArrow.addTag("omnispell_magic_arrow");
+				float sgShot = com.omnispell.spell.Modifiers.modifyIncoming(sgFriend, sgLevel.damageSources().arrow(sgArrow, p), 10f);
+				check(Math.abs(sgShot - 1f) < 0.01f, "a Bow spell's arrow hurts another player at a tenth (10 became " + sgShot + ")");
+				// Soul link: a share of the harm your creature deals comes back to you as health.
+				p.setHealth(10f);
+				com.omnispell.spell.Modifiers.add(p, "soul_link", 50, 200);
+				com.omnispell.spell.Conjuring.soulLink(p, 8f);
+				check(Math.abs(p.getHealth() - 14f) < 0.01f, "soul link heals you for half of what your creature dealt (10 became " + p.getHealth() + ")");
+				com.omnispell.spell.Modifiers.add(p, "soul_link", 0, 1);
+				p.setHealth(p.getMaxHealth());
+			});
+			context.waitTicks(40);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				BlockPos sgArena = BlockPos.containing(cHome[0]).offset(0, 0, -90);
+				var sgFoe = surgeMobs[4];
+				var sgCow = surgeMobs[5];
+				check(sgFoe.getZ() > surgeStart[4] + 3, "the wall of wind drives the zombie back (" + String.format("%.1f", sgFoe.getZ() - surgeStart[4]) + " blocks)");
+				check(Math.abs(sgCow.getZ() - surgeStart[5]) < 0.3, "it leaves the cow be (moved " + String.format("%.2f", sgCow.getZ() - surgeStart[5]) + ")");
+				var crumbleCow = surgeMobs[3];
+				check(crumbleCow.isAlive() && crumbleCow.getY() < surgeStart[3] - 0.4, "the cow sinks into the crumbling ground (down " + String.format("%.2f", surgeStart[3] - crumbleCow.getY()) + ")");
+				for (var m : surgeMobs) if (m != null && !m.isRemoved()) m.discard();
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];

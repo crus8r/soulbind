@@ -60,6 +60,8 @@ public final class CombatEffects {
 		boolean conjureAnyway = spell.type.equals("conjuration") && summon == null && !code.type.equals("summon");
 		if (spell.type.equals("defense")) {
 			did = Defenses.cast(cast, Math.max(1, durationTurns));
+		} else if (Surges.wallAttack(spell) && Weapons.kind(spell) == null && !code.type.equals("heal") && !code.type.equals("shield") && !code.type.equals("buff") && !code.type.equals("utility") && !code.type.equals("summon")) {
+			did = Surges.roll(cast, true); // an attack with a Wall rolls out as a surging wall of its element
 		} else if (conjureAnyway) {
 			did = summon(cast, null); // a conjuration always calls something up, whatever else the Oracle wrote
 		} else switch (code.type) {
@@ -122,6 +124,20 @@ public final class CombatEffects {
 		return true;
 	}
 
+	/**
+	 * Attack spells hurt other players at a tenth, all of it (the blow, and any bleeding, burning or
+	 * sinking it leaves): friends play off each other's spells, but recklessness still stings.
+	 * Villagers, pets and other creatures take it in full; other kinds of spell are not touched.
+	 */
+	public static float versusPlayers(Cast cast, LivingEntity target) {
+		return target instanceof net.minecraft.world.entity.player.Player && target != cast.player && "attack".equals(cast.spell.type) ? 0.1f : 1f;
+	}
+
+	/** Sets a target alight; another player hit by an attack spell only smoulders for a moment. */
+	public static void burn(Cast cast, LivingEntity target, int seconds) {
+		target.igniteForSeconds(Math.max(1, Math.round(seconds * versusPlayers(cast, target))));
+	}
+
 	/** Deals a spell's damage to one target, with every offensive toggle the caster has switched on. */
 	public static void strike(Cast cast, LivingEntity target, double websiteDamage, boolean mayRepeat) {
 		ServerPlayer player = cast.player;
@@ -149,7 +165,8 @@ public final class CombatEffects {
 		boolean crit = critChance > 0 && player.getRandom().nextDouble() * 100 < critChance;
 		if (crit) damage *= 2.0;
 
-		float amount = (float) (damage * cast.scale * cast.damageBonus(element));
+		float pvp = versusPlayers(cast, target);
+		float amount = (float) (damage * cast.scale * cast.damageBonus(element)) * pvp;
 		float before = target.getHealth();
 		Modifiers.withSpellElement(element, () ->
 				target.hurtServer(cast.level, cast.level.damageSources().indirectMagic(player, player), amount));
@@ -165,7 +182,7 @@ public final class CombatEffects {
 			if (paid > 0) player.heal((float) paid);
 		}
 		double bleed = Modifiers.value(player, "bleed");
-		if (bleed > 0 && target.isAlive()) MobControl.dot(player, target, (float) (bleed * cast.scale), 3, "blood");
+		if (bleed > 0 && target.isAlive()) MobControl.dot(player, target, (float) (bleed * cast.scale) * versusPlayers(cast, target), 3, "blood");
 		if (Modifiers.has(player, "spell_vampirism") && dealt > 0) Casting.shortenRandomCooldown(player, cast.turns(1));
 
 		if (!mayRepeat) return;
@@ -199,7 +216,7 @@ public final class CombatEffects {
 	private static void elementRider(Cast cast, LivingEntity target, String element) {
 		int tier = cast.spell.tier;
 		switch (element == null ? "" : element) {
-			case "fire" -> target.igniteForSeconds(2 + tier);
+			case "fire" -> burn(cast, target, 2 + tier);
 			case "ice" -> target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40 + tier * 20, tier >= 4 ? 1 : 0), cast.player);
 			case "light" -> target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 100, 0), cast.player);
 			case "nature" -> {

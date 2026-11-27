@@ -156,7 +156,8 @@ public final class WordBank {
 			case "Arrow", "Bow" -> List.of("attack", "conjuration");
 			case "Shield", "Cloak", "Door" -> List.of("defense");
 			case "Statue" -> List.of("defense", "conjuration");
-			case "Wall", "Tower", "Bridge" -> List.of("defense", "conjuration", "exploration");
+			case "Wall" -> List.of("defense", "conjuration", "exploration", "attack");
+			case "Tower", "Bridge" -> List.of("defense", "conjuration", "exploration");
 			case "Bed", "Fireplace", "Chest/Box", "Currency", "Cloud" -> List.of("exploration", "defense");
 			case "Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog" -> List.of("conjuration", "attack", "defense");
 			default -> null;

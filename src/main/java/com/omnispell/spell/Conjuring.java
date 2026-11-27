@@ -43,8 +43,15 @@ public final class Conjuring {
 	public static final EntityType<ConjuredSerpent> SERPENT = net.minecraft.core.Registry.register(BuiltInRegistries.ENTITY_TYPE, SERPENT_KEY,
 			EntityType.Builder.<ConjuredSerpent>of(ConjuredSerpent::new, MobCategory.MISC).sized(0.9f, 0.8f).eyeHeight(0.5f).clientTrackingRange(10).build(SERPENT_KEY));
 
+	/** Each conjured creature's colour and markings, sent again to anyone who comes near it later. */
+	private static final Map<net.minecraft.world.entity.Entity, com.omnispell.net.OmniNet.ConjureTint> MARKS = new java.util.WeakHashMap<>();
+
 	public static void register() {
 		net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(SERPENT, ConjuredSerpent.attributes());
+		net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, viewer) -> {
+			com.omnispell.net.OmniNet.ConjureTint mark = MARKS.get(entity);
+			if (mark != null && entity.isAlive()) net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(viewer, mark);
+		});
 	}
 
 	/** A body: its entity type and how much bigger or smaller than usual. */
@@ -297,11 +304,11 @@ public final class Conjuring {
 		if (isInvisibleWord(spell)) mob.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, cast.turns(turns) + 40, 0, false, false));
 		mob.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, cast.turns(turns) + 40, 0, false, false));
 		Summons.track(mob, cast.turns(turns)); // before it enters the world, or it would be taken for a stray
+		com.omnispell.net.OmniNet.ConjureTint mark = new com.omnispell.net.OmniNet.ConjureTint(mob.getId(), tintFor(spell), AttackForms.element(spell));
+		MARKS.put(mob, mark);
 		level.addFreshEntity(mob);
-		int tint = tintFor(spell);
-		net.minecraft.world.entity.Entity e = mob;
 		for (ServerPlayer viewer : level.players()) {
-			net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(viewer, new com.omnispell.net.OmniNet.ConjureTint(e.getId(), tint));
+			net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(viewer, mark);
 		}
 		Fx.play(level, spell.visual, Targeting.hand(player), mob.position());
 		LivingEntity target = Targeting.entity(player, cast.range);
@@ -497,7 +504,9 @@ public final class Conjuring {
 							if (away.lengthSqr() > 0.01) foe.push(away.normalize().x * 0.9, 0.35, away.normalize().z * 0.9);
 							foe.syncVelocity = true;
 						}
-						if (a.traits.contains("link")) owner.heal(Math.max(0, before - foe.getHealth()) * 0.2f);
+						float bitten = Math.max(0, before - foe.getHealth());
+						if (a.traits.contains("link")) owner.heal(bitten * 0.2f);
+						soulLink(owner, bitten);
 					}
 					// The spell's own magic, cast at what it fights.
 					if (a.boltReady <= 0 && dist < 14 && mob.hasLineOfSight(foe)) {
@@ -552,7 +561,10 @@ public final class Conjuring {
 		Fx.play(cast.level, cast.spell.visual, from, foe.getBoundingBox().getCenter());
 		Fx.sound(cast.level, mob.position(), cast.spell.code.element, Math.max(1, cast.spell.visual.intensity - 1));
 		foe.setInvulnerableTime(0);
+		float before = foe.getHealth();
 		CombatEffects.strike(cast, foe, a.base * 0.35, false);
+		ServerPlayer owner = cast.player;
+		if (owner.isAlive()) soulLink(owner, Math.max(0, before - foe.getHealth()));
 		Spell.EffectCode code = cast.spell.code;
 		if (code.status != null && !code.status.equals("none") && !code.status.equals("null") && foe.isAlive()) CombatEffects.status(cast, foe, code.status, 1);
 		if (foe.isAlive() && mob.getRandom().nextFloat() < 0.3f) AttackForms.apply(cast, foe, a.base * 0.35);
@@ -639,6 +651,12 @@ public final class Conjuring {
 			owner.heal((float) (mob.getMaxHealth() * 0.25));
 			Fx.line(level, mob.getBoundingBox().getCenter(), owner.getBoundingBox().getCenter(), 0xE03A5A, net.minecraft.core.particles.ParticleTypes.HEART, 2);
 		}
+	}
+
+	/** Soul Link (from the spell's toggles): a share of what your creatures deal comes back to you as health. */
+	public static void soulLink(ServerPlayer owner, float dealt) {
+		double share = Modifiers.value(owner, "soul_link");
+		if (share > 0 && dealt > 0 && owner.isAlive()) owner.heal((float) (dealt * share / 100.0));
 	}
 
 	/** A faint haze of its element, so you can tell a fire wolf from a frost one at a glance. */

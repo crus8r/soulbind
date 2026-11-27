@@ -212,6 +212,8 @@ public final class Modifiers {
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
+		// An Arrow or Bow attack spell's arrows hurt other players at a tenth, like the spell itself.
+		if (source.getDirectEntity() != null && source.getDirectEntity().entityTags().contains("omnispell_magic_arrow") && source.getEntity() != player) amount *= 0.1f;
 		amount = com.omnispell.player.Corruption.incoming(player, source, amount);
 		amount = Wards.incoming(player, source, amount);
 		amount = Conjuring.guard(player, source, amount);

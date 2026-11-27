@@ -26,6 +26,9 @@ public final class ClientState {
 	public static final java.util.Map<Integer, Integer> conjureTints = new java.util.HashMap<>();
 	/** The render states this frame that belong to a tinted creature. */
 	public static final java.util.Map<Object, Integer> tintedStates = new java.util.WeakHashMap<>();
+	/** Conjured creatures' elements, by entity id, for the markings they wear; and the render states that wear them. */
+	public static final java.util.Map<Integer, String> conjureElements = new java.util.HashMap<>();
+	public static final java.util.Map<Object, String> elementStates = new java.util.WeakHashMap<>();
 	/** Other players' corruption, by entity id, as the server sent it. */
 	public static final java.util.Map<Integer, Integer> corruptionLevels = new java.util.HashMap<>();
 	/** The render states this frame that belong to a player with veins, and which stage. */
