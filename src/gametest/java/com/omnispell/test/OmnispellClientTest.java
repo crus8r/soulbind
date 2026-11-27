@@ -1867,6 +1867,48 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (var e : player(s).level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player(s).getBoundingBox().inflate(30), com.omnispell.spell.Conjuring::isConjured)) com.omnispell.spell.Summons.dismiss(e);
 			});
 
+			// ---- defense: a shield is a ward you can see, shaped by its element and command
+			net.minecraft.world.entity.monster.zombie.Zombie[] striker = new net.minecraft.world.entity.monster.zombie.Zombie[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				com.omnispell.spell.Spell fireShield = new com.omnispell.spell.Spell();
+				fireShield.type = "defense";
+				fireShield.tier = 3;
+				fireShield.code.type = "shield";
+				fireShield.code.element = "fire";
+				fireShield.words.addAll(java.util.List.of("base:Ember", "command:Repel", "intention:Restoration"));
+				String said = com.omnispell.spell.Wards.describe(fireShield);
+				check(said.contains("flame") && said.contains("thrown back"), "Ember + Repel describes a flame shell that throws attackers back: " + said);
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				ItemStack shieldWand = WandItem.create("oak", "flint");
+				WandItem.setSpell(shieldWand, 0, fireShield);
+				p.getInventory().setItem(p.getInventory().getSelectedSlot(), shieldWand);
+				com.omnispell.spell.Casting.cast(p, shieldWand, 0);
+				check(com.omnispell.spell.Wards.active(p) && p.getAbsorptionAmount() > 0 && p.hasEffect(MobEffects.FIRE_RESISTANCE), "casting it raises a fire ward with its hearts (" + p.getAbsorptionAmount() + " absorption)");
+				var z = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				z.snapTo(p.getX() + 1.2, p.getY(), p.getZ(), 90f, 0f);
+				z.setNoAi(true);
+				level.addFreshEntity(z);
+				striker[0] = z;
+				com.omnispell.spell.Modifiers.modifyIncoming(p, level.damageSources().mobAttack(z), 3f);
+				check(z.isOnFire() && z.getDeltaMovement().horizontalDistance() > 0.5, "a zombie that strikes the fire ward is set alight and thrown back");
+				check(com.omnispell.spell.Modifiers.modifyIncoming(p, level.damageSources().inFire(), 4f) == 0f, "and fire cannot hurt the one inside it");
+			});
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+			context.waitTicks(12);
+			context.takeScreenshot("33-fire-ward");
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+			server.runOnServer(s -> {
+				if (!striker[0].isRemoved()) striker[0].discard();
+				// Other elements do other things: wind turns arrows aside, shadow lets blows pass.
+				com.omnispell.spell.Spell windShield = new com.omnispell.spell.Spell();
+				windShield.type = "defense";
+				windShield.code.element = "wind";
+				windShield.words.add("command:Reflect");
+				check(com.omnispell.spell.Wards.describe(windShield).contains("arrows aside") && com.omnispell.spell.Wards.describe(windShield).contains("sent back"), "a wind shield with Reflect turns arrows aside and sends spells back");
+			});
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {
 				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop

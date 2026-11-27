@@ -242,6 +242,7 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.item.Attire.tick(server);
 			int tick = server.getTickCount();
 			com.omnispell.spell.Conjuring.tick(server);
+			com.omnispell.spell.Wards.tick(server);
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) com.omnispell.item.CoreAbilities.tick(player);
 			if (tick % 10 == 0) {
 				MobControl.tick();

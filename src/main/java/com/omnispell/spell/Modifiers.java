@@ -212,6 +212,7 @@ public final class Modifiers {
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
+		amount = Wards.incoming(player, source, amount);
 		amount = com.omnispell.item.CoreAbilities.incoming(player, source, amount);
 		amount = com.omnispell.charm.Charms.incoming(player, source, amount);
 		// The wand's ward (held right-click): most of a hit is turned aside, paid for in Barrier mana, and the ward flashes into view.

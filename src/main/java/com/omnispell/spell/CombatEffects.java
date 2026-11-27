@@ -278,7 +278,10 @@ public final class CombatEffects {
 		want *= 1.0 + Modifiers.value(player, "shield_overcharge") / 100.0;
 		double paid = Mana.spend(player, ManaPool.BARRIER, want);
 		if (paid < 1) return cast.fail("Your Barrier mana is spent.");
-		giveShield(cast, (float) (paid * cast.scale * cast.mendingBonus()), cast.turns(turns));
+		float hearts = (float) (paid * cast.scale * cast.mendingBonus());
+		if (Wards.habit(cast.spell).equals("bulwark")) hearts *= 1.25f;
+		giveShield(cast, hearts, cast.turns(turns));
+		Wards.raise(cast, cast.turns(turns)); // the shield you can see, and what its element and command make it do
 		Fx.play(cast.level, cast.spell.visual, Targeting.hand(player), player.position());
 		return true;
 	}

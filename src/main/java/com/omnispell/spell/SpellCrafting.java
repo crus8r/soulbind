@@ -249,6 +249,10 @@ public final class SpellCrafting {
 	}
 
 	private static void finish(ServerPlayer player, Spell spell, boolean stable) {
+		if ("defense".equals(spell.type) || (spell.code != null && "shield".equals(spell.code.type))) {
+			String ward = Wards.describe(spell);
+			if (spell.description == null || !spell.description.contains(ward)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + ward;
+		}
 		if ("attack".equals(spell.type)) {
 			String forms = AttackForms.describe(spell);
 			if (!forms.isEmpty() && (spell.description == null || !spell.description.contains(forms))) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + forms;
