@@ -188,7 +188,7 @@ public final class Guide {
 				"Boiling over: wrong heat, flora mixed raw with fauna, very potent ingredients, a dangerous liquid, a weaponizer. Each adds volatility. Too much without honeycomb and the cauldron bursts, the brew is lost, and you are burned.",
 				"An uneasy brew still works, but comes out with a side effect.",
 				"The same recipe at the same heat always makes the same potion. Gunpowder makes a potion for throwing. Glowstone dust makes potions that restore or drain mana.",
-				"Use a potion to drink it. A potion is slower magic than a spell: what it gives you lasts a minute and a half for each turn it names, so a three-turn draught holds for four and a half minutes. Harmful potions are thrown where you look instead. Potions stack to 16 and there is no limit on how many you carry."));
+				"Use a potion to drink it. A potion is slower magic than a spell: what it gives you lasts a minute for each turn it names, so a three-turn draught holds for three minutes. Harmful potions are thrown where you look instead. Potions stack to 16 and there is no limit on how many you carry."));
 		s.put("Recipes", List.of(
 				"Rows are read top to bottom, left to right. A dash is an empty space.",
 				"WAND",
