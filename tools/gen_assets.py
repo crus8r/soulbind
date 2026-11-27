@@ -590,15 +590,22 @@ for stage, count in enumerate((8, 18, 32, 48), start=1):
     img.save(p_)
 # Elemental markings for conjured creatures: veins of the element over the creature's own hide.
 # Every creature's skin is laid out differently, so each pattern is spread evenly over the whole
-# sheet and wraps at the edges; whichever parts a model uses, it wears some of it.
+# sheet and wraps at the edges; whichever parts a model uses, it wears some of it. A creature is
+# already tinted the colour of its element, so every marking has a dark edge and a bright heart
+# that show on any hide.
 def element_overlays():
+    import math as _m
     rng = _random.Random(2727)
     def put(img, x, y, c):
         img.putpixel((x % 64, y % 64), c)
-    def line(img, x0, y0, x1, y1, c):
+    def put_if_clear(img, x, y, c):
+        if img.getpixel((x % 64, y % 64))[3] == 0: img.putpixel((x % 64, y % 64), c)
+    def line(img, x0, y0, x1, y1, c, edge=None, ex=1, ey=0):
         n = max(abs(x1 - x0), abs(y1 - y0), 1)
         for i in range(n + 1):
-            put(img, round(x0 + (x1 - x0) * i / n), round(y0 + (y1 - y0) * i / n), c)
+            x, y = round(x0 + (x1 - x0) * i / n), round(y0 + (y1 - y0) * i / n)
+            put(img, x, y, c)
+            if edge: put_if_clear(img, x + ex, y + ey, edge)
     def walk(x, y, steps, moves):
         path = [(x, y)]
         for _ in range(steps):
@@ -606,121 +613,127 @@ def element_overlays():
             x, y = x + dx, y + dy
             path.append((x, y))
         return path
-    def veins(img, count, steps, moves, dark, bright, wide=False):
+    def veins(img, count, steps, moves, edge, core, bright):
         for _ in range(count):
             path = walk(rng.randrange(64), rng.randrange(64), rng.randint(*steps), moves)
             for i, (x, y) in enumerate(path):
-                put(img, x, y, bright if i % 3 == 0 else dark)
-                if wide and i % 2 == 0: put(img, x + 1, y, dark)
-    made = {}
+                put(img, x, y, bright if i % 3 == 0 else core)
+                put_if_clear(img, x + 1, y, edge)
     def new():
         return Image.new('RGBA', (64, 64), (0, 0, 0, 0))
-    # fire: flames licking upward, deep orange at the root to pale yellow at the tip, and embers
+    made = {}
+    # fire: flames licking upward, a dark ember edge, orange at the root to pale yellow at the tip
     img = new()
     for _ in range(30):
         path = walk(rng.randrange(64), rng.randrange(64), rng.randint(4, 9), [(0, -1), (0, -1), (1, -1), (-1, -1)])
         for i, (x, y) in enumerate(path):
             t = i / max(1, len(path) - 1)
-            put(img, x, y, mix((210, 64, 12), (255, 236, 130), t))
-            if i < len(path) // 2: put(img, x + 1, y, (190, 50, 10, 255))
-    for _ in range(36): put(img, rng.randrange(64), rng.randrange(64), (255, 200, 80, 255))
+            put(img, x, y, mix((236, 96, 16), (255, 244, 150), t))
+            put_if_clear(img, x + 1, y, (112, 26, 6, 255))
+            if i < len(path) // 3: put_if_clear(img, x - 1, y, (112, 26, 6, 255))
+    for _ in range(30):
+        x, y = rng.randrange(64), rng.randrange(64)
+        put(img, x, y, (255, 222, 90, 255))
+        put_if_clear(img, x, y + 1, (112, 26, 6, 255))
     made['fire'] = img
-    # water: rippling bands with bright crests, and a few bubbles
+    # water: rippling bands, deep blue with pale crests riding on them, and a few bubbles
     img = new()
-    import math as _m
     for k in range(9):
         y0, phase = 3 + 7 * k + rng.randrange(3), rng.random() * 6.28
         for x in range(64):
             if (x + k * 5) % 13 >= 9: continue
             y = y0 + round(1.6 * _m.sin(x * 0.35 + phase))
-            put(img, x, y, (190, 232, 255, 255) if x % 4 == 0 else (54, 136, 226, 255))
-    for _ in range(26): put(img, rng.randrange(64), rng.randrange(64), (170, 222, 255, 255))
+            put(img, x, y, (18, 64, 150, 255))
+            if x % 3 == 0: put(img, x, y - 1, (214, 242, 255, 255))
+    for _ in range(22):
+        x, y = rng.randrange(64), rng.randrange(64)
+        put_if_clear(img, x, y, (230, 248, 255, 255))
+        put_if_clear(img, x + 1, y + 1, (18, 64, 150, 255))
     made['water'] = img
-    # ice: straight frost cracks that fork, and glints of white
+    # ice: straight frost cracks that fork, deep blue with a white edge, and glints
     img = new()
     dirs = [(1, 0), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, 0), (0, -1), (-1, -1)]
-    for _ in range(36):
+    for _ in range(34):
         x, y = rng.randrange(64), rng.randrange(64)
         dx, dy = rng.choice(dirs)
         n = rng.randint(3, 8)
-        line(img, x, y, x + dx * n, y + dy * n, (128, 200, 240, 255))
-        put(img, x, y, (214, 246, 255, 255))
+        line(img, x, y, x + dx * n, y + dy * n, (34, 92, 168, 255), (240, 252, 255, 255), 0, 1)
         if rng.random() < 0.6:
             mx, my = x + dx * (n // 2), y + dy * (n // 2)
             ex, ey = rng.choice([d for d in dirs if d != (dx, dy) and d != (-dx, -dy)])
-            line(img, mx, my, mx + ex * rng.randint(2, 4), my + ey * rng.randint(2, 4), (180, 230, 250, 255))
-    for _ in range(22): put(img, rng.randrange(64), rng.randrange(64), (255, 255, 255, 255))
+            line(img, mx, my, mx + ex * rng.randint(2, 4), my + ey * rng.randint(2, 4), (60, 130, 200, 255))
+    for _ in range(18): put_if_clear(img, rng.randrange(64), rng.randrange(64), (255, 255, 255, 255))
     made['ice'] = img
-    # wind: curling gusts, bright at the head and fading along the tail
+    # wind: curling gusts in slate blue, paler toward the tail
     img = new()
-    for _ in range(28):
+    for _ in range(26):
         cx, cy, r = rng.randrange(64), rng.randrange(64), rng.randint(3, 8)
         a0, sweep = rng.random() * 6.28, rng.uniform(1.6, 3.4)
         steps = int(sweep * r * 1.3) + 1
         for i in range(steps):
             a = a0 + sweep * i / steps
-            put(img, round(cx + r * _m.cos(a)), round(cy + r * _m.sin(a)), (244, 250, 252, 255) if i > steps * 0.6 else (186, 212, 222, 255))
+            x, y = round(cx + r * _m.cos(a)), round(cy + r * _m.sin(a))
+            put(img, x, y, (84, 116, 140, 255) if i > steps * 0.5 else (150, 182, 200, 255))
     made['wind'] = img
-    # storm: forked lightning, a white-gold core with a violet glow beside it
+    # storm: forked lightning, a hot yellow core inside a dark violet glow
     img = new()
     for _ in range(18):
         x, y = rng.randrange(64), rng.randrange(64)
         for step in range(rng.randint(5, 9)):
             nx, ny = x + rng.choice([-2, -1, 1, 2]) * (1 if step % 2 else -1), y + rng.randint(1, 2)
-            line(img, x + 1, y, nx + 1, ny, (164, 140, 255, 255))
-            line(img, x, y, nx, ny, (255, 250, 190, 255))
+            line(img, x, y, nx, ny, (255, 238, 96, 255), (72, 40, 176, 255), 1, 0)
             if rng.random() < 0.2:
-                line(img, nx, ny, nx + rng.choice([-3, 3]), ny + 2, (220, 210, 255, 255))
+                line(img, nx, ny, nx + rng.choice([-3, 3]), ny + 2, (255, 250, 200, 255), (72, 40, 176, 255), 1, 0)
             x, y = nx, ny
     made['storm'] = img
-    # stone: cracks in the hide, dark seams with lighter edges, and flecks of grit
+    # stone: cracks in the hide, dark seams with pale edges, and flecks of grit
     img = new()
-    veins(img, 50, (4, 10), [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1)], (58, 48, 38, 255), (150, 128, 100, 255), wide=True)
-    for _ in range(40): put(img, rng.randrange(64), rng.randrange(64), (160, 142, 112, 255))
+    veins(img, 46, (4, 10), [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1)], (214, 198, 166, 255), (50, 40, 30, 255), (88, 72, 54, 255))
+    for _ in range(36): put_if_clear(img, rng.randrange(64), rng.randrange(64), (60, 50, 40, 255))
     made['stone'] = img
-    # nature: creeping vines with leaves along them, and the odd flower
+    # nature: dark creeping vines with bright leaves along them, and the odd flower
     img = new()
     for _ in range(28):
         path = walk(rng.randrange(64), rng.randrange(64), rng.randint(6, 12), [(0, 1), (1, 1), (-1, 1), (1, 0), (-1, 0)])
         for i, (x, y) in enumerate(path):
-            put(img, x, y, (44, 118, 40, 255))
+            put(img, x, y, (22, 78, 22, 255))
             if i % 3 == 1:
                 side = 1 if (i // 3) % 2 else -1
-                put(img, x + side, y, (112, 202, 72, 255))
-                put(img, x + side, y - 1, (90, 180, 60, 255))
-    for _ in range(9): put(img, rng.randrange(64), rng.randrange(64), rng.choice([(242, 170, 222, 255), (250, 232, 120, 255)]))
+                put_if_clear(img, x + side, y, (150, 232, 90, 255))
+                put_if_clear(img, x + side, y - 1, (96, 190, 56, 255))
+    for _ in range(9): put(img, rng.randrange(64), rng.randrange(64), rng.choice([(236, 120, 200, 255), (250, 210, 60, 255)]))
     made['nature'] = img
-    # light: little stars and glints of gold
+    # light: little stars, white hearts with gold arms and amber tips
     img = new()
-    for _ in range(58):
+    for _ in range(52):
         x, y = rng.randrange(64), rng.randrange(64)
         arm = 2 if rng.random() < 0.3 else 1
-        put(img, x, y, (255, 255, 232, 255))
+        put(img, x, y, (255, 255, 240, 255))
         for d in range(1, arm + 1):
             for dx, dy in ((d, 0), (-d, 0), (0, d), (0, -d)):
-                put(img, x + dx, y + dy, (255, 226, 140, 255))
+                put(img, x + dx, y + dy, (232, 170, 30, 255) if d == 1 else (156, 96, 12, 255))
     made['light'] = img
-    # shadow: wide smoky veins, nearly black, with a violet sheen
+    # shadow: smoky veins, nearly black, with a bright violet sheen
     img = new()
-    veins(img, 36, (5, 11), [(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, -1)], (26, 14, 38, 255), (92, 52, 132, 255), wide=True)
+    veins(img, 36, (5, 11), [(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, -1)], (36, 18, 52, 255), (14, 6, 22, 255), (168, 108, 240, 255))
     made['shadow'] = img
-    # void: rifts of deep purple edged in magenta, and pale stars inside the dark
+    # void: rifts of black-purple edged in magenta, and pale stars inside the dark
     img = new()
-    veins(img, 28, (4, 8), [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1)], (58, 8, 98, 255), (206, 86, 255, 255), wide=True)
-    for _ in range(60): put(img, rng.randrange(64), rng.randrange(64), rng.choice([(244, 226, 255, 255), (255, 255, 255, 255), (186, 140, 255, 255)]))
+    veins(img, 28, (4, 8), [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1)], (228, 100, 255, 255), (28, 0, 56, 255), (64, 8, 110, 255))
+    for _ in range(50): put(img, rng.randrange(64), rng.randrange(64), rng.choice([(250, 240, 255, 255), (255, 255, 255, 255), (200, 160, 255, 255)]))
     made['void'] = img
     # blood: dark red veins that pulse bright at the knots
     img = new()
-    veins(img, 52, (5, 12), [(0, 1), (0, 1), (1, 1), (-1, 1), (1, 0), (-1, 0), (0, -1)], (98, 0, 12, 255), (196, 22, 36, 255))
+    veins(img, 50, (5, 12), [(0, 1), (0, 1), (1, 1), (-1, 1), (1, 0), (-1, 0), (0, -1)], (64, 0, 8, 255), (100, 0, 12, 255), (236, 34, 44, 255))
     made['blood'] = img
-    # arcane: runes scattered over it, violet with bright hearts
+    # arcane: runes scattered over it, dark violet strokes with bright hearts
     img = new()
     runes = [['.#.', '###', '.#.'], ['#.#', '.#.', '#.#'], ['##.', '#.#', '.##'], ['#..', '###', '..#'], ['.#.', '#.#', '.#.'], ['###', '#..', '###'], ['#.#', '###', '#.#']]
-    for _ in range(60):
+    for _ in range(56):
         rune, x0, y0 = rng.choice(runes), rng.randrange(64), rng.randrange(64)
         for dy, row in enumerate(rune):
             for dx, ch in enumerate(row):
-                if ch == '#': put(img, x0 + dx, y0 + dy, (246, 212, 255, 255) if (dx, dy) == (1, 1) else (196, 116, 255, 255))
+                if ch == '#': put(img, x0 + dx, y0 + dy, (255, 232, 255, 255) if (dx, dy) == (1, 1) else (66, 18, 120, 255))
     made['arcane'] = img
     for name, img in made.items():
         p_ = os.path.join(ASSETS, 'textures', 'entity', 'overlay', name + '.png')

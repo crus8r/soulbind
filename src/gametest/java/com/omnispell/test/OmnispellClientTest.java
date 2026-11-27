@@ -2370,6 +2370,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			// ---- surging walls, crumbling earth, soul links, and a tenth of the harm for other players
 			net.minecraft.world.entity.Mob[] surgeMobs = new net.minecraft.world.entity.Mob[6];
 			double[] surgeStart = new double[6];
+			java.util.List<net.minecraft.world.entity.Mob> surgeLook = new java.util.ArrayList<>();
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				ServerLevel sgLevel = p.level();
@@ -2494,7 +2495,35 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				var crumbleCow = surgeMobs[3];
 				check(crumbleCow.isAlive() && crumbleCow.getY() < surgeStart[3] - 0.4, "the cow sinks into the crumbling ground (down " + String.format("%.2f", surgeStart[3] - crumbleCow.getY()) + ")");
 				for (var m : surgeMobs) if (m != null && !m.isRemoved()) m.discard();
-				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+				// A close look at the markings conjured creatures wear: flame, storm, frost and stone, side by side.
+				ServerLevel sgLevel = p.level();
+				String[][] sgLook = {{"fire", "attribute:Fox", "Ember Fox"}, {"storm", "attribute:Wolf", "Storm Hound"}, {"ice", "attribute:Bear", "Frost Bear"}, {"stone", "", "Stone Golem"}};
+				net.minecraft.world.entity.EntityType<?>[] sgTypes = {EntityTypes.FOX, EntityTypes.WOLF, EntityTypes.POLAR_BEAR, EntityTypes.IRON_GOLEM};
+				p.teleportTo(sgLevel, sgArena.getX() + 0.5, sgArena.getY(), sgArena.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				for (int i = 0; i < sgLook.length; i++) {
+					com.omnispell.spell.Spell sgBeast = new com.omnispell.spell.Spell();
+					sgBeast.type = "conjuration";
+					sgBeast.tier = 3;
+					sgBeast.code.element = sgLook[i][0];
+					if (!sgLook[i][1].isEmpty()) sgBeast.words.add(sgLook[i][1]);
+					sgBeast.name = sgLook[i][2];
+					com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), sgBeast), sgLook[i][2], 10, 20);
+					final int sgK = i;
+					for (var sgM : sgLevel.getEntitiesOfClass(net.minecraft.world.entity.Mob.class, p.getBoundingBox().inflate(16), m -> m.getType() == sgTypes[sgK] && !m.isNoAi())) {
+						sgM.setNoAi(true);
+						sgM.snapTo(sgArena.getX() + 0.5 - 2.85 + 1.9 * sgK, sgArena.getY(), sgArena.getZ() + 5.5, 180f, 0f);
+						sgM.setYHeadRot(180f);
+						surgeLook.add(sgM);
+					}
+				}
+				check(surgeLook.size() >= 4, "four conjured creatures stand for a look at their markings (" + surgeLook.size() + ")");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(sgArena.getX() + 0.5, sgArena.getY() + 0.9, sgArena.getZ() + 5.5));
+			});
+			context.waitTicks(12);
+			context.takeScreenshot("38-element-markings");
+			server.runOnServer(s -> {
+				surgeLook.forEach(net.minecraft.world.entity.Entity::discard);
+				player(s).teleportTo(player(s).level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
 			});
 			context.waitTicks(5);
 
