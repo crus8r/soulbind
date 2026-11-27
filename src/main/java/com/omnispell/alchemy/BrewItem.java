@@ -139,14 +139,14 @@ public class BrewItem extends Item {
 	}
 
 	/** How much longer a potion's gifts last than a spell's turn. */
-	public static final int LASTING = 6;
+	public static final int LASTING = 18;
 
 	/** Carries out a potion on whoever drank it or was splashed by it. Numbers are the potioneer's, scaled like spells. */
 	static void apply(ServerPlayer user, Brew brew, LivingEntity target) {
 		ServerLevel level = user.level();
 		double scale = Omnispell.CONFIG.valueScale;
 		int turns = Math.max(brew.duration, 0);
-		// A potion is slower magic than a spell: what it gives the drinker lasts six times as long (half a minute a turn). What it does to an enemy does not.
+		// A potion is slower magic than a spell: what it gives the drinker lasts eighteen times as long (a minute and a half a turn). What it does to an enemy does not.
 		boolean hostile = brew.codeType.equals("damage") || brew.codeType.equals("debuff") || brew.codeType.equals("mana_drain");
 		int ticks = Omnispell.CONFIG.turnsToTicks(Math.max(1, turns)) * (hostile ? 1 : LASTING);
 		double value = brew.value > 0 ? brew.value : brew.tier * 8;
