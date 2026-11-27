@@ -2922,7 +2922,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				hkSprite.words.addAll(java.util.List.of("base:Fire", "command:Summon", "intention:Malice", "attribute:Blue"));
 				check("spirit".equals(com.omnispell.spell.Conjuring.bodyFor(hkSprite, null).id()) && com.omnispell.spell.Conjuring.describe(hkSprite, "Blue Wisp").contains("sprite of blue"),
 						"a colour word with no creature calls a featureless sprite of that colour: " + com.omnispell.spell.Conjuring.describe(hkSprite, "Blue Wisp"));
-				check(com.omnispell.spell.Masonry.alsoShelter(hkSpell), "at tier 4 it raises the shelter as well");
+				com.omnispell.spell.Spell hkPlain = new com.omnispell.spell.Spell();
+				hkPlain.type = "conjuration";
+				hkPlain.tier = 4;
+				hkPlain.words.addAll(java.util.List.of("base:Light", "command:Shield", "intention:Warding", "attribute:Yellow", "charge:Maxima (Amplify power)"));
+				check(com.omnispell.spell.Masonry.alsoShelter(hkSpell) && !com.omnispell.spell.Masonry.alsoShelter(hkPlain), "Space, a mighty base word, raises the shelter as well; Light does not");
 				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hkSpell), "Yellow Guardian", 10, 20), "the hollow knight is conjured");
 				int hkWalls = 0;
 				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-5, 0, -5), hkAt.offset(5, 5, 5))) if (com.omnispell.spell.Masonry.isConjured(pos.immutable())) hkWalls++;

@@ -157,19 +157,22 @@ public final class Masonry {
 	}
 
 	/**
-	 * A strong guarding conjuration of a colour (tier 4 or more) calls its hollow knight and raises the
-	 * shelter around you as well: a bulwark and its warden.
+	 * Only a mighty base word (Space, Time, Void, Ether, Mythic: tier 5 or more) carries power enough for a
+	 * guarding conjuration of a colour to raise the shelter around you as well as its hollow knight: a
+	 * bulwark and its warden. Every other conjuration makes one thing.
 	 */
 	public static boolean alsoShelter(Spell spell) {
-		if (!"conjuration".equals(spell.type) || spell.tier < 4 || Conjuring.colourWord(spell) == null || !Conjuring.guarding(spell)) return false;
+		if (!"conjuration".equals(spell.type) || Conjuring.colourWord(spell) == null || !Conjuring.guarding(spell)) return false;
 		String kind = "", intention = "";
+		boolean mighty = false;
 		for (String id : spell.words) {
 			com.omnispell.data.Word w = com.omnispell.data.WordBank.word(id);
 			if (w == null) continue;
+			if (w.type.equals("base") && w.tierOr(1) >= 5) mighty = true;
 			if (w.type.equals("command")) kind = w.explore == null ? "" : w.explore;
 			if (w.type.equals("intention")) intention = w.english;
 		}
-		return kind.equals("envelop") && !java.util.Set.of("Malice", "Weakening", "Banishment", "Binding", "Nullification").contains(intention);
+		return mighty && kind.equals("envelop") && !java.util.Set.of("Malice", "Weakening", "Banishment", "Binding", "Nullification").contains(intention);
 	}
 
 	public static boolean build(Cast cast) {
