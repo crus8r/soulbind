@@ -19,6 +19,8 @@ public final class ClientState {
 	public static Spell pending;
 	public static Set<String> bosses = new LinkedHashSet<>();
 	public static int maxWords = 3;
+	/** Whether sprinting with a wand in hand gives the Phase-powered speed boost. Kept on the server. */
+	public static boolean wandSprint = true;
 
 	public static int essence;
 	public static int essenceCap = 100;
@@ -73,6 +75,7 @@ public final class ClientState {
 		folders = json.has("folders") ? WordBank.GSON.fromJson(json.get("folders"), new TypeToken<ArrayList<com.omnispell.player.PlayerData.Folder>>() { }.getType()) : null;
 		if (folders == null) folders = new ArrayList<>();
 		maxWords = json.get("maxWords").getAsInt();
+		wandSprint = !json.has("wandSprint") || json.get("wandSprint").getAsBoolean();
 		if (words == null) words = new LinkedHashSet<>();
 		if (spellTypes == null) spellTypes = new LinkedHashSet<>();
 		if (spells == null) spells = new ArrayList<>();

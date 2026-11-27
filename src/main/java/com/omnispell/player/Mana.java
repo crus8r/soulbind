@@ -94,7 +94,7 @@ public final class Mana {
 		}
 		var speed = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);
 		if (speed == null) return;
-		boolean fleet = player.isSprinting() && !WandItem.heldWand(player).isEmpty() && !player.getAbilities().flying
+		boolean fleet = player.isSprinting() && !PlayerStore.get(player).noWandSprint && !WandItem.heldWand(player).isEmpty() && !player.getAbilities().flying
 				&& spend(player, ManaPool.PHASE, 0.125) >= 0.125;
 		if (fleet) {
 			if (!speed.hasModifier(SPRINT)) speed.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(SPRINT, 0.3, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));

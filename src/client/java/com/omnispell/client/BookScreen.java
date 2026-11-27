@@ -746,7 +746,7 @@ public class BookScreen extends Screen {
 		int wy = py + ph - 68;
 		g.horizontalLine(px + 4, px + pw - 5, wy - 4, LINE);
 		ClientSettings settings = ClientSettings.get();
-		String tapLabel = "Double-tap to cast: " + (settings.doubleTap ? "on" : "off");
+		String tapLabel = "Double-tap: " + (settings.doubleTap ? "on" : "off");
 		int tapW = font().width(tapLabel) + 10;
 		button(g, px + pw - 8 - tapW, wy - 2, tapW, 12, tapLabel, true, settings.doubleTap, () -> {
 			settings.doubleTap = !settings.doubleTap;
@@ -758,12 +758,27 @@ public class BookScreen extends Screen {
 			settings.showCoords = !settings.showCoords;
 			ClientSettings.save();
 		});
-		String sightLabel = "Dark sight: " + (settings.darkSight <= 0 ? "off" : settings.darkSight < 0.45f ? "low" : "high");
+		String sightLabel = "Sight: " + (settings.darkSight <= 0 ? "off" : settings.darkSight < 0.45f ? "low" : "high");
 		int sightW = font().width(sightLabel) + 10;
 		button(g, px + pw - 8 - tapW - coordW - sightW - 6, wy - 2, sightW, 12, sightLabel, true, settings.darkSight > 0, () -> {
 			settings.darkSight = settings.darkSight <= 0 ? 0.3f : settings.darkSight < 0.45f ? 0.6f : 0f;
 			ClientSettings.save();
 		});
+		String sprintLabel = "Sprint: " + (ClientState.wandSprint ? "on" : "off");
+		int sprintW = font().width(sprintLabel) + 10;
+		button(g, px + pw - 8 - tapW - coordW - sightW - sprintW - 9, wy - 2, sprintW, 12, sprintLabel, true, ClientState.wandSprint, () -> {
+			ClientState.wandSprint = !ClientState.wandSprint;
+			send("wand_sprint", ClientState.wandSprint ? "on" : "off");
+		});
+		if (over(px + pw - 8 - tapW - coordW - sightW - sprintW - 9, wy - 2, sprintW, 12)) {
+			tooltip = new ArrayList<>();
+			tooltip.add(Component.literal("On: sprinting with a wand in hand runs a third faster, spending Phase mana."));
+			tooltip.add(Component.literal("Off: you sprint like anyone else and keep the mana.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		}
+		if (over(px + pw - 8 - tapW - coordW - sightW - 6, wy - 2, sightW, 12)) {
+			tooltip = new ArrayList<>();
+			tooltip.add(Component.literal("Dark sight: how much you can see in the dark (off, low, high)."));
+		}
 		if (over(px + pw - 8 - tapW, wy - 2, tapW, 12)) {
 			tooltip = new ArrayList<>();
 			tooltip.add(Component.literal("On: the first press of a spell key shows the spell, the second casts it."));

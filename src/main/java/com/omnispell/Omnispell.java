@@ -121,6 +121,12 @@ public class Omnispell implements ModInitializer {
 					}
 					PlayerStore.syncVitals(player);
 				}
+				case "wand_sprint" -> {
+					com.omnispell.player.PlayerData data = PlayerStore.get(player);
+					data.noWandSprint = !"on".equals(payload.arg());
+					PlayerStore.save(player);
+					PlayerStore.syncState(player);
+				}
 				case "sync" -> {
 					PlayerStore.syncState(player);
 					PlayerStore.syncVitals(player);

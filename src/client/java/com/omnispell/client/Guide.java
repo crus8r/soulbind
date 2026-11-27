@@ -25,7 +25,7 @@ public final class Guide {
 				" A grey cover on the square drains away as the spell becomes ready again; stronger spells take longer.",
 				"Left-click with the wand casts the spell you last selected. Sneak + left-click steps to the next slot. If that spell is still cooling, or the slot is empty, the wand throws a plain arcane bolt instead. A bolt is weak and costs 5 Force mana, so it is a stopgap and not a weapon to lean on.",
 				"Hold right-click to raise the wand's ward. It cannot be seen until something strikes it; then it flashes, turns half the blow aside and throws the attacker back hard. It drains Barrier mana while it is up and more with each hit.",
-				"Sprint (Ctrl) with a wand in hand and you run a third faster, spending Phase mana as you go.",
+				"Sprint (Ctrl) with a wand in hand and you run a third faster, spending Phase mana as you go. Switch it off with the Wand sprint button in the Spellbook tab if you would rather save the mana.",
 				"In the air with a wand in hand, double-tap sprint to walk on air: the air hardens under your feet until your Phase mana runs out, a few seconds at most. It forgives most of a fall, like hay, but not all of it. Double-tap again or sneak to let go.",
 				"To carry the wand in your off hand, shift-click it in your inventory as you would a shield, or sneak + right-click while holding it.",
 				"You know Maxima and Minima from the start. Every spell has a Charge slot on the Craft tab: click it, then pick Maxima for a stronger spell a tier higher, or Minima for a smaller, more exact one a tier lower. A charge does not count against your wand's word limit.",

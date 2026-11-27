@@ -41,6 +41,8 @@ public final class PlayerData {
 	public boolean totemWarned;
 	public int waypointPairs;                                // how many waypoint pairs this player has crafted
 	public boolean initialized;
+	/** True if this player switched off the wand's sprint boost in the Spellbook. */
+	public boolean noWandSprint;
 
 	public Spell spell(String id) {
 		for (Spell spell : spells) {

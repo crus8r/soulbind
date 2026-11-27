@@ -945,6 +945,25 @@ public class OmnispellClientTest implements FabricClientGameTest {
 							&& com.omnispell.spell.Casting.manaCost(up) > 0 && com.omnispell.spell.Casting.poolOf(up) == com.omnispell.player.ManaPool.PHASE, "a wild bound and a launch cost Phase mana");
 				}
 
+				// The wand sprint can be switched off.
+				{
+					var speedAttr = p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);
+					ItemStack keepHand = p.getMainHandItem().copy();
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), WandItem.create("oak", "flint"));
+					PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] = 5;
+					p.setSprinting(true);
+					com.omnispell.player.Mana.wandUpkeep(p);
+					boolean onBoost = speedAttr.hasModifier(com.omnispell.Omnispell.id("wand_sprint"));
+					PlayerStore.get(p).noWandSprint = true;
+					com.omnispell.player.Mana.wandUpkeep(p);
+					boolean offBoost = speedAttr.hasModifier(com.omnispell.Omnispell.id("wand_sprint"));
+					check(onBoost && !offBoost, "the wand sprint boost works, and stops when switched off in the Spellbook");
+					PlayerStore.get(p).noWandSprint = false;
+					p.setSprinting(false);
+					com.omnispell.player.Mana.wandUpkeep(p);
+					p.getInventory().setItem(p.getInventory().getSelectedSlot(), keepHand);
+				}
+
 				// New wand cores.
 				{
 					var cores = com.omnispell.item.WandParts.CORES;

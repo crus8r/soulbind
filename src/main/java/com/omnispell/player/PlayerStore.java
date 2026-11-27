@@ -114,6 +114,7 @@ public final class PlayerStore {
 		json.add("bosses", WordBank.GSON.toJsonTree(data.bosses));
 		json.add("folders", WordBank.GSON.toJsonTree(data.folders));
 		json.addProperty("maxWords", creative ? 7 : WandItem.bestWordBudget(player));
+		json.addProperty("wandSprint", !data.noWandSprint);
 		ServerPlayNetworking.send(player, new OmniNet.SyncState(json.toString()));
 	}
 
