@@ -62,6 +62,9 @@ public final class OmniItems {
 	public static final Item RUNIC_BOOKSHELF_ITEM = register("runic_bookshelf", p -> new BlockItem(RUNIC_BOOKSHELF, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Block FOREST_GATE = registerBlock("forest_gate", com.omnispell.realm.ForestGateBlock::new,
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(3.0f, 1200.0f).sound(SoundType.AMETHYST).lightLevel(state -> 12));
+	/** The lit inside of a forest portal frame. Not an item: it is woken with an ender pearl. */
+	public static final Block FOREST_PORTAL = registerBlock("forest_portal", com.omnispell.realm.ForestPortalBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).noCollision().strength(-1.0f).sound(SoundType.GLASS).lightLevel(state -> 11).noLootTable());
 	public static final Item FOREST_GATE_ITEM = register("forest_gate", p -> new BlockItem(FOREST_GATE, p), new Item.Properties().useBlockDescriptionPrefix());
 	public static final Block WITHERED_GATE = registerBlock("withered_gate", com.omnispell.realm.WitheredGateBlock::new,
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(50.0f, 1200.0f).sound(SoundType.STONE).requiresCorrectToolForDrops());

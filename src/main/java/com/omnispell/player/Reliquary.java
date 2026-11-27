@@ -287,7 +287,7 @@ public final class Reliquary {
 			BlockPos best = null;
 			double bestDistance = Double.MAX_VALUE;
 			for (BlockPos pos : BlockPos.betweenClosed(at.offset(-24, -12, -24), at.offset(24, 12, 24))) {
-				if (!level.getBlockState(pos).is(OmniItems.FOREST_GATE)) continue;
+				if (!level.getBlockState(pos).is(OmniItems.FOREST_GATE) && !level.getBlockState(pos).is(OmniItems.FOREST_PORTAL)) continue;
 				double d = pos.distSqr(at);
 				if (d < bestDistance) {
 					bestDistance = d;

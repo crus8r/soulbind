@@ -161,6 +161,16 @@ public class Omnispell implements ModInitializer {
 	 * wand on the egg. The egg is not used up.
 	 */
 	private static void registerRazza() {
+		// An ender pearl on a whole frame of mossy stone wakes a portal to the Enchanted Forest.
+		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+			net.minecraft.world.item.ItemStack held = player.getItemInHand(hand);
+			if (!held.is(net.minecraft.world.item.Items.ENDER_PEARL) || !com.omnispell.realm.ForestPortalBlock.frame(level.getBlockState(hit.getBlockPos()))) return net.minecraft.world.InteractionResult.PASS;
+			if (!(level instanceof net.minecraft.server.level.ServerLevel server)) return net.minecraft.world.InteractionResult.PASS;
+			if (server.dimension() != net.minecraft.world.level.Level.OVERWORLD && server.dimension() != com.omnispell.realm.Realms.FOREST) return net.minecraft.world.InteractionResult.PASS;
+			if (!com.omnispell.realm.ForestPortalBlock.light(server, hit.getBlockPos())) return net.minecraft.world.InteractionResult.PASS;
+			if (!player.getAbilities().instabuild) held.shrink(1);
+			return net.minecraft.world.InteractionResult.SUCCESS;
+		});
 		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
 			if (!level.getBlockState(hit.getBlockPos()).is(net.minecraft.world.level.block.Blocks.DRAGON_EGG)) return net.minecraft.world.InteractionResult.PASS;
 			if (!WandItem.isWand(player.getItemInHand(hand))) return net.minecraft.world.InteractionResult.PASS;

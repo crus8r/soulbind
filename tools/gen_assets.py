@@ -800,6 +800,20 @@ write(os.path.join(ASSETS, 'models', 'block', 'arcane_well.json'), {
 write(os.path.join(ASSETS, 'models', 'block', 'hardened_air.json'), {
     'parent': 'minecraft:block/cube_all', 'textures': {'all': 'minecraft:block/white_stained_glass'}})
 write(os.path.join(ASSETS, 'blockstates', 'hardened_air.json'), {'variants': {'': {'model': 'omnispell:block/hardened_air'}}})
+# The forest portal: a thin shimmering sheet inside its frame, like a Nether portal's but green and violet.
+def forest_portal(x, y):
+    import math
+    w = math.sin((x + y * 0.6) * 0.9) + math.sin((x * 0.5 - y) * 0.7) + noise(x, y, 41) * 0.8
+    c = mix((70, 200, 120), (170, 110, 255), max(0.0, min(1.0, (w + 2) / 4)))
+    if noise(x, y, 43) > 0.93: c = (240, 255, 220, 255)
+    return c[:3] + (168,)
+tex('forest_portal', forest_portal)
+for _axis, _from, _to, _faces in (('ns', [0, 0, 6], [16, 16, 10], ('north', 'south')), ('ew', [6, 0, 0], [10, 16, 16], ('east', 'west'))):
+    write(os.path.join(ASSETS, 'models', 'block', 'forest_portal_' + _axis + '.json'), {
+        'textures': {'particle': 'omnispell:block/forest_portal', 'portal': 'omnispell:block/forest_portal'},
+        'elements': [{'from': _from, 'to': _to, 'faces': {f: {'uv': [0, 0, 16, 16], 'texture': '#portal'} for f in _faces}}]})
+write(os.path.join(ASSETS, 'blockstates', 'forest_portal.json'), {'variants': {
+    'axis=x': {'model': 'omnispell:block/forest_portal_ns'}, 'axis=z': {'model': 'omnispell:block/forest_portal_ew'}}})
 write(os.path.join(ASSETS, 'blockstates', 'arcane_well.json'), {'variants': {'': {'model': 'omnispell:block/arcane_well'}}})
 write(os.path.join(ASSETS, 'items', 'arcane_well.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:block/arcane_well'}})
 
@@ -1048,6 +1062,7 @@ lang = {
     'block.omnispell.faewood_planks': 'Faewood Planks',
     'block.omnispell.runic_bookshelf': 'Runic Bookshelf',
     'block.omnispell.forest_gate': 'Forest Gate',
+    'block.omnispell.forest_portal': 'Forest Portal',
     'block.omnispell.withered_gate': 'Withered Forest Gate',
     'item.omnispell.fae_dust': 'Fae Dust',
     'biome.omnispell.faewood_grove': 'Faewood Grove',

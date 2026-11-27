@@ -2651,6 +2651,72 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- the forest portal: a frame of mossy stone, woken with an ender pearl, walked through both ways
+			BlockPos[] fpOrigin = new BlockPos[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel fpLevel = p.level();
+				BlockPos fpAt = BlockPos.containing(cHome[0]).offset(30, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(fpAt.offset(-4, -1, -4), fpAt.offset(5, -1, 4))) fpLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(fpAt.offset(-4, 0, -4), fpAt.offset(5, 6, 4))) fpLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				// four wide, five tall, no corners, of mixed mossy stone, sunk one into the floor like a Nether portal
+				BlockPos fpIn = fpAt; // the inside's lower corner
+				for (int a = 0; a <= 1; a++) {
+					fpLevel.setBlockAndUpdate(fpIn.offset(a, -1, 0), Blocks.MOSS_BLOCK.defaultBlockState());
+					fpLevel.setBlockAndUpdate(fpIn.offset(a, 3, 0), Blocks.MOSSY_COBBLESTONE.defaultBlockState());
+				}
+				for (int h = 0; h <= 2; h++) {
+					fpLevel.setBlockAndUpdate(fpIn.offset(-1, h, 0), Blocks.MOSSY_STONE_BRICKS.defaultBlockState());
+					fpLevel.setBlockAndUpdate(fpIn.offset(2, h, 0), Blocks.MOSSY_COBBLESTONE.defaultBlockState());
+				}
+				fpOrigin[0] = fpIn;
+				p.teleportTo(fpLevel, fpAt.getX() + 1.0, fpAt.getY(), fpAt.getZ() + 3.5, java.util.Set.of(), 180f, 0f, true);
+				fpLevel.setBlockAndUpdate(fpIn.offset(2, 1, 0), Blocks.STONE.defaultBlockState());
+				check(!com.omnispell.realm.ForestPortalBlock.light(fpLevel, fpIn.offset(-1, 1, 0)), "a frame with a plain stone in it does not wake");
+				fpLevel.setBlockAndUpdate(fpIn.offset(2, 1, 0), Blocks.MOSSY_COBBLESTONE.defaultBlockState());
+				check(com.omnispell.realm.ForestPortalBlock.light(fpLevel, fpIn.offset(-1, 1, 0)), "a whole frame of mossy stone wakes");
+				int fpLit = 0;
+				for (int a = 0; a <= 1; a++) for (int h = 0; h <= 2; h++) if (fpLevel.getBlockState(fpIn.offset(a, h, 0)).is(OmniItems.FOREST_PORTAL)) fpLit++;
+				check(fpLit == 6, "the inside fills with portal (" + fpLit + " of 6)");
+			});
+			context.waitTicks(10);
+			context.takeScreenshot("39-forest-portal");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel fpLevel = p.level();
+				BlockPos fpIn = fpOrigin[0];
+				fpLevel.destroyBlock(fpIn.offset(0, 3, 0), false);
+			});
+			context.waitTicks(5);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel fpLevel = p.level();
+				BlockPos fpIn = fpOrigin[0];
+				check(fpLevel.getBlockState(fpIn).isAir() && fpLevel.getBlockState(fpIn.offset(1, 2, 0)).isAir(), "break the frame and the portal goes out");
+				fpLevel.setBlockAndUpdate(fpIn.offset(0, 3, 0), Blocks.MOSS_BLOCK.defaultBlockState());
+				check(com.omnispell.realm.ForestPortalBlock.light(fpLevel, fpIn.offset(0, 3, 0)), "mended, it wakes again");
+				p.teleportTo(fpLevel, fpIn.getX() + 0.5, fpIn.getY(), fpIn.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(60);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(com.omnispell.realm.Realms.isForest(p.level()), "walking into it carries you to the Enchanted Forest");
+				check(p.level().getBlockState(p.blockPosition()).is(OmniItems.FOREST_PORTAL), "a portal back stands where you arrive");
+				p.teleportTo(p.level(), p.getX() + 0.0, p.getY(), p.getZ() + 3.0, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(40);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.teleportTo(p.level(), p.getX(), p.getY(), p.getZ() - 3.0, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(60);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(p.level().dimension() == net.minecraft.world.level.Level.OVERWORLD && p.blockPosition().distManhattan(fpOrigin[0]) <= 3, "walking into that one brings you back to the first (" + p.level().dimension().identifier() + ")");
+				p.teleportTo(s.overworld(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(20);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {

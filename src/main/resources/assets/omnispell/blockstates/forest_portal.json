@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "omnispell:block/forest_portal_ns"
+    },
+    "axis=z": {
+      "model": "omnispell:block/forest_portal_ew"
+    }
+  }
+}
