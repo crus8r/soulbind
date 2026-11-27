@@ -127,6 +127,8 @@ public final class Conjuring {
 
 	/** The creature the spell's own words or the Oracle's naming ask for, or null if nothing names one. */
 	public static Body namedBody(Spell spell, String name) {
+		Body flyer = warriorFor(spell) != null ? flyingCreature(spell) : null;
+		if (flyer != null) return flyer;
 		Body armed = warriorFor(spell);
 		if (armed != null) return armed;
 		for (String id : spell.words) {
@@ -155,7 +157,30 @@ public final class Conjuring {
 		return false;
 	}
 
+	/** A creature word for something that flies (bird, eagle, insect, snake), with the body it gives, or null. */
+	public static Body flyingCreature(Spell spell) {
+		for (String id : spell.words) {
+			Word word = WordBank.word(id);
+			if (word == null || !word.type.equals("attribute") || !creatureWord(word.english)) continue;
+			Body b = BODIES.get(word.english.toLowerCase(Locale.ROOT));
+			if (b != null && b.flies) return b;
+		}
+		return null;
+	}
+
+	/**
+	 * A flying creature can carry no warrior, so with a weapon word the creature fights with the weapon's
+	 * gift instead: a bow lets its breath loose arrows too, a sword or blade gives it slashing claws, a club
+	 * a heavy blow that throws foes back, a spear a spear it hurls. "" for none.
+	 */
+	public static String gift(Spell spell) {
+		Body armed = warriorFor(spell);
+		return armed != null && flyingCreature(spell) != null ? armed.weapon : "";
+	}
+
 	public static Body bodyFor(Spell spell, String name) {
+		Body flyer = warriorFor(spell) != null ? flyingCreature(spell) : null;
+		if (flyer != null) return flyer;
 		Body armed = warriorFor(spell);
 		if (armed != null) return armed;
 		for (String id : spell.words) {
@@ -247,6 +272,8 @@ public final class Conjuring {
 		final java.util.Set<String> traits = new java.util.HashSet<>();
 		boolean ended;
 		int boltReady = 20;
+		/** A flying creature's weapon gift (see gift()), or "". */
+		String gift = "";
 
 		Active(Mob mob, UUID owner, Cast cast, Body body, double base, LivingEntity foe) {
 			this.mob = mob;
@@ -383,6 +410,7 @@ public final class Conjuring {
 		Active active = new Active(mob, player.getUUID(), cast, body, base, target != null && target != mob && hostileTo(player, target) ? target : null);
 		active.bite = (float) biteDamage;
 		active.traits.addAll(traits(spell));
+		if (body.weapon == null && body == flyingCreature(spell)) active.gift = gift(spell);
 		ACTIVE.put(mob.getUUID(), active);
 		return active;
 	}
@@ -442,6 +470,13 @@ public final class Conjuring {
 			case "spirit" -> "a spirit";
 			case "golem" -> "a golem";
 			default -> "a " + body.id;
+		};
+		String weaponGift = gift(spell);
+		if (!weaponGift.isEmpty()) what += switch (weaponGift) {
+			case "bow" -> " that looses arrows along with its breath";
+			case "sword", "dagger" -> " with slashing claws that catch whatever stands beside its prey";
+			case "club" -> " whose heavy blows throw its foes back";
+			default -> " that hurls spears at what it hunts";
 		};
 		Body steed = mountFor(spell);
 		if (steed != null) what += ", riding " + (steed.id.equals("cat") ? "a great cat" : "a " + steed.id);
@@ -552,12 +587,18 @@ public final class Conjuring {
 						shoot(a, foe);
 					}
 				} else {
-					if (weapon.equals("spear") && a.shootReady <= 0 && dist > 4 && dist < 14 && mob.hasLineOfSight(foe)) {
+					// A flying creature with a bow's gift looses arrows as it fights, as well as its breath.
+					if (a.gift.equals("bow") && a.shootReady <= 0 && dist < 16 && mob.hasLineOfSight(foe)) {
+						a.shootReady = Math.max(16, 34 - 3 * a.cast.spell.tier);
+						shoot(a, foe);
+					}
+					if ((weapon.equals("spear") || a.gift.equals("spear")) && a.shootReady <= 0 && dist > 4 && dist < 14 && mob.hasLineOfSight(foe)) {
 						a.shootReady = 50;
 						throwSpear(a, foe);
 					}
+					String blow = weapon.isEmpty() && !a.gift.equals("bow") ? a.gift : weapon;
 					if (dist <= reach && a.biteReady <= 0) {
-						a.biteReady = switch (weapon) {
+						a.biteReady = switch (blow) {
 							case "dagger" -> 10;
 							case "club" -> 28;
 							case "sword" -> 18;
@@ -566,9 +607,10 @@ public final class Conjuring {
 						level.broadcastEntityEvent(mob, (byte) 4); // the attack animation, for the bodies that have one
 						mob.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);
 						float before = foe.getHealth();
-						foe.hurtServer(level, level.damageSources().mobAttack(mob), weapon.equals("dagger") ? a.bite * 0.6f : weapon.equals("club") ? a.bite * 1.3f : a.bite);
+						foe.hurtServer(level, level.damageSources().mobAttack(mob), blow.equals("dagger") ? a.bite * 0.6f : blow.equals("club") ? a.bite * 1.3f : a.gift.equals("sword") ? a.bite * 1.25f : a.bite);
+						if (!a.gift.isEmpty() && (a.gift.equals("sword") || a.gift.equals("dagger"))) claw(a, foe, level, owner);
 						if (mob instanceof net.minecraft.world.entity.monster.skeleton.WitherSkeleton) foe.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, 0), mob);
-						if (weapon.equals("club")) {
+						if (blow.equals("club")) {
 							Vec3 away = foe.position().subtract(mob.position()).multiply(1, 0, 1);
 							if (away.lengthSqr() > 0.01) foe.push(away.normalize().x * 0.9, 0.35, away.normalize().z * 0.9);
 							foe.syncVelocity = true;
@@ -661,6 +703,27 @@ public final class Conjuring {
 		Spell.EffectCode code = cast.spell.code;
 		if (code.status != null && !code.status.equals("none") && !code.status.equals("null") && foe.isAlive()) CombatEffects.status(cast, foe, code.status, 1);
 		if (foe.isAlive() && mob.getRandom().nextFloat() < 0.3f) AttackForms.apply(cast, foe, a.base * 0.35);
+	}
+
+	/** Slashing claws: a clear slash across the foe that catches anything hostile beside it. */
+	private static void claw(Active a, LivingEntity foe, ServerLevel level, ServerPlayer owner) {
+		Mob mob = a.mob;
+		Vec3 at = foe.getBoundingBox().getCenter();
+		Vec3 facing = foe.position().subtract(mob.position()).multiply(1, 0, 1);
+		facing = facing.lengthSqr() < 0.01 ? new Vec3(1, 0, 0) : facing.normalize();
+		Vec3 across = new Vec3(-facing.z, 0, facing.x);
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		net.minecraft.core.particles.DustParticleOptions dust = new net.minecraft.core.particles.DustParticleOptions(tintFor(a.cast.spell), 1.0f);
+		for (int line = -1; line <= 1; line++) { // three claw marks, raked diagonally
+			for (int k = -4; k <= 4; k++) {
+				Vec3 q = at.add(across.scale(k * 0.18)).add(0, k * 0.14 + line * 0.22, 0).add(facing.scale(-0.4));
+				level.sendParticles(dust, q.x, q.y, q.z, 1, 0, 0, 0, 0);
+			}
+		}
+		level.playSound(null, foe.blockPosition(), net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP, net.minecraft.sounds.SoundSource.HOSTILE, 1.0f, 1.2f);
+		for (LivingEntity near : level.getEntitiesOfClass(LivingEntity.class, foe.getBoundingBox().inflate(1.6), e -> e != foe && e != mob && e.isAlive() && hostileTo(owner, e))) {
+			near.hurtServer(level, level.damageSources().mobAttack(mob), a.bite * 0.5f);
+		}
 	}
 
 	/** An archer's arrow, tipped with the spell's element. */

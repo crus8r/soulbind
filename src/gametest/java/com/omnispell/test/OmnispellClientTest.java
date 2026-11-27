@@ -2840,6 +2840,19 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(com.omnispell.spell.Conjuring.mountFor(jkSpell) != null && com.omnispell.spell.Casting.manaCost(jkSpell) > com.omnispell.spell.Casting.manaCost(jkPlain) * 1.4,
 						"Cat + Bow is a jockey, and costs more than an archer alone (" + com.omnispell.spell.Casting.manaCost(jkSpell) + " vs " + com.omnispell.spell.Casting.manaCost(jkPlain) + ")");
 				check(com.omnispell.spell.Conjuring.describe(jkSpell, "Shadow Rider").contains("riding"), "the book says it rides: " + com.omnispell.spell.Conjuring.describe(jkSpell, "Shadow Rider"));
+				// A flyer cannot carry a warrior: Bird + Bow is a bird that looses arrows, Snake + Sword a serpent with claws.
+				com.omnispell.spell.Spell jkHawk = new com.omnispell.spell.Spell();
+				jkHawk.type = "conjuration";
+				jkHawk.tier = 3;
+				jkHawk.words.addAll(java.util.List.of("base:Air", "command:Summon", "intention:Malice", "attribute:Bird", "attribute:Bow"));
+				com.omnispell.spell.Spell jkWyrm = new com.omnispell.spell.Spell();
+				jkWyrm.type = "conjuration";
+				jkWyrm.tier = 3;
+				jkWyrm.words.addAll(java.util.List.of("base:Water", "command:Summon", "intention:Malice", "attribute:Snake", "attribute:Sword"));
+				check("bird".equals(com.omnispell.spell.Conjuring.bodyFor(jkHawk, null).id()) && "bow".equals(com.omnispell.spell.Conjuring.gift(jkHawk)) && com.omnispell.spell.Conjuring.mountFor(jkHawk) == null
+						&& "serpent".equals(com.omnispell.spell.Conjuring.bodyFor(jkWyrm, null).id()) && "sword".equals(com.omnispell.spell.Conjuring.gift(jkWyrm))
+						&& com.omnispell.spell.Conjuring.describe(jkWyrm, "Tide Wyrm").contains("claws"),
+						"Bird + Bow is a bird that looses arrows; Snake + Sword a serpent with slashing claws: " + com.omnispell.spell.Conjuring.describe(jkWyrm, "Tide Wyrm"));
 				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), jkSpell), "Shadow Rider", 10, 20), "the jockey is conjured");
 				var jkRiders = jkLevel.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.AbstractSkeleton.class, p.getBoundingBox().inflate(10));
 				check(!jkRiders.isEmpty() && jkRiders.get(0).getVehicle() instanceof net.minecraft.world.entity.animal.feline.Ocelot,
