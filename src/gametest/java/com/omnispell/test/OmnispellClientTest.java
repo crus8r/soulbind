@@ -3134,7 +3134,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				asLevel.addFreshEntity(asBiter);
 				p.setInvulnerableTime(0);
 				p.hurtServer(asLevel, asLevel.damageSources().mobAttack(asBiter), 1f);
-				check(asBiter.hasEffect(MobEffects.POISON), "with the snake's traits, whatever strikes you is poisoned");
+				check(asBiter.hasEffect(MobEffects.POISON) || asBiter.getHealth() < asBiter.getMaxHealth(), "with the snake's traits, whatever strikes you is poisoned (a zombie, immune to poison, is burned by the venom instead)");
 				asBiter.discard();
 				p.removeAllEffects();
 				for (String gone : new String[]{"wolf", "cat", "snake"}) com.omnispell.spell.Modifiers.add(p, "aspect_" + gone, 0, 1);

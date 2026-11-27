@@ -672,7 +672,8 @@ public final class Defenses {
 
 	/** A blow struck at someone wearing a venomous creature's traits poisons the striker. */
 	public static void aspectStruck(ServerPlayer p, LivingEntity attacker) {
-		if (Modifiers.has(p, "aspect_snake")) attacker.addEffect(new MobEffectInstance(MobEffects.POISON, 80, 0), p);
+		// Undead (and spiders) shrug off poison, so venom burns them directly instead.
+		if (Modifiers.has(p, "aspect_snake") && !attacker.addEffect(new MobEffectInstance(MobEffects.POISON, 80, 0), p)) attacker.hurtServer(p.level(), p.level().damageSources().thorns(p), 3f);
 		if (Modifiers.has(p, "aspect_insect")) {
 			attacker.addEffect(new MobEffectInstance(MobEffects.POISON, 40, 0), p);
 			attacker.hurtServer(p.level(), p.level().damageSources().thorns(p), 2f);
