@@ -285,7 +285,20 @@ public final class Conjuring {
 		if (spell.hasCharge("Duratus")) life *= 1.6;
 		int n = count(spell, new java.util.Random());
 		int made = 0;
-		for (int i = 0; i < n; i++) if (spawnOne(cast, name, damage, life, i, n) != null) made++;
+		Body steed = mountFor(spell);
+		for (int i = 0; i < n; i++) {
+			Active rider = spawnOne(cast, name, damage, life, i, n);
+			if (rider == null) continue;
+			made++;
+			// A weapon word with a creature word: the warrior comes riding the creature.
+			if (steed != null) {
+				Active mount = spawnBody(cast, "Steed of " + name, damage, life, i, n, steed);
+				if (mount != null) {
+					mount.mob.setCustomNameVisible(false);
+					rider.mob.startRiding(mount.mob, true, true);
+				}
+			}
+		}
 		return made > 0 || cast.fail("The conjuration finds no purchase here.");
 	}
 
@@ -301,12 +314,30 @@ public final class Conjuring {
 		return true;
 	}
 
+	/**
+	 * The creature a warrior rides, when the spell has both a weapon word and a creature word that can
+	 * carry one (a jockey). Birds, eagles and insects fly and carry no one; for those it is the warrior alone.
+	 */
+	public static Body mountFor(Spell spell) {
+		if (warriorFor(spell) == null) return null;
+		for (String id : spell.words) {
+			Word word = WordBank.word(id);
+			if (word == null || !word.type.equals("attribute") || !creatureWord(word.english)) continue;
+			Body b = BODIES.get(word.english.toLowerCase(Locale.ROOT));
+			if (b != null && !b.flies) return b;
+		}
+		return null;
+	}
+
 	private static Active spawnOne(Cast cast, String name, double damage, double turns, int index, int of) {
+		return spawnBody(cast, name, damage, turns, index, of, bodyFor(cast.spell, name));
+	}
+
+	private static Active spawnBody(Cast cast, String name, double damage, double turns, int index, int of, Body body) {
 		ServerPlayer player = cast.player;
 		ServerLevel level = cast.level;
 		Spell spell = cast.spell;
 		String element = AttackForms.element(spell);
-		Body body = bodyFor(spell, name);
 		Mob mob = variant(body, element).create(level, EntitySpawnReason.MOB_SUMMONED);
 		if (mob == null) return null;
 		// Several come in an arc in front of the caster.
@@ -412,6 +443,8 @@ public final class Conjuring {
 			case "golem" -> "a golem";
 			default -> "a " + body.id;
 		};
+		Body steed = mountFor(spell);
+		if (steed != null) what += ", riding " + (steed.id.equals("cat") ? "a great cat" : "a " + steed.id);
 		StringBuilder sb = new StringBuilder("It comes as " + what);
 		if (spell.hasCharge("Sparsus")) sb.append(spell.hasCharge("Maxima") ? ", three to five of them at once" : ", two or three of them at once");
 		else if (spell.hasCharge("Maxima")) sb.append(", twice the usual size: it hits much harder but does not stay as long");

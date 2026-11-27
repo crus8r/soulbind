@@ -234,6 +234,7 @@ public final class Casting {
 			else if (many) cost *= 1.6;
 			else if (big) cost *= 1.5;
 			if (spell.hasCharge("Minima")) cost *= 0.6;
+			if (Conjuring.mountFor(spell) != null) cost *= 1.5; // a rider and its mount
 			if (infinity(spell)) cost *= com.omnispell.player.Mana.INFINITY_DISCOUNT;
 			return cost;
 		}

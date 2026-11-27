@@ -2819,6 +2819,44 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- a jockey: a weapon word with a creature word calls the warrior riding the creature
+			java.util.List<net.minecraft.world.entity.Entity> jkMobs = new java.util.ArrayList<>();
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel jkLevel = p.level();
+				BlockPos jkAt = BlockPos.containing(cHome[0]).offset(-30, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(jkAt.offset(-5, -1, -8), jkAt.offset(5, -1, 3))) jkLevel.setBlockAndUpdate(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(jkAt.offset(-5, 0, -8), jkAt.offset(5, 5, 3))) jkLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				p.teleportTo(jkLevel, jkAt.getX() + 0.5, jkAt.getY(), jkAt.getZ() + 0.5, java.util.Set.of(), 180f, 10f, true);
+				com.omnispell.spell.Spell jkSpell = new com.omnispell.spell.Spell();
+				jkSpell.type = "conjuration";
+				jkSpell.tier = 3;
+				jkSpell.code.element = "shadow";
+				jkSpell.words.addAll(java.util.List.of("base:Shadow", "command:Summon", "intention:Malice", "attribute:Cat", "attribute:Bow"));
+				com.omnispell.spell.Spell jkPlain = new com.omnispell.spell.Spell();
+				jkPlain.type = "conjuration";
+				jkPlain.tier = 3;
+				jkPlain.words.addAll(java.util.List.of("base:Shadow", "command:Summon", "intention:Malice", "attribute:Bow"));
+				check(com.omnispell.spell.Conjuring.mountFor(jkSpell) != null && com.omnispell.spell.Casting.manaCost(jkSpell) > com.omnispell.spell.Casting.manaCost(jkPlain) * 1.4,
+						"Cat + Bow is a jockey, and costs more than an archer alone (" + com.omnispell.spell.Casting.manaCost(jkSpell) + " vs " + com.omnispell.spell.Casting.manaCost(jkPlain) + ")");
+				check(com.omnispell.spell.Conjuring.describe(jkSpell, "Shadow Rider").contains("riding"), "the book says it rides: " + com.omnispell.spell.Conjuring.describe(jkSpell, "Shadow Rider"));
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), jkSpell), "Shadow Rider", 10, 20), "the jockey is conjured");
+				var jkRiders = jkLevel.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.AbstractSkeleton.class, p.getBoundingBox().inflate(10));
+				check(!jkRiders.isEmpty() && jkRiders.get(0).getVehicle() instanceof net.minecraft.world.entity.animal.feline.Ocelot,
+						"an archer comes riding a great cat (" + (jkRiders.isEmpty() ? "no archer" : String.valueOf(jkRiders.get(0).getVehicle())) + ")");
+				for (var r : jkRiders) {
+					jkMobs.add(r);
+					if (r.getVehicle() != null) jkMobs.add(r.getVehicle());
+				}
+			});
+			context.waitTicks(15);
+			context.takeScreenshot("40-jockey");
+			server.runOnServer(s -> {
+				for (var e : jkMobs) if (!e.isRemoved()) e.discard();
+				player(s).teleportTo(player(s).level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
