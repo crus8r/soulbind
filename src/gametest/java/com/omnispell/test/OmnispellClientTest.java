@@ -2897,6 +2897,77 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- a colour word conjures a being of that colour; the shelter's doorway is hardened air you crouch through
+			java.util.List<net.minecraft.world.entity.Entity> hkMobs = new java.util.ArrayList<>();
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel hkLevel = p.level();
+				BlockPos hkAt = BlockPos.containing(cHome[0]).offset(-60, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-6, -1, -8), hkAt.offset(6, -1, 4))) hkLevel.setBlockAndUpdate(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-6, 0, -8), hkAt.offset(6, 6, 4))) hkLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				p.teleportTo(hkLevel, hkAt.getX() + 0.5, hkAt.getY(), hkAt.getZ() + 0.5, java.util.Set.of(), 180f, 10f, true);
+				// Space + Shield + Warding + Yellow + Maxima: a giant yellow hollow knight, not a shelter.
+				com.omnispell.spell.Spell hkSpell = new com.omnispell.spell.Spell();
+				hkSpell.type = "conjuration";
+				hkSpell.tier = 4;
+				hkSpell.code.element = "void";
+				hkSpell.name = "Yellow Guardian";
+				hkSpell.description = "Summons a radiant yellow guardian that shields you from harm.";
+				hkSpell.words.addAll(java.util.List.of("base:Space", "command:Shield", "intention:Warding", "attribute:Yellow", "charge:Maxima (Amplify power)"));
+				check(com.omnispell.spell.Masonry.structure(hkSpell) == null && "hollow_knight".equals(com.omnispell.spell.Conjuring.bodyFor(hkSpell, "Yellow Guardian").id()),
+						"Space + Shield + Warding + Yellow is a hollow knight, not a shelter (" + com.omnispell.spell.Masonry.structure(hkSpell) + ")");
+				com.omnispell.spell.Spell hkSprite = new com.omnispell.spell.Spell();
+				hkSprite.type = "conjuration";
+				hkSprite.code.element = "fire";
+				hkSprite.words.addAll(java.util.List.of("base:Fire", "command:Summon", "intention:Malice", "attribute:Blue"));
+				check("spirit".equals(com.omnispell.spell.Conjuring.bodyFor(hkSprite, null).id()) && com.omnispell.spell.Conjuring.describe(hkSprite, "Blue Wisp").contains("sprite of blue"),
+						"a colour word with no creature calls a featureless sprite of that colour: " + com.omnispell.spell.Conjuring.describe(hkSprite, "Blue Wisp"));
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hkSpell), "Yellow Guardian", 10, 20), "the hollow knight is conjured");
+				var hkKnights = hkLevel.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.AbstractSkeleton.class, p.getBoundingBox().inflate(10));
+				var hkKnight = hkKnights.isEmpty() ? null : hkKnights.get(0);
+				check(hkKnight != null && hkKnight.hasEffect(MobEffects.INVISIBILITY) && hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE)
+						&& hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND).is(Items.SHIELD) && hkKnight.getMainHandItem().is(Items.IRON_SWORD),
+						"it is an unseen body in coloured armour, sword and shield in hand");
+				if (hkKnight != null) {
+					hkKnight.setNoAi(true);
+					hkKnight.snapTo(hkAt.getX() + 0.5, hkAt.getY(), hkAt.getZ() - 4.5, 0f, 0f);
+					hkMobs.add(hkKnight);
+				}
+				// Hardened air: solid to a player, open to one crouching, still a floor for one standing on it.
+				BlockPos hkAir = hkAt.offset(3, 0, 0);
+				hkLevel.setBlockAndUpdate(hkAir, OmniItems.HARDENED_AIR.defaultBlockState());
+				var hkShape = OmniItems.HARDENED_AIR.defaultBlockState();
+				boolean solidUpright = !hkShape.getCollisionShape(hkLevel, hkAir, net.minecraft.world.phys.shapes.CollisionContext.of(p)).isEmpty();
+				p.setShiftKeyDown(true);
+				boolean openCrouched = hkShape.getCollisionShape(hkLevel, hkAir, net.minecraft.world.phys.shapes.CollisionContext.of(p)).isEmpty();
+				p.teleportTo(hkLevel, hkAir.getX() + 0.5, hkAir.getY() + 1.0, hkAir.getZ() + 0.5, java.util.Set.of(), 180f, 10f, true);
+				boolean floorCrouched = !hkShape.getCollisionShape(hkLevel, hkAir, net.minecraft.world.phys.shapes.CollisionContext.of(p)).isEmpty();
+				p.setShiftKeyDown(false);
+				check(solidUpright && openCrouched && floorCrouched, "hardened air is solid, but crouch and you walk through it; standing on it you stay up (" + solidUpright + ", " + openCrouched + ", " + floorCrouched + ")");
+				hkLevel.setBlockAndUpdate(hkAir, Blocks.AIR.defaultBlockState());
+				p.teleportTo(hkLevel, hkAt.getX() + 0.5, hkAt.getY(), hkAt.getZ() + 0.5, java.util.Set.of(), 180f, 10f, true);
+				// A shelter with no colour word: its doorway is hardened air.
+				com.omnispell.spell.Spell hkHut = new com.omnispell.spell.Spell();
+				hkHut.type = "conjuration";
+				hkHut.code.element = "ice";
+				hkHut.words.addAll(java.util.List.of("base:Ice", "command:Shield", "intention:Warding"));
+				check("shelter".equals(com.omnispell.spell.Masonry.structure(hkHut)) && com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hkHut), "Ice Hut", 10, 20), "Ice + Shield + Warding raises a shelter");
+				int hkDoor = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-4, 0, -4), hkAt.offset(4, 2, 4))) if (hkLevel.getBlockState(pos).is(OmniItems.HARDENED_AIR)) hkDoor++;
+				check(hkDoor >= 2, "its doorway is hardened air (" + hkDoor + " blocks)");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(hkAt.getX() + 0.5, hkAt.getY() + 2.0, hkAt.getZ() - 4.5));
+			});
+			context.waitTicks(15);
+			context.takeScreenshot("41-hollow-knight");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				for (var e : hkMobs) if (!e.isRemoved()) e.discard();
+				BlockPos hkAt = BlockPos.containing(cHome[0]).offset(-60, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-5, -1, -5), hkAt.offset(5, 5, 5))) com.omnispell.spell.Masonry.breakBlock(p.level(), pos.immutable());
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {

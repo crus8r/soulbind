@@ -68,7 +68,8 @@ public final class Masonry {
 		if (!kind.equals("envelop")) return null;
 		return switch (intention) {
 			case "Malice", "Weakening", "Banishment", "Binding", "Nullification" -> "cage";
-			default -> "shelter";
+			// A colour word with a gentler intention calls a being of that colour (a hollow knight, a sprite) instead.
+			default -> Conjuring.colourWord(spell) != null ? null : "shelter";
 		};
 	}
 
@@ -148,7 +149,7 @@ public final class Masonry {
 			case "bridge" -> "a dressed-stone bridge, railed and lit, across the way you face";
 			case "wall" -> "a battlemented wall in front of you";
 			case "cage" -> "a barred cage around the creature you look at, which is crushed and smothered inside it for as long as it holds";
-			case "shelter" -> "a domed shelter over you, with a doorway the way you face";
+			case "shelter" -> "a domed shelter over you, with a doorway of hardened air the way you face: crouch to pass through it; hostile creatures can only wade through slowly";
 			default -> "a tower under your feet that lifts you to its battlements";
 		};
 		return ("cage".equals(what) ? "It closes " : "It raises ") + kind + ", built in its element's own stone. It stands about " + secs + " seconds: near the end it turns to glass, so you can see it going, and then it is gone.";
@@ -249,7 +250,11 @@ public final class Masonry {
 					BlockPos pos = feet.offset(dx, dy, dz);
 					// a doorway the way you face, two blocks high
 					boolean door = dy <= 1 && (facing.getAxis() == Direction.Axis.X ? dz == 0 && Integer.signum(dx) == facing.getStepX() : dx == 0 && Integer.signum(dz) == facing.getStepZ());
-					if (door) continue;
+					if (door) {
+						// The doorway is hardened air: friends pass by crouching, enemies wade through it slowly.
+						b.set(pos, com.omnispell.item.OmniItems.HARDENED_AIR.defaultBlockState());
+						continue;
+					}
 					boolean window = dy == 1 && (Math.abs(dx) + Math.abs(dz)) % 3 == 0;
 					b.set(pos, dy == r ? pal.light : window ? pal.glass.defaultBlockState() : pal.deck);
 				}
@@ -288,6 +293,7 @@ public final class Masonry {
 		int crumble = (int) (ticks * 0.9);
 		Tasks.later(toGlass, () -> {
 			for (Stone s : stones) {
+				if (s.now.is(com.omnispell.item.OmniItems.HARDENED_AIR)) continue; // the doorway stays open air to the end
 				if (!level.getBlockState(s.pos).is(s.now.getBlock())) continue; // walls and bars reshape to join their neighbours, so match the block, not its exact shape
 				BlockState next = glass.defaultBlockState();
 				level.setBlock(s.pos, next, 2);

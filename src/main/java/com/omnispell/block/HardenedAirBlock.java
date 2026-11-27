@@ -19,7 +19,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * Air hardened by a wind spell. Solid underfoot and against the shoulder for players and
  * anything friendly, but hostile creatures wade through it like powder snow: slowly,
  * and unable to climb. A wall of it slows them down; a platform of it in the sky cannot
- * be climbed onto from below.
+ * be climbed onto from below. Crouch to walk through it yourself; standing on it, you stay up.
  */
 public class HardenedAirBlock extends TransparentBlock {
 	public HardenedAirBlock(Properties properties) {
@@ -36,7 +36,12 @@ public class HardenedAirBlock extends TransparentBlock {
 
 	@Override
 	protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-		if (context instanceof EntityCollisionContext entityContext && passes(entityContext.getEntity())) return Shapes.empty();
+		if (context instanceof EntityCollisionContext entityContext) {
+			Entity entity = entityContext.getEntity();
+			if (passes(entity)) return Shapes.empty();
+			// A friend who crouches slips through a wall of it; one standing on it stays standing.
+			if (entity != null && entity.isShiftKeyDown() && !context.isAbove(Shapes.block(), pos, false)) return Shapes.empty();
+		}
 		return Shapes.block();
 	}
 

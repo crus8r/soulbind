@@ -76,6 +76,7 @@ public final class Conjuring {
 		body("golem", EntityTypes.IRON_GOLEM, 0.85, false, "golem", "construct", "statue", "sentinel", "colossus", "titan", "automaton", "gargoyle");
 		warrior("archer", EntityTypes.SKELETON, 1.0, "bow", "archer", "archers", "bowman", "ranger", "marksman", "skeleton");
 		warrior("swordsman", EntityTypes.SKELETON, 1.05, "sword", "swordsman", "warrior", "soldier", "knight", "legionnaire", "champion");
+		BODIES.put("hollow_knight", new Body("hollow_knight", EntityTypes.SKELETON, 1.1, false, "sword"));
 		warrior("duelist", EntityTypes.SKELETON, 0.95, "dagger", "assassin", "rogue", "duelist", "thief", "cutthroat");
 		warrior("brute", EntityTypes.VINDICATOR, 1.0, "club", "brute", "barbarian", "berserker", "ogre", "troll");
 		warrior("spearman", EntityTypes.DROWNED, 1.0, "spear", "spearman", "lancer", "hoplite", "pikeman", "harpooner");
@@ -121,6 +122,26 @@ public final class Conjuring {
 	}
 
 	/** The body for a spell: its creature attribute word first, then its name and description, then its element. */
+	/** The spell's colour word (Red, Orange, Yellow, Green, Blue, Indigo, Violet), or null. */
+	public static String colourWord(Spell spell) {
+		for (String id : spell.words) {
+			Word word = WordBank.word(id);
+			if (word != null && word.type.equals("attribute") && "Color".equals(word.category)) return word.english;
+		}
+		return null;
+	}
+
+	/** Is this conjuration called up to guard: a shielding command, a protective intention, or a guardian in the Oracle's words? */
+	public static boolean guarding(Spell spell) {
+		for (String id : spell.words) {
+			if (java.util.Set.of("command:Shield", "command:Protect", "command:Fortify", "command:Harbor", "command:Cover", "command:Reflect", "command:Absorb",
+					"intention:Warding", "intention:Fortitude", "intention:Preservation").contains(id)) return true;
+		}
+		String text = SpellCrafting.oracleText(spell).toLowerCase(Locale.ROOT);
+		for (String w : new String[]{"guardian", "knight", "sentinel", "paladin", "protector", "defender", "warden"}) if (text.contains(w)) return true;
+		return false;
+	}
+
 	public static boolean creatureWord(String english) {
 		return java.util.Set.of("Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog").contains(english);
 	}
@@ -201,6 +222,9 @@ public final class Conjuring {
 			}
 		}
 		if (best != null) return best;
+		// A colour and nothing that names a creature: a being of pure colour. One called up to guard is a
+		// hollow knight, an empty suit of armour in that colour; any other, a featureless sprite.
+		if (colourWord(spell) != null) return BODIES.get(guarding(spell) ? "hollow_knight" : "spirit");
 		return BODIES.get(switch (AttackForms.element(spell)) {
 			case "water" -> "serpent";
 			case "ice" -> "bear";
@@ -383,6 +407,7 @@ public final class Conjuring {
 		if (mob instanceof net.minecraft.world.entity.monster.Vex vex) vex.setLimitedLife((int) Math.max(40, cast.turns(turns) + 20));
 		if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
 		arm(mob, body, tintFor(spell));
+		if (body.id.equals("hollow_knight")) hollow(mob, tintFor(spell), cast.turns(turns) + 40);
 		mob.setCustomName(Component.literal(name));
 		mob.setCustomNameVisible(true);
 		int tier = Math.max(1, Math.min(5, spell.tier));
@@ -413,6 +438,22 @@ public final class Conjuring {
 		if (body.weapon == null && body == flyingCreature(spell)) active.gift = gift(spell);
 		ACTIVE.put(mob.getUUID(), active);
 		return active;
+	}
+
+	/** The hollow knight: nothing inside but magic. Its body is unseen; its armour, in the spell's colour, and its sword and shield are all there is. */
+	private static void hollow(Mob mob, int tint, int ticks) {
+		net.minecraft.world.item.Item[] pieces = {net.minecraft.world.item.Items.LEATHER_HELMET, net.minecraft.world.item.Items.LEATHER_CHESTPLATE, net.minecraft.world.item.Items.LEATHER_LEGGINGS, net.minecraft.world.item.Items.LEATHER_BOOTS};
+		net.minecraft.world.entity.EquipmentSlot[] slots = {net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET};
+		for (int i = 0; i < 4; i++) {
+			net.minecraft.world.item.ItemStack piece = new net.minecraft.world.item.ItemStack(pieces[i]);
+			piece.set(net.minecraft.core.component.DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(tint));
+			piece.set(net.minecraft.core.component.DataComponents.UNBREAKABLE, net.minecraft.util.Unit.INSTANCE);
+			mob.setItemSlot(slots[i], piece);
+		}
+		mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SHIELD));
+		for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) mob.setDropChance(slot, 0f);
+		mob.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, ticks, 0, false, false));
+		mob.setSilent(true);
 	}
 
 	/** Warriors get their weapon; the undead also get a cap in the spell's colour, which keeps the sun off them. */
@@ -467,7 +508,8 @@ public final class Conjuring {
 			case "spearman" -> "a spearman that hurls tridents and fights up close";
 			case "serpent" -> "a serpent that swims through the air";
 			case "eagle" -> "a great bird";
-			case "spirit" -> "a spirit";
+			case "spirit" -> colourWord(spell) != null ? "a featureless sprite of " + colourWord(spell).toLowerCase(Locale.ROOT) + " light" : "a spirit";
+			case "hollow_knight" -> "a hollow knight: an empty suit of " + (colourWord(spell) == null ? "" : colourWord(spell).toLowerCase(Locale.ROOT) + " ") + "armour, sword and shield in hand, with nothing inside but magic";
 			case "golem" -> "a golem";
 			default -> "a " + body.id;
 		};
