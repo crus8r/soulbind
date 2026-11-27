@@ -62,6 +62,11 @@ public class BrewItem extends Item {
 		List<Component> lines = new ArrayList<>();
 		lines.add(Component.literal("Tier " + brew.tier + " · " + (brew.splash ? "Throw" : "Drink")).withStyle(s -> s.withColor(brew.color()).withItalic(false)));
 		lines.add(Component.literal(brew.effect).withStyle(s -> s.withColor(ChatFormatting.GRAY).withItalic(false)));
+		boolean lasting = brew.duration > 0 && !brew.codeType.equals("damage") && !brew.codeType.equals("debuff") && !brew.codeType.equals("mana_drain") && !brew.codeType.equals("heal") && !brew.codeType.equals("sludge");
+		if (lasting) {
+			int seconds = Omnispell.CONFIG.turnsToTicks(brew.duration) * LASTING / 20;
+			lines.add(Component.literal("In the game it lasts " + (seconds >= 120 ? (seconds / 60) + " minutes" : seconds + " seconds") + ".").withStyle(s -> s.withColor(ChatFormatting.DARK_AQUA).withItalic(false)));
+		}
 		if (brew.downside != null && !brew.downside.isBlank()) lines.add(Component.literal(brew.downside).withStyle(s -> s.withColor(ChatFormatting.RED).withItalic(true)));
 		stack.set(DataComponents.LORE, new ItemLore(lines));
 		return stack;
@@ -133,12 +138,17 @@ public class BrewItem extends Item {
 		};
 	}
 
+	/** How much longer a potion's gifts last than a spell's turn. */
+	public static final int LASTING = 6;
+
 	/** Carries out a potion on whoever drank it or was splashed by it. Numbers are the potioneer's, scaled like spells. */
 	static void apply(ServerPlayer user, Brew brew, LivingEntity target) {
 		ServerLevel level = user.level();
 		double scale = Omnispell.CONFIG.valueScale;
 		int turns = Math.max(brew.duration, 0);
-		int ticks = Omnispell.CONFIG.turnsToTicks(Math.max(1, turns));
+		// A potion is slower magic than a spell: what it gives the drinker lasts six times as long (half a minute a turn). What it does to an enemy does not.
+		boolean hostile = brew.codeType.equals("damage") || brew.codeType.equals("debuff") || brew.codeType.equals("mana_drain");
+		int ticks = Omnispell.CONFIG.turnsToTicks(Math.max(1, turns)) * (hostile ? 1 : LASTING);
 		double value = brew.value > 0 ? brew.value : brew.tier * 8;
 		ServerPlayer targetPlayer = target instanceof ServerPlayer p ? p : null;
 		switch (brew.codeType) {
@@ -214,7 +224,7 @@ public class BrewItem extends Item {
 			}
 		}
 		switch (brew.status == null ? "none" : brew.status) {
-			case "poison" -> target.addEffect(new MobEffectInstance(MobEffects.POISON, ticks, brew.tier >= 4 ? 1 : 0), user);
+			case "poison" -> target.addEffect(new MobEffectInstance(MobEffects.POISON, Omnispell.CONFIG.turnsToTicks(Math.max(1, turns)), brew.tier >= 4 ? 1 : 0), user);
 			case "regen" -> target.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, brew.tier >= 4 ? 1 : 0));
 			case "haste" -> {
 				target.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, brew.tier >= 4 ? 1 : 0));

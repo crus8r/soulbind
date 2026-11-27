@@ -79,7 +79,7 @@ public final class Conjuring {
 		warrior("duelist", EntityTypes.SKELETON, 0.95, "dagger", "assassin", "rogue", "duelist", "thief", "cutthroat");
 		warrior("brute", EntityTypes.VINDICATOR, 1.0, "club", "brute", "barbarian", "berserker", "ogre", "troll");
 		warrior("spearman", EntityTypes.DROWNED, 1.0, "spear", "spearman", "lancer", "hoplite", "pikeman", "harpooner");
-		body("spirit", EntityTypes.VEX, 1.4, true, "spirit", "wisp", "wraith", "ghost", "specter", "spectre", "phantom", "shade", "imp", "fairy", "sprite", "elemental", "familiar");
+		body("spirit", EntityTypes.VEX, 1.4, true, "spirit", "wisp", "wraith", "ghost", "specter", "spectre", "phantom", "shade", "imp", "fairy", "sprite", "familiar");
 	}
 
 	private static void body(String id, EntityType<? extends Mob> type, double scale, boolean flies, String... words) {
