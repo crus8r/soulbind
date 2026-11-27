@@ -396,7 +396,9 @@ public final class Conjuring {
 		double spread = of == 1 ? 0 : (index - (of - 1) / 2.0) * 1.6;
 		Vec3 look = player.getLookAngle().multiply(1, 0, 1);
 		look = look.lengthSqr() < 0.01 ? new Vec3(1, 0, 0) : look.normalize();
-		Vec3 at = player.position().add(look.scale(1.8)).add(-look.z * spread, 0, look.x * spread);
+		// A warden that comes with a shelter stands guard outside its doorway, not crammed inside under the roof.
+		double out = Masonry.alsoShelter(spell) && body.id.equals("hollow_knight") ? (spell.hasCharge("Maxima") ? 6.5 : 5.5) : 1.8;
+		Vec3 at = player.position().add(look.scale(out)).add(-look.z * spread, 0, look.x * spread);
 		mob.snapTo(at.x, player.getY() + (body.flies ? 1.2 : 0), at.z, player.getYRot(), 0);
 		((com.omnispell.mixin.MobGoalsAccessor) mob).omnispell$targetSelector().removeAllGoals(goal -> true);
 		mob.setTarget(null);

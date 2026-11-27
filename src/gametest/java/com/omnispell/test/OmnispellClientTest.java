@@ -2932,11 +2932,14 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-5, 0, -5), hkAt.offset(5, 5, 5))) if (com.omnispell.spell.Masonry.isConjured(pos.immutable())) hkWalls++;
 				check(hkWalls >= 40, "and a shelter rises around the caster with it (" + hkWalls + " blocks)");
 				for (BlockPos pos : BlockPos.betweenClosed(hkAt.offset(-5, -1, -5), hkAt.offset(5, 5, 5))) com.omnispell.spell.Masonry.breakBlock(hkLevel, pos.immutable());
-				var hkKnights = hkLevel.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.AbstractSkeleton.class, p.getBoundingBox().inflate(10));
+				var hkKnights = hkLevel.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.AbstractSkeleton.class, p.getBoundingBox().inflate(14),
+						x -> x.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE));
 				var hkKnight = hkKnights.isEmpty() ? null : hkKnights.get(0);
-				check(hkKnight != null && hkKnight.hasEffect(MobEffects.INVISIBILITY) && hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE)
-						&& hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND).is(Items.SHIELD) && hkKnight.getMainHandItem().is(Items.IRON_SWORD),
-						"it is an unseen body in coloured armour, sword and shield in hand");
+				check(hkKnight != null && hkKnight.hasEffect(MobEffects.INVISIBILITY) && hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND).is(Items.SHIELD)
+						&& hkKnight.getMainHandItem().is(Items.IRON_SWORD) && !com.omnispell.spell.Masonry.isConjured(hkKnight.blockPosition()) && !com.omnispell.spell.Masonry.isConjured(hkKnight.blockPosition().above(3)),
+						"it is an unseen body in coloured armour, sword and shield in hand, standing guard outside the shelter"
+						+ (hkKnight == null ? " (no knight found among " + hkLevel.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, p.getBoundingBox().inflate(14)).size() + " creatures)"
+						: " (invisible " + hkKnight.hasEffect(MobEffects.INVISIBILITY) + ", offhand " + hkKnight.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND) + ", main " + hkKnight.getMainHandItem() + ", at " + hkKnight.blockPosition() + ")"));
 				if (hkKnight != null) {
 					hkKnight.setNoAi(true);
 					hkKnight.snapTo(hkAt.getX() + 0.5, hkAt.getY(), hkAt.getZ() - 4.5, 0f, 0f);
