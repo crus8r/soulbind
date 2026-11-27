@@ -1004,6 +1004,17 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					anvil.setItemName("Brawler");
 					ItemStack named = anvil.getSlot(2).getItem();
 					check(WandItem.isWand(named) && "Brawler".equals(named.getHoverName().getString()), "an anvil names a wand (" + named.getHoverName().getString() + ")");
+					// and puts Soul Bind on it from a book
+					ItemStack soulBook = new ItemStack(Items.ENCHANTED_BOOK);
+					var soulBind = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENCHANTMENT, net.minecraft.resources.Identifier.fromNamespaceAndPath("soulbind", "soul_bind")));
+					soulBook.enchant(soulBind, 1);
+					var bookAnvil = new net.minecraft.world.inventory.AnvilMenu(78, p.getInventory(), net.minecraft.world.inventory.ContainerLevelAccess.create(level, b));
+					bookAnvil.getSlot(0).set(WandItem.create("oak", "flint"));
+					bookAnvil.getSlot(1).set(soulBook);
+					ItemStack soulWand = bookAnvil.getSlot(2).getItem();
+					check(WandItem.isWand(soulWand) && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(soulBind, soulWand) >= 1, "an anvil puts Soul Bind from a book onto a wand");
+					bookAnvil.getSlot(0).set(ItemStack.EMPTY);
+					bookAnvil.getSlot(1).set(ItemStack.EMPTY);
 					anvil.getSlot(0).set(ItemStack.EMPTY);
 					p.getInventory().setItem(p.getInventory().getSelectedSlot(), mainBefore);
 				}

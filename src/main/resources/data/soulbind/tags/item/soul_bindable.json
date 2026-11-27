@@ -2,6 +2,7 @@
 	"values": [
 		"#minecraft:enchantable/durability",
 		"#minecraft:bundles",
+		"omnispell:wand",
 		"minecraft:ender_chest",
 		"minecraft:shulker_box",
 		"minecraft:white_shulker_box",
