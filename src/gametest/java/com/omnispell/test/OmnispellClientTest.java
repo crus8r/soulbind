@@ -3029,7 +3029,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.Spell[] brSpells = {brGate, brSpike, brMoss, brPlain};
 				com.omnispell.spell.Masonry.lifeOverride = 400;
 				for (int i = 0; i < 4; i++) {
-					BlockPos brHere = BlockPos.containing(cHome[0]).offset(90 + 30 * i, 0, -90);
+					BlockPos brHere = BlockPos.containing(cHome[0]).offset(90 + 12 * i, 0, -90); // close together, so all stay loaded around the player
 					for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-4, -8, -40), brHere.offset(4, 7, -1))) brLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 					for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-3, -1, 0), brHere.offset(3, -1, 3))) brLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
 					for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-3, 0, 0), brHere.offset(3, 5, 3))) brLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
@@ -3051,9 +3051,9 @@ public class OmnispellClientTest implements FabricClientGameTest {
 					brLevel.addFreshEntity(foe);
 					brFoes[k] = foe;
 				}
-				// And the caster on the soothing bridge.
+				// The caster waits on the platform of the soothing bridge, between the two zombies.
 				p.removeAllEffects();
-				p.teleportTo(brLevel, brAt[2].getX() + 0.5, brAt[2].getY(), brAt[2].getZ() - 5.5, java.util.Set.of(), 180f, 0f, true);
+				p.teleportTo(brLevel, brAt[2].getX() + 0.5, brAt[2].getY(), brAt[2].getZ() + 1.5, java.util.Set.of(), 180f, 0f, true);
 			});
 			context.waitTicks(45);
 			server.runOnServer(s -> {
@@ -3063,6 +3063,14 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(spiked.getHealth() < spiked.getMaxHealth() && spiked.hasEffect(MobEffects.SLOWNESS) && spiked.getEffect(MobEffects.SLOWNESS).getAmplifier() >= 3,
 						"a zombie on the jagged bridge is spiked and held fast (" + spiked.getHealth() + " of " + spiked.getMaxHealth() + ")");
 				check(plain.getHealth() >= plain.getMaxHealth() && !plain.hasEffect(MobEffects.SLOWNESS), "one on the plain bridge is left alone");
+				check(!p.hasEffect(MobEffects.REGENERATION), "off the soothing bridge, you do not mend");
+				p.teleportTo(p.level(), brAt[2].getX() + 0.5, brAt[2].getY(), brAt[2].getZ() - 5.5, java.util.Set.of(), 180f, 0f, true);
+			});
+			context.waitTicks(20);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				var spiked = brFoes[0];
+				var plain = brFoes[1];
 				check(p.hasEffect(MobEffects.REGENERATION), "standing on the soothing bridge, you mend");
 				spiked.discard();
 				plain.discard();
