@@ -2638,8 +2638,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				var cgHunter = cageMobs[1];
 				check(cgFoe.isRemoved() || cgFoe.getHealth() < cageHealth[0], "the caged zombie is smothered (" + cgFoe.getHealth() + " of " + cageHealth[0] + ")");
 				check(cgHunter.getTarget() == null, "and it stays lost while you are unseen");
-				cgHunter.hurtServer(p.level(), p.damageSources().playerAttack(p), 1f);
-				check(!com.omnispell.spell.Shroud.hiddenFrom(p, cgHunter) && com.omnispell.spell.Shroud.hiddenFrom(p, cgFoe), "strike it while invisible and it alone knows where you are");
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.INVISIBILITY, 200, 0));
+				cgHunter.setInvulnerableTime(0);
+				boolean cgHit = cgHunter.hurtServer(p.level(), p.damageSources().playerAttack(p), 4f);
+				check(!com.omnispell.spell.Shroud.hiddenFrom(p, cgHunter) && com.omnispell.spell.Shroud.hiddenFrom(p, cgFoe), "strike it while invisible and it alone knows where you are (hit " + cgHit + ", invisible " + p.hasEffect(MobEffects.INVISIBILITY) + ", alive " + cgHunter.isAlive() + ")");
 				for (var m : cageMobs) if (m != null && !m.isRemoved()) m.discard();
 				p.removeAllEffects();
 				p.setHealth(p.getMaxHealth());
