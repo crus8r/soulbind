@@ -2208,7 +2208,15 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(com.omnispell.player.Mana.armorDamage(p) == 20, "four pieces of netherite make spells hit 20% harder, as the book says (" + com.omnispell.player.Mana.armorDamage(p) + ")");
 				for (int i = 0; i < 4; i++) p.setItemSlot(slots[i], worn[i]);
 			});
-			context.waitTicks(80);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				BlockPos field = BlockPos.containing(notesHome[0]).offset(60, 0, 0);
+				// stand back to the south-east and look over the bridge, the archers and the giant
+				p.teleportTo(p.level(), field.getX() + 6.5, field.getY() + 3, field.getZ() + 5.5, java.util.Set.of(), 150f, 22f, true);
+			});
+			context.waitTicks(15);
+			context.takeScreenshot("34-conjured-bridge-and-warriors");
+			context.waitTicks(65);
 			server.runOnServer(s -> {
 				var z = archerPrey[0];
 				boolean shot = (z.isRemoved() && z.getRemovalReason() == net.minecraft.world.entity.Entity.RemovalReason.KILLED) || z.getHealth() < z.getMaxHealth();
