@@ -269,6 +269,8 @@ public final class Modifiers {
 			unravel(player, source);
 			return 0;
 		}
+		// A creature's venom or sting answers every blow that lands, even one a shield soaks up entirely.
+		if (player.getInvulnerableTime() <= 10 && source.getEntity() instanceof LivingEntity biter && biter != player && biter.isAlive() && !source.is(DamageTypes.THORNS)) Defenses.aspectStruck(player, biter);
 		// Reflection turns part of the whole blow back on the striker, even what a barrier would have caught.
 		// While a barrier holds (any shield of extra hearts) it costs nothing; without one it is paid from Barrier mana.
 		double reflect = value(player, "damage_reflection");
@@ -361,7 +363,6 @@ public final class Modifiers {
 		}
 
 		if (!(source.getEntity() instanceof LivingEntity attacker) || attacker == player || source.is(DamageTypes.THORNS)) return;
-		Defenses.aspectStruck(player, attacker);
 		double back = 0;
 		double thorns = value(player, "thorns");
 		if (thorns > 0) back += thorns * scale;
