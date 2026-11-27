@@ -31,6 +31,9 @@ public class OmnispellClient implements ClientModInitializer {
 		SerpentRender.register();
 		WizardHatLayer.register();
 		WizardRobeLayer.register();
+		// What is known about creatures by their number belongs to one world only: numbers are handed out afresh by the next one.
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ClientState.forgetCreatures());
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientState.forgetCreatures());
 		VeinLayer.register();
 		ElementLayer.register();
 		// Double-tap sprint while in the air with a wand: walk on air.

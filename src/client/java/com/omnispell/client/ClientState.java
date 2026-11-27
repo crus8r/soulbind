@@ -54,6 +54,17 @@ public final class ClientState {
 	/** Players fully shrouded by a strong invisibility, by entity id, until a client tick. */
 	public static final java.util.Map<Integer, Long> shrouded = new java.util.HashMap<>();
 
+	/** Forgets every colour, marking, vein and shroud remembered by creature number, on joining or leaving a world. */
+	public static void forgetCreatures() {
+		conjureTints.clear();
+		tintedStates.clear();
+		conjureElements.clear();
+		elementStates.clear();
+		corruptionLevels.clear();
+		veinStates.clear();
+		shrouded.clear();
+	}
+
 	public static boolean isShrouded(int entityId) {
 		Long until = shrouded.get(entityId);
 		return until != null && until > clientTick;
