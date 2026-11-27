@@ -174,6 +174,7 @@ public final class Mana {
 	public static double spend(ServerPlayer player, ManaPool pool, double amount) {
 		PlayerData data = PlayerStore.get(player);
 		double discount = DISCOUNT.get();
+		if (!Double.isFinite(amount) || amount <= 0) return 0; // a broken amount spends nothing, and cannot spoil the reserve
 		double used = Math.max(0, Math.min(amount * discount, data.mana[pool.ordinal()]));
 		data.mana[pool.ordinal()] -= used;
 		return Math.min(amount, used / discount);

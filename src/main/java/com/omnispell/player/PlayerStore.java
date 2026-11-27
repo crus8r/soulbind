@@ -60,6 +60,7 @@ public final class PlayerStore {
 		}
 		if (data == null) data = new PlayerData();
 		if (data.mana == null || data.mana.length != ManaPool.values().length) data.mana = new double[ManaPool.values().length];
+		mend(data);
 		if (data.folders == null) data.folders = new java.util.ArrayList<>();
 		if (data.folder("Archive") == null) data.folders.add(0, new PlayerData.Folder("Archive", false)); // every spellbook has an Archive, hidden from the main list
 		// The single archive of older saves becomes a folder called Archive, hidden from the main list.
@@ -90,10 +91,27 @@ public final class PlayerStore {
 		return data;
 	}
 
+	/** Puts right any number that has gone bad (not-a-number or infinite): a bad mana value would otherwise never refill. */
+	static void mend(PlayerData data) {
+		for (int i = 0; i < data.mana.length; i++) if (!Double.isFinite(data.mana[i])) data.mana[i] = 0;
+		if (!Double.isFinite(data.corruption)) data.corruption = 0;
+		if (data.spells == null) data.spells = new java.util.ArrayList<>();
+		data.spells.removeIf(java.util.Objects::isNull);
+		for (com.omnispell.spell.Spell spell : data.spells) {
+			if (spell.code != null && !Double.isFinite(spell.code.primaryValue)) spell.code.primaryValue = 0;
+		}
+	}
+
 	/** Writes the data back onto the player so the game saves it. Call after any lasting change. */
 	public static void save(ServerPlayer player) {
 		PlayerData data = LOADED.get(player.getUUID());
-		if (data != null) player.setAttached(SAVED, WordBank.GSON.toJson(data));
+		if (data == null) return;
+		try {
+			mend(data);
+			player.setAttached(SAVED, WordBank.GSON.toJson(data));
+		} catch (RuntimeException e) {
+			Omnispell.LOG.error("Could not save Omnispell data for {}; the last good save is kept", player.getName().getString(), e);
+		}
 	}
 
 	public static void unload(ServerPlayer player) {
@@ -103,7 +121,16 @@ public final class PlayerStore {
 
 	/** Sends the dictionary, spellbook and the rest of the slow-changing state to the player's game. */
 	public static void syncState(ServerPlayer player) {
+		try {
+			sendState(player);
+		} catch (RuntimeException e) {
+			Omnispell.LOG.error("Could not send the spellbook to {}", player.getName().getString(), e);
+		}
+	}
+
+	private static void sendState(ServerPlayer player) {
 		PlayerData data = get(player);
+		mend(data);
 		JsonObject json = new JsonObject();
 		// In creative mode the whole dictionary and every kind of spell are open, without changing what the player has earned.
 		boolean creative = player.getAbilities().instabuild;

@@ -18,7 +18,8 @@ import java.util.Set;
  * files exported from the Omnispell website data.
  */
 public final class WordBank {
-	public static final Gson GSON = new Gson();
+	/** Writes broken numbers (not-a-number, infinity) instead of throwing, so one bad value can never stop a spellbook saving or reaching the screen. */
+	public static final Gson GSON = new com.google.gson.GsonBuilder().serializeSpecialFloatingPointValues().create();
 
 	/** Order of word types in a spell formula and in the book. */
 	public static final List<String> WORD_TYPES = List.of("base", "command", "intention", "charge", "source", "attribute");
