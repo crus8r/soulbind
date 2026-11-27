@@ -3272,7 +3272,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(lbFoes[0].getHealth() < 200f && lbFoes[1].getHealth() < 200f && lbFoes[2].getHealth() < 200f && lbFoes[2].hasEffect(MobEffects.GLOWING) && lbWolf[0].getHealth() >= lbWolf[0].getMaxHealth(),
 						"the beam strikes everything in its path and lights it up (" + lbFoes[0].getHealth() + ", " + lbFoes[1].getHealth() + ", " + lbFoes[2].getHealth() + ")");
 				// A spell that does not say so stays a single strike.
-				for (var z : lbFoes) z.setHealth(200f);
+				for (var z : lbFoes) {
+					z.setHealth(200f);
+					z.setInvulnerableTime(0); // the beam struck them a moment ago
+				}
 				com.omnispell.spell.Spell lbPlain = new com.omnispell.spell.Spell();
 				lbPlain.type = "attack";
 				lbPlain.tier = 3;
@@ -3321,6 +3324,36 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				lbWolf[0].discard();
 				p.removeAllEffects();
 				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
+			// ---- a lost spellbook comes back: /spellbook restore gathers spells from the saves and from every wand carried
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				var rsData = PlayerStore.get(p);
+				java.util.List<com.omnispell.spell.Spell> rsKept = new java.util.ArrayList<>(rsData.spells);
+				com.omnispell.spell.Spell rsSpell = new com.omnispell.spell.Spell();
+				rsSpell.id = "attack|test-restore";
+				rsSpell.type = "attack";
+				rsSpell.name = "Restorum";
+				rsSpell.words.addAll(java.util.List.of("base:Fire", "command:Sever", "intention:Malice"));
+				ItemStack rsWand = WandItem.create("oak", "flint");
+				WandItem.setSpell(rsWand, 0, rsSpell);
+				ItemStack rsHeld = p.getInventory().getItem(20).copy();
+				p.getInventory().setItem(20, rsWand);
+				rsData.spells.clear();
+				var rsFound = com.omnispell.player.Recovery.restore(p);
+				check(rsData.spells.stream().anyMatch(x -> "attack|test-restore".equals(x.id)) && rsFound.fromWands() >= 1,
+						"/spellbook restore brings back a spell from a wand the player carries (" + rsFound + ")");
+				for (com.omnispell.spell.Spell kept : rsKept) if (rsData.spells.stream().noneMatch(x -> x.id.equals(kept.id))) rsData.spells.add(kept);
+				rsData.spells.removeIf(x -> "attack|test-restore".equals(x.id));
+				p.getInventory().setItem(20, rsHeld);
+				PlayerStore.save(p);
+				PlayerStore.syncState(p);
+				// A broken number no longer stops the book saving.
+				rsData.mana[0] = Double.NaN;
+				PlayerStore.save(p);
+				check(Double.isFinite(rsData.mana[0]), "a broken mana value is put right when the book is saved");
 			});
 			context.waitTicks(5);
 

@@ -31,6 +31,29 @@ public final class OmniCommands {
 	}
 
 	public static void register() {
+		// For every player, no cheats needed: bring a lost spellbook back, or write it out to send for help.
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
+				Commands.literal("spellbook")
+						.then(Commands.literal("restore").executes(ctx -> {
+							ServerPlayer player = ctx.getSource().getPlayerOrException();
+							com.omnispell.player.Recovery.Found found = com.omnispell.player.Recovery.restore(player);
+							int total = found.fromSaves() + found.fromWands();
+							ctx.getSource().sendSuccess(() -> Component.literal(total == 0
+									? "No missing spells were found in your saves or on your wands."
+									: "Restored " + total + " spell" + (total == 1 ? "" : "s") + " (" + found.fromSaves() + " from your saves, " + found.fromWands() + " from your wands) and " + found.words() + " word" + (found.words() == 1 ? "" : "s") + "."), false);
+							return total;
+						}))
+						.then(Commands.literal("dump").executes(ctx -> {
+							ServerPlayer player = ctx.getSource().getPlayerOrException();
+							try {
+								java.nio.file.Path file = com.omnispell.player.Recovery.dump(player);
+								ctx.getSource().sendSuccess(() -> Component.literal("Your spellbook data was written to " + file), false);
+								return 1;
+							} catch (java.io.IOException e) {
+								ctx.getSource().sendFailure(Component.literal("Could not write it: " + e.getMessage()));
+								return 0;
+							}
+						}))));
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
 				Commands.literal("omnispell").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 						.then(Commands.literal("kit").executes(ctx -> {
