@@ -784,6 +784,9 @@ def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
           {'parent': parent, 'textures': {f'layer{i}': f'omnispell:item/{t}' for i, t in enumerate(layers)}})
 
+# The Pet Shell wears the nautilus shell's own look.
+write(os.path.join(ASSETS, 'models', 'item', 'pet_shell.json'), {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/nautilus_shell'}})
+write(os.path.join(ASSETS, 'items', 'pet_shell.json'), {'model': {'type': 'minecraft:model', 'model': 'omnispell:item/pet_shell'}})
 flat_item('wand', ['wand_wood', 'wand_core'], 'minecraft:item/handheld')
 for n in ('grimoire', 'word_scroll', 'arcane_potion', 'reliquary'):
     flat_item(n, [n])
@@ -1053,6 +1056,7 @@ lang = {
     'block.omnispell.arcane_well': 'Arcane Well',
     'block.omnispell.hardened_air': 'Hardened Air',
     'item.omnispell.reliquary': 'Reliquary',
+    'item.omnispell.pet_shell': 'Pet Shell',
     'entity.omnispell.conjured_serpent': 'Conjured Serpent',
     'block.omnispell.waypoint': 'Waypoint',
     'block.omnispell.boss_altar': 'Boss Seal',
@@ -1125,6 +1129,9 @@ write(os.path.join(recipe_dir, 'waypoint.json'), {
     'pattern': [' E ', 'ASA', 'SSS'],
     'result': {'id': 'omnispell:waypoint', 'count': 2}})
 # The Reliquary: a bundle bound to a totem.
+write(os.path.join(recipe_dir, 'pet_shell.json'), {
+    'type': 'minecraft:crafting_shaped', 'category': 'misc', 'key': {'N': 'minecraft:nautilus_shell'},
+    'pattern': ['NN', 'NN'], 'result': {'id': 'omnispell:pet_shell'}})
 write(os.path.join(recipe_dir, 'reliquary.json'), {
     'type': 'minecraft:crafting_shapeless', 'category': 'misc',
     'ingredients': ['minecraft:bundle', 'minecraft:totem_of_undying'],

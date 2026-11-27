@@ -161,6 +161,9 @@ public class Omnispell implements ModInitializer {
 	 * wand on the egg. The egg is not used up.
 	 */
 	private static void registerRazza() {
+		// A Pet Shell takes in a tamed animal before the animal's own right-click (sitting, mounting) can answer.
+		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+				player.isSpectator() ? net.minecraft.world.InteractionResult.PASS : com.omnispell.item.PetShellItem.capture(player, hand, entity));
 		// An ender pearl on a whole frame of mossy stone wakes a portal to the Enchanted Forest.
 		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
 			net.minecraft.world.item.ItemStack held = player.getItemInHand(hand);

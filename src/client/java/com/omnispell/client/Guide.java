@@ -302,6 +302,12 @@ public final class Guide {
 			familiars.add(species.name() + ": gifted in " + species.gift().label + ".");
 		}
 		s.put("Familiars", familiars);
+		s.put("Pet Shell", List.of(
+				"Four nautilus shells, in a square, make a Pet Shell. It holds one tamed animal.",
+				"Use it on an animal you have tamed (a wolf, cat or parrot, or a horse, donkey, llama or camel you have broken in) and the animal goes inside, exactly as it is: name, health, collar, saddle, chests and all. The shell takes its name.",
+				"Use the full shell on the ground to let it out again.",
+				"A shell is an ordinary item. It goes in chests and bundles, the Soul Bind bundle included, so a pet can come through death with you.",
+				"It takes only animals that are yours. Wild animals, other people's pets and familiars (which have a pocket of their own) will not go in."));
 		s.put("Wizard's attire", List.of(
 				"A wizard trusts the wand, not plate. The Wizard's Hat, Robe and Boots guard nothing at all, but none of them ever wears out, all three stay with you when you die, and each holds one more charm than ordinary armor. Each also adds a fifth to every mana reserve.",
 				"THE HAT",

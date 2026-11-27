@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "N": "minecraft:nautilus_shell"
+  },
+  "pattern": [
+    "NN",
+    "NN"
+  ],
+  "result": {
+    "id": "omnispell:pet_shell"
+  }
+}

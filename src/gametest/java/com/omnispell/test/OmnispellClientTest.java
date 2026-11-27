@@ -2717,6 +2717,45 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(20);
 
+			// ---- the Pet Shell: holds one tamed animal, whole, and lets it out again
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel psLevel = p.level();
+				BlockPos psAt = p.blockPosition();
+				ItemStack psKept = p.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND).copy();
+				p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(OmniItems.PET_SHELL));
+				var psWild = EntityTypes.WOLF.create(psLevel, EntitySpawnReason.COMMAND);
+				psWild.snapTo(psAt.getX() + 2.5, psAt.getY(), psAt.getZ() + 0.5, 0f, 0f);
+				psLevel.addFreshEntity(psWild);
+				com.omnispell.item.PetShellItem.capture(p, net.minecraft.world.InteractionHand.MAIN_HAND, psWild);
+				check(psWild.isAlive() && !com.omnispell.item.PetShellItem.full(p.getMainHandItem()), "a wild wolf will not go into a Pet Shell");
+				var psCow = EntityTypes.COW.create(psLevel, EntitySpawnReason.COMMAND);
+				check(!com.omnispell.item.PetShellItem.tamedBy(p, psCow), "nor will a cow");
+				psWild.tame(p);
+				psWild.setCustomName(net.minecraft.network.chat.Component.literal("Biscuit"));
+				psWild.setHealth(11f);
+				java.util.UUID psId = psWild.getUUID();
+				com.omnispell.item.PetShellItem.capture(p, net.minecraft.world.InteractionHand.MAIN_HAND, psWild);
+				ItemStack psShell = p.getMainHandItem();
+				check(psWild.isRemoved() && com.omnispell.item.PetShellItem.full(psShell) && psShell.getHoverName().getString().equals("Shell of Biscuit"), "a tamed wolf goes in, and the shell takes its name (" + psShell.getHoverName().getString() + ")");
+				var psOther = EntityTypes.CAT.create(psLevel, EntitySpawnReason.COMMAND);
+				psOther.snapTo(psAt.getX() + 2.5, psAt.getY(), psAt.getZ() + 2.5, 0f, 0f);
+				psLevel.addFreshEntity(psOther);
+				psOther.tame(p);
+				com.omnispell.item.PetShellItem.capture(p, net.minecraft.world.InteractionHand.MAIN_HAND, psOther);
+				check(psOther.isAlive(), "a full shell takes no second pet");
+				psOther.discard();
+				var psHit = new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(psAt.below()).add(2, 0.5, 0), net.minecraft.core.Direction.UP, psAt.below().offset(2, 0, 0), false);
+				psShell.useOn(new net.minecraft.world.item.context.UseOnContext(p, net.minecraft.world.InteractionHand.MAIN_HAND, psHit));
+				var psBack = psLevel.getEntity(psId);
+				check(psBack instanceof net.minecraft.world.entity.animal.wolf.Wolf w && w.isTame() && w.isOwnedBy(p) && Math.abs(w.getHealth() - 11f) < 0.01f && "Biscuit".equals(w.getName().getString()),
+						"let out, it is the same wolf: tame, yours, named, at the health it had");
+				check(!com.omnispell.item.PetShellItem.full(p.getMainHandItem()) && p.getMainHandItem().is(OmniItems.PET_SHELL) && p.getMainHandItem().getHoverName().getString().equals("Pet Shell"), "and the shell is empty and plain again");
+				if (psBack != null) psBack.discard();
+				p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, psKept);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
