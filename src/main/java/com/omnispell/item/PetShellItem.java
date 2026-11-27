@@ -132,10 +132,7 @@ public class PetShellItem extends Item {
 			return InteractionResult.SUCCESS;
 		}
 		// The shell is empty again, and plain.
-		stack.remove(DataComponents.CUSTOM_DATA);
-		stack.remove(DataComponents.ITEM_NAME);
-		stack.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
-		stack.remove(DataComponents.LORE);
+		player.setItemInHand(context.getHand(), new ItemStack(OmniItems.PET_SHELL));
 		level.sendParticles(ParticleTypes.BUBBLE_POP, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 20, 0.3, 0.4, 0.3, 0.02);
 		level.playSound(null, at, SoundEvents.BUNDLE_REMOVE_ONE, SoundSource.PLAYERS, 1.0f, 0.8f);
 		return InteractionResult.SUCCESS;
