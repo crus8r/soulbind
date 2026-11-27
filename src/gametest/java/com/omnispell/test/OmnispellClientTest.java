@@ -272,6 +272,19 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.waitTicks(30);
 			check(context.computeOnClient(c -> ClientState.words.size()) > 200, "creative mode shows every word");
 			check(server.computeOnServer(s -> PlayerStore.get(player(s)).words.size()) == 11, "creative mode does not change the words actually known");
+			// The creative inventory opens, with every tab built (the Omnispell one and the search tab among them), without a crash.
+			context.runOnClient(c -> c.gui.setScreen(new net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen(c.player, c.player.connection.enabledFeatures(), true)));
+			context.waitTicks(20);
+			context.takeScreenshot("05-creative-inventory");
+			check(context.computeOnClient(c -> c.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen), "the creative inventory opens and stays open");
+			int tabItems = context.computeOnClient(c -> {
+				int n = 0;
+				for (net.minecraft.world.item.CreativeModeTab tab : net.minecraft.world.item.CreativeModeTabs.allTabs()) n += tab.getDisplayItems().size();
+				return n;
+			});
+			check(tabItems > 500, "every creative tab is filled (" + tabItems + " stacks)");
+			context.runOnClient(c -> c.gui.setScreen(null));
+			context.waitTicks(5);
 			server.runCommand("gamemode survival @a");
 			context.waitTicks(30);
 			check(context.computeOnClient(c -> ClientState.words.size()) == 11, "back in survival only the earned words show");
