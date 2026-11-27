@@ -2977,6 +2977,104 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- bridges do what their spells claim, and a bridge that claims nothing stays plain
+			net.minecraft.world.entity.Mob[] brFoes = new net.minecraft.world.entity.Mob[2];
+			BlockPos[] brAt = new BlockPos[4];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel brLevel = p.level();
+				java.util.function.Function<String[], com.omnispell.spell.Spell> brMake = parts -> {
+					com.omnispell.spell.Spell made = new com.omnispell.spell.Spell();
+					made.type = "conjuration";
+					made.tier = 2;
+					made.code.type = "summon";
+					made.code.primaryValue = 20;
+					made.code.duration = 3;
+					made.code.element = parts[0];
+					made.words.addAll(java.util.List.of(parts[1].split(",")));
+					made.description = parts[2];
+					made.effect = parts[3];
+					if (!parts[4].isEmpty()) made.code.modifiers.addAll(java.util.List.of(parts[4].split(",")));
+					return made;
+				};
+				// The friend's bridges, word for word as the Oracle made them.
+				com.omnispell.spell.Spell brGate = brMake.apply(new String[]{"neutral", "base:Metal,command:Shield,intention:Warding,attribute:Bridge",
+						"Summons a fortified metallic construct that strikes foes and shields you from harm.",
+						"Materializes an Iron Bulwark for 3 turns that attacks the enemy for 15 damage each turn. While active, the metallic ward grants 6 fortify, reducing incoming damage from all enemy attacks.",
+						"summoned_creature:15:3:Iron_Bulwark,fortify:6:3"});
+				com.omnispell.spell.Spell brSpike = brMake.apply(new String[]{"neutral", "base:Metal,command:Fracture,intention:Binding,attribute:Bridge",
+						"Summons a jagged construct of fractured iron shards bound into an arching span that attacks foes and reinforces your defense.",
+						"Conjures an Iron Span-Construct for 3 turns that strikes for 20 neutral damage each turn. While active, the magnetic binding also fortifies you, reducing incoming damage by 6.",
+						"summoned_creature:20:3:Iron Span-Construct,fortify:6:3"});
+				com.omnispell.spell.Spell brMoss = brMake.apply(new String[]{"nature", "base:Nature,command:Solidify,intention:Soothing,attribute:Bridge",
+						"Summons a living bridge-golem of solidified timber and moss that strikes foes while soothing your wounds.",
+						"Materializes a Mossbridge Golem that deals 15 nature damage per turn for 3 turns. Its soothing connection heals you for 30% of all damage it inflicts.",
+						"summoned_creature:15:3:Mossbridge Golem,soul_link:30:3"});
+				com.omnispell.spell.Spell brPlain = brMake.apply(new String[]{"earth", "base:Earth,command:Summon,intention:Creation,attribute:Bridge",
+						"Conjures a sturdy stone bridge across the gap.", "", ""});
+				var tGate = com.omnispell.spell.Masonry.bridgeToggles(brGate);
+				var tSpike = com.omnispell.spell.Masonry.bridgeToggles(brSpike);
+				var tMoss = com.omnispell.spell.Masonry.bridgeToggles(brMoss);
+				var tPlain = com.omnispell.spell.Masonry.bridgeToggles(brPlain);
+				check(tGate.contains("spikes") && tGate.contains("gated") && !tGate.contains("snare"), "Metal + Shield + Warding + Bridge strikes and protects: " + tGate);
+				check(tSpike.contains("spikes") && tSpike.contains("snare") && !tSpike.contains("gated"), "Metal + Fracture + Binding + Bridge strikes and binds: " + tSpike);
+				check(tMoss.contains("spikes") && tMoss.contains("mend") && !tMoss.contains("gated"), "Nature + Solidify + Soothing + Bridge strikes and soothes: " + tMoss);
+				check(tPlain.isEmpty(), "a bridge that claims nothing is a plain bridge: " + tPlain);
+				check(com.omnispell.spell.Conjuring.describe(brGate, "Iron Bulwark").contains("gate at each end") && com.omnispell.spell.Conjuring.describe(brGate, "Iron Bulwark").contains("Spikes of iron"),
+						"the book says what the bridge does: " + com.omnispell.spell.Conjuring.describe(brGate, "Iron Bulwark"));
+				// Build all four over pits, facing north.
+				com.omnispell.spell.Spell[] brSpells = {brGate, brSpike, brMoss, brPlain};
+				com.omnispell.spell.Masonry.lifeOverride = 400;
+				for (int i = 0; i < 4; i++) {
+					BlockPos brHere = BlockPos.containing(cHome[0]).offset(90 + 30 * i, 0, -90);
+					for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-4, -8, -40), brHere.offset(4, 7, -1))) brLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+					for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-3, -1, 0), brHere.offset(3, -1, 3))) brLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+					for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-3, 0, 0), brHere.offset(3, 5, 3))) brLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+					p.teleportTo(brLevel, brHere.getX() + 0.5, brHere.getY(), brHere.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
+					check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), brSpells[i]), "Bridge " + i, 15, 3), "bridge " + i + " is conjured");
+					brAt[i] = brHere;
+				}
+				com.omnispell.spell.Masonry.lifeOverride = 0;
+				int brGates = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(brAt[0].offset(-3, -1, -40), brAt[0].offset(3, 1, -1))) if (brLevel.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.FenceGateBlock) brGates++;
+				check(brGates >= 6 && !brLevel.getBlockState(brAt[0].offset(0, 2, -5)).isAir(), "the protecting bridge is a roofed tunnel with gates at both ends (" + brGates + " gates)");
+				// A zombie on the striking-binding bridge, and one on the plain bridge.
+				for (int k = 0; k < 2; k++) {
+					var foe = EntityTypes.ZOMBIE.create(brLevel, EntitySpawnReason.COMMAND);
+					BlockPos on = brAt[k == 0 ? 1 : 3].offset(0, 0, -8);
+					foe.snapTo(on.getX() + 0.5, on.getY(), on.getZ() + 0.5, 0f, 0f);
+					foe.setNoAi(true);
+					foe.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 600, 0));
+					brLevel.addFreshEntity(foe);
+					brFoes[k] = foe;
+				}
+				// And the caster on the soothing bridge.
+				p.removeAllEffects();
+				p.teleportTo(brLevel, brAt[2].getX() + 0.5, brAt[2].getY(), brAt[2].getZ() - 5.5, java.util.Set.of(), 180f, 0f, true);
+			});
+			context.waitTicks(45);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				var spiked = brFoes[0];
+				var plain = brFoes[1];
+				check(spiked.getHealth() < spiked.getMaxHealth() && spiked.hasEffect(MobEffects.SLOWNESS) && spiked.getEffect(MobEffects.SLOWNESS).getAmplifier() >= 3,
+						"a zombie on the jagged bridge is spiked and held fast (" + spiked.getHealth() + " of " + spiked.getMaxHealth() + ")");
+				check(plain.getHealth() >= plain.getMaxHealth() && !plain.hasEffect(MobEffects.SLOWNESS), "one on the plain bridge is left alone");
+				check(p.hasEffect(MobEffects.REGENERATION), "standing on the soothing bridge, you mend");
+				spiked.discard();
+				plain.discard();
+				p.teleportTo(p.level(), brAt[0].getX() + 0.5, brAt[0].getY(), brAt[0].getZ() + 2.5, java.util.Set.of(), 180f, 5f, true);
+			});
+			context.waitTicks(15);
+			context.takeScreenshot("42-gated-bridge");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				for (BlockPos brHere : brAt) for (BlockPos pos : BlockPos.betweenClosed(brHere.offset(-4, -14, -40), brHere.offset(4, 6, 0))) com.omnispell.spell.Masonry.breakBlock(p.level(), pos.immutable());
+				p.removeAllEffects();
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
