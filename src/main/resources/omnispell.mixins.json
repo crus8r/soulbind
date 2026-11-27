@@ -14,6 +14,7 @@
 	"client": [
 		"DarkSightMixin",
 		"ConjureTintMixin",
+		"CorruptHeartsMixin",
 		"ShroudMixin"
 	],
 	"injectors": {

@@ -246,6 +246,7 @@ public class Omnispell implements ModInitializer {
 			int tick = server.getTickCount();
 			com.omnispell.spell.Conjuring.tick(server);
 			com.omnispell.spell.Wards.tick(server);
+			if (server.getTickCount() % 2 == 0) com.omnispell.spell.Mines.tick(server);
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) com.omnispell.item.CoreAbilities.tick(player);
 			if (tick % 10 == 0) {
 				MobControl.tick();
@@ -261,6 +262,7 @@ public class Omnispell implements ModInitializer {
 					com.omnispell.charm.Charms.everySecond(player);
 					Modifiers.totemCheck(player);
 					com.omnispell.item.CoreAbilities.everySecond(player);
+					com.omnispell.player.Corruption.everySecond(player);
 				}
 				com.omnispell.spell.Shroud.everySecond(server);
 			}

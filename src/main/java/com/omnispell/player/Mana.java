@@ -161,7 +161,6 @@ public final class Mana {
 			}
 			data.mana[pool.ordinal()] = current;
 		}
-		if (data.corruption > 0) data.corruption = Math.max(0, data.corruption - 0.5);
 	}
 
 	public static double available(ServerPlayer player, ManaPool pool) {

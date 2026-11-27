@@ -144,11 +144,15 @@ public final class SpellCrafting {
 		String toggle = null;
 		for (String id : spell.words) {
 			toggle = switch (id) {
-				case "attribute:Bridge" -> "bridge";
+				case "attribute:Bridge" -> switch (Mines.element(spell)) {
+					case "fire" -> "fuse";       // a bridge of fire is a fuse of mines
+					case "storm" -> "tripwire";  // a bridge of lightning is a live wire across the way
+					default -> "bridge";
+				};
 				case "attribute:Wall" -> "raise_wall";
 				case "attribute:Tower" -> "pillar";
 				case "attribute:Cloud" -> "cloud";
-				case "attribute:Bed" -> "rest";
+				case "attribute:Bed" -> "stone".equals(spell.element) ? "rest" : "mine"; // only earth makes a bed to wake in; anything else, a mine
 				case "attribute:Fireplace" -> "hearth";
 				case "attribute:Chest/Box" -> "stash";
 				case "attribute:Currency" -> "prospect";
@@ -159,7 +163,7 @@ public final class SpellCrafting {
 		spell.toggle = toggle;
 		spell.siphon = false;
 		spell.effect = Terraform.effectName(toggle);
-		spell.description = Terraform.describe(toggle, spell);
+		spell.description = Mines.handles(toggle) ? Mines.describe(toggle, spell) : Terraform.describe(toggle, spell);
 	}
 
 	/** Exploration spells come from Omnispell's fixed table of 540 combinations: no AI involved. */

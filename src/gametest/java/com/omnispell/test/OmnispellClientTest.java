@@ -2024,11 +2024,21 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				PlayerStore.get(p).essence = 500;
 				PlayerStore.get(p).pending = null;
 				p.getInventory().setItem(27, WandItem.create("oak", "nether_star")); // room for four words
-				String why = com.omnispell.spell.SpellCrafting.problem(p, PlayerStore.get(p), "exploration", java.util.List.of("base:Water", "command:Grow", "intention:Warding", "attribute:Bed"));
-				if (why != null) System.out.println("[omnispell-test] bed spell problem: " + why);
-				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Water", "command:Grow", "intention:Warding", "attribute:Bed"));
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Earth", "command:Grow", "intention:Warding", "attribute:Bed"));
 				com.omnispell.spell.Spell bed = PlayerStore.get(p).pending;
-				check(bed != null && "rest".equals(bed.toggle), "Bed in an environment spell makes a place to wake (" + (bed == null ? "nothing" : bed.toggle) + ")");
+				check(bed != null && "rest".equals(bed.toggle), "Earth + Bed in an environment spell makes a place to wake (" + (bed == null ? "nothing" : bed.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Water", "command:Grow", "intention:Warding", "attribute:Bed"));
+				com.omnispell.spell.Spell balloon = PlayerStore.get(p).pending;
+				check(balloon != null && "mine".equals(balloon.toggle) && balloon.description.contains("balloon"), "Water + Bed sets a water-balloon mine (" + (balloon == null ? "nothing" : balloon.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Fire", "command:Grow", "intention:Warding", "attribute:Bridge"));
+				com.omnispell.spell.Spell fuseSpell = PlayerStore.get(p).pending;
+				check(fuseSpell != null && "fuse".equals(fuseSpell.toggle), "Fire + Bridge lays a fuse of mines (" + (fuseSpell == null ? "nothing" : fuseSpell.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Thunder", "command:Grow", "intention:Warding", "attribute:Bridge"));
+				com.omnispell.spell.Spell wire = PlayerStore.get(p).pending;
+				check(wire != null && "tripwire".equals(wire.toggle), "Thunder + Bridge strings a tripwire (" + (wire == null ? "nothing" : wire.toggle) + ")");
 				PlayerStore.get(p).pending = null;
 				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Earth", "command:Grow", "intention:Warding", "attribute:Bridge"));
 				com.omnispell.spell.Spell span = PlayerStore.get(p).pending;
@@ -2224,6 +2234,129 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				if (!z.isRemoved()) z.discard();
 				for (var e : player(s).level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player(s).getBoundingBox().inflate(40), com.omnispell.spell.Conjuring::isConjured)) com.omnispell.spell.Summons.dismiss(e);
 				player(s).teleportTo(player(s).level(), notesHome[0].x, notesHome[0].y, notesHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(10);
+
+			// ---- corruption, sway, mines
+			net.minecraft.world.entity.Mob[] swayed = new net.minecraft.world.entity.Mob[2];
+			net.minecraft.world.entity.LivingEntity[] mineVictims = new net.minecraft.world.entity.LivingEntity[3];
+			float[] dropFrom = new float[1];
+			Vec3[] cHome = new Vec3[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				cHome[0] = p.position();
+				ItemStack w = WandItem.create("oak", "flint");
+				com.omnispell.spell.Spell dark = new com.omnispell.spell.Spell();
+				dark.type = "attack";
+				dark.tier = 4;
+				dark.words.addAll(java.util.List.of("base:Void", "command:Sever", "intention:Malice"));
+				check(dark.forbidden(), "a Void spell is forbidden magic");
+				float fullHealth = p.getMaxHealth();
+				for (int i = 0; i < 6; i++) com.omnispell.player.Corruption.onCast(p, dark);
+				check(com.omnispell.player.Corruption.full(p) && p.getMaxHealth() <= fullHealth * 0.55f, "six forbidden casts fill the corruption, and the purple hearts fall to half (" + p.getMaxHealth() + " of " + fullHealth + ")");
+				float arrowHit = com.omnispell.player.Corruption.incoming(p, level.damageSources().fall(), 10f);
+				var biter = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				float handHit = com.omnispell.player.Corruption.incoming(p, level.damageSources().mobAttack(biter), 10f);
+				check(arrowHit <= 5.01f && handHit == 10f, "purple hearts halve a fall (" + arrowHit + ") but not a blow by hand (" + handHit + ")");
+				double[] mana = PlayerStore.get(p).mana;
+				for (var pool : com.omnispell.player.ManaPool.values()) mana[pool.ordinal()] = com.omnispell.player.Mana.max(p, pool);
+				mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 0;
+				double barrierBefore = mana[com.omnispell.player.ManaPool.BARRIER.ordinal()];
+				double found = com.omnispell.player.Corruption.overdraw(p, com.omnispell.player.ManaPool.FORCE);
+				check(found > 10 && mana[com.omnispell.player.ManaPool.FORCE.ordinal()] > 10 && mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] < barrierBefore,
+						"full corruption tears a tenth of every other reserve to pay a forbidden spell (" + String.format("%.1f", found) + " found)");
+			});
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+			context.waitTicks(30);
+			context.takeScreenshot("35-full-corruption");
+			context.runOnClient(c -> c.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				PlayerStore.get(p).lastForbiddenAt = level.getServer().overworld().getGameTime() - 13000;
+				com.omnispell.player.Corruption.everySecond(p);
+				check(PlayerStore.get(p).corruption == 0 && !p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).hasModifier(com.omnispell.Omnispell.id("corruption_health")),
+						"ten quiet minutes and the corruption is gone, hearts and all");
+				p.setHealth(p.getMaxHealth());
+
+				// Sway: Banish frightens the weak and not the strong.
+				BlockPos field = BlockPos.containing(cHome[0]).offset(-60, 0, 0);
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-10, -1, -10), field.offset(10, -1, 10))) level.setBlockAndUpdate(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-10, 0, -10), field.offset(10, 18, 10))) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				p.teleportTo(level, field.getX() + 0.5, field.getY(), field.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				var weak = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				weak.snapTo(field.getX() + 3.5, field.getY(), field.getZ() + 0.5, 0f, 0f);
+				level.addFreshEntity(weak);
+				var strong = EntityTypes.RAVAGER.create(level, EntitySpawnReason.COMMAND);
+				strong.snapTo(field.getX() - 4.5, field.getY(), field.getZ() + 0.5, 0f, 0f);
+				level.addFreshEntity(strong);
+				swayed[0] = weak;
+				swayed[1] = strong;
+				com.omnispell.spell.Spell banish = new com.omnispell.spell.Spell();
+				banish.type = "defense";
+				banish.tier = 3;
+				banish.code.type = "shield";
+				banish.code.element = "shadow";
+				banish.words.addAll(java.util.List.of("base:Shadow", "command:Banish", "intention:Warding"));
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.SPIRIT.ordinal()] = 60;
+				check("terror".equals(com.omnispell.spell.Defenses.form(banish)) && com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), banish), 3), "Shadow + Banish + Warding is cast");
+				check(com.omnispell.spell.MobControl.held(weak, "fear") && !com.omnispell.spell.MobControl.held(strong, "fear"), "the zombie flees in fear; the ravager is too strong to sway");
+				weak.discard();
+				strong.discard();
+
+				// Mines: a fire mine under a zombie, a water balloon under a falling pig, a tripwire across a zombie.
+				com.omnispell.spell.Spell fireBed = new com.omnispell.spell.Spell();
+				fireBed.type = "exploration";
+				fireBed.toggle = "mine";
+				fireBed.element = "fire";
+				fireBed.tier = 3;
+				fireBed.words.add("base:Fire");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(field.offset(0, -1, 4)));
+				check(com.omnispell.spell.Mines.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), fireBed), "mine"), "a fire mine is set");
+				var walker = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				walker.snapTo(field.getX() + 0.5, field.getY(), field.getZ() + 4.5, 0f, 0f);
+				walker.setNoAi(true);
+				walker.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 400, 0));
+				level.addFreshEntity(walker);
+				mineVictims[0] = walker;
+				com.omnispell.spell.Spell waterBed = new com.omnispell.spell.Spell();
+				waterBed.type = "exploration";
+				waterBed.toggle = "mine";
+				waterBed.element = "water";
+				waterBed.tier = 2;
+				waterBed.words.add("base:Water");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(field.offset(5, -1, 0)));
+				com.omnispell.spell.Mines.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), waterBed), "mine");
+				var pig = EntityTypes.PIG.create(level, EntitySpawnReason.COMMAND);
+				pig.snapTo(field.getX() + 5.5, field.getY() + 16, field.getZ() + 0.5, 0f, 0f);
+				level.addFreshEntity(pig);
+				mineVictims[1] = pig;
+				dropFrom[0] = pig.getHealth();
+				com.omnispell.spell.Spell wireSpell = new com.omnispell.spell.Spell();
+				wireSpell.type = "exploration";
+				wireSpell.toggle = "tripwire";
+				wireSpell.element = "wind";
+				wireSpell.tier = 2;
+				wireSpell.words.add("base:Thunder");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(field.offset(-8, 0, 0)));
+				com.omnispell.spell.Mines.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), wireSpell), "tripwire");
+				var crosser = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				crosser.snapTo(field.getX() - 3.5, field.getY(), field.getZ() + 0.5, 0f, 0f);
+				crosser.setNoAi(true);
+				level.addFreshEntity(crosser);
+				mineVictims[2] = crosser;
+			});
+			context.waitTicks(70);
+			server.runOnServer(s -> {
+				var walker = mineVictims[0];
+				check(walker.isRemoved() || walker.getHealth() < walker.getMaxHealth(), "the zombie that stepped on the fire mine was blasted (health " + walker.getHealth() + ")");
+				var pig = mineVictims[1];
+				check(pig.isAlive() && pig.getHealth() >= dropFrom[0] - 0.01f, "a pig dropped sixteen blocks onto a water balloon lands unhurt (health " + pig.getHealth() + " of " + dropFrom[0] + ")");
+				var crosser = mineVictims[2];
+				check(crosser.isRemoved() || crosser.getHealth() < crosser.getMaxHealth(), "the tripwire shocks the zombie standing across it (health " + crosser.getHealth() + ")");
+				for (var e : mineVictims) if (!e.isRemoved()) e.discard();
+				player(s).teleportTo(player(s).level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
 			});
 			context.waitTicks(10);
 

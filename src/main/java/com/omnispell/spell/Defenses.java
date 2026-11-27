@@ -96,12 +96,25 @@ public final class Defenses {
 				}
 			}
 		}
+		if (spell.words.contains("base:Fear")) return "terror";
 		String word = command(spell, false);
 		switch (word) {
+			case "Banish", "Dismiss" -> {
+				return "terror";
+			}
+			case "Confuse", "Disrupt", "Agitate", "Mislead", "Distort" -> {
+				return "daze";
+			}
+			case "Paralyze", "Detain", "Stagnate", "Nullify", "Freeze", "Quell" -> {
+				return "stagger";
+			}
+			case "Enthrall" -> {
+				return "enthrall";
+			}
 			case "Repel", "Reflect", "Absorb", "Shield", "Protect", "Envelop", "Harbor", "Cover" -> {
 				return "shell";
 			}
-			case "Conceal", "Obscure", "Distort", "Mislead", "Silence" -> {
+			case "Conceal", "Obscure", "Silence" -> {
 				return "veil";
 			}
 			case "Seal", "Close" -> {
@@ -156,6 +169,12 @@ public final class Defenses {
 			case "Preservation" -> "boon";
 			default -> "shell";
 		};
+	}
+
+	/** The shapes that work on enemies rather than friends: they draw on Spirit. */
+	public static boolean controls(Spell spell) {
+		String form = form(spell);
+		return form.equals("terror") || form.equals("daze") || form.equals("stagger") || form.equals("enthrall");
 	}
 
 	/** Does the spell heal, rather than shield? */
@@ -315,7 +334,8 @@ public final class Defenses {
 		double want = spell.code.primaryValue > 0 ? spell.code.primaryValue : heal ? tier * 8.0 + 10 : tier * 5.0 + 10;
 		if (!heal) want *= 1.0 + Modifiers.value(p, "shield_overcharge") / 100.0;
 		if (form.equals("aegis") || form.equals("sanctuary")) want *= 1.3; // reaching others costs more
-		ManaPool pool = heal ? ManaPool.RESTORATION : ManaPool.BARRIER;
+		boolean control = controls(spell);
+		ManaPool pool = control ? ManaPool.SPIRIT : heal ? ManaPool.RESTORATION : ManaPool.BARRIER;
 		double paid = Mana.spend(p, pool, want);
 		if (paid < 1) return cast.fail("Your " + pool.label + " mana is spent.");
 		float amount = (float) (paid * cast.scale * cast.mendingBonus() / (form.equals("aegis") || form.equals("sanctuary") ? 1.3 : 1.0));
@@ -389,6 +409,10 @@ public final class Defenses {
 				}
 			}
 			case "sanctuary" -> sanctuary(cast, p.position(), amount, heal, ticks, element, color);
+			case "terror", "daze", "stagger", "enthrall" -> {
+				give(cast, p, amount * 0.6f, heal, ticks);
+				sway(cast, form, color);
+			}
 			case "barrier" -> {
 				give(cast, p, amount * 0.5f, heal, ticks);
 				barrier(cast, element, ticks);
@@ -412,6 +436,67 @@ public final class Defenses {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * How well a hold works on a creature: fully on anything with 20 health or less, by degrees up to
+	 * 80, not at all beyond, and never on bosses. A pack of skeletons scatters; a warden does not notice.
+	 */
+	public static double sway(LivingEntity target) {
+		if (MobControl.immune(target) || com.omnispell.boss.Bosses.defOf(target) != null) return 0;
+		return Math.max(0, Math.min(1, (80 - target.getMaxHealth()) / 60.0));
+	}
+
+	/** Fear, confusion, stun or charm, on every hostile creature around you. */
+	private static void sway(Cast cast, String form, int color) {
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		int tier = Math.max(1, Math.min(5, cast.spell.tier));
+		double radius = 6 + tier + (cast.spell.hasCharge("Maxima") ? 3 : 0);
+		String kind = switch (form) {
+			case "terror" -> "fear";
+			case "daze" -> "confusion";
+			case "stagger" -> "stun";
+			default -> "charm";
+		};
+		int held = 0, shrugged = 0;
+		for (Mob mob : level.getEntitiesOfClass(Mob.class, p.getBoundingBox().inflate(radius), e -> e instanceof net.minecraft.world.entity.monster.Enemy && e.isAlive())) {
+			if (mob.distanceTo(p) > radius) continue;
+			double power = sway(mob);
+			if (power <= 0) {
+				shrugged++;
+				continue;
+			}
+			int ticks = (int) Math.max(20, (3 + tier + (kind.equals("fear") ? 1 : 0)) * 20 * power * (cast.spell.hasCharge("Duratus") ? 1.6 : 1.0));
+			MobControl.apply(p, mob, kind, ticks, null);
+			if (kind.equals("fear")) {
+				Vec3 away = mob.position().subtract(p.position()).multiply(1, 0, 1);
+				if (away.lengthSqr() > 0.01) mob.push(away.normalize().x * 0.6, 0.2, away.normalize().z * 0.6);
+			}
+			var mark = switch (kind) {
+				case "fear" -> ParticleTypes.SCULK_SOUL;
+				case "confusion" -> ParticleTypes.WITCH;
+				case "stun" -> ParticleTypes.ELECTRIC_SPARK;
+				default -> ParticleTypes.HEART;
+			};
+			level.sendParticles(mark, mob.getX(), mob.getY() + mob.getBbHeight() + 0.3, mob.getZ(), 6, 0.3, 0.2, 0.3, 0.02);
+			held++;
+		}
+		Fx.ring(level, p.position().add(0, 0.3, 0), radius, color, null);
+		level.playSound(null, p.blockPosition(), switch (kind) {
+			case "fear" -> SoundEvents.WARDEN_ROAR;
+			case "stun" -> SoundEvents.ANVIL_LAND;
+			case "charm" -> SoundEvents.AMETHYST_BLOCK_CHIME;
+			default -> SoundEvents.ILLUSIONER_CAST_SPELL;
+		}, SoundSource.PLAYERS, kind.equals("fear") ? 0.5f : 1.0f, kind.equals("stun") ? 1.6f : 1.0f);
+		String verb = switch (kind) {
+			case "fear" -> "flee";
+			case "confusion" -> "reel, confused";
+			case "stun" -> "are stunned";
+			default -> "are charmed";
+		};
+		if (held > 0) cast.tell(held + (held == 1 ? " creature " : " creatures ") + (held == 1 ? verb.replace("flee", "flees").replace("are ", "is ").replace("reel", "reels") : verb) + (shrugged > 0 ? "; " + shrugged + " too strong to sway." : "."));
+		else if (shrugged > 0) cast.tell("Nothing here is weak enough to sway.");
 	}
 
 	/** A circle on the ground: friends inside mend or keep their shield; hostile creatures inside are slowed. */
@@ -479,6 +564,10 @@ public final class Defenses {
 			case "sanctuary" -> "It marks a circle on the ground around you. Friends standing in it " + (heal ? "mend every second" : "keep a shield") + " while it lasts, and hostile creatures in it are slowed.";
 			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
+			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get a little " + gift + ".";
+			case "daze" -> "It leaves every hostile creature around you reeling and confused. The weak are lost longest; bosses and the like are not moved. You also get a little " + gift + ".";
+			case "stagger" -> "It stuns every hostile creature around you where it stands. The weak are held longest; bosses and the like are not. You also get a little " + gift + ".";
+			case "enthrall" -> "It charms every hostile creature around you: for a while they will not fight you. The weak stay charmed longest; bosses and the like are not moved. You also get a little " + gift + ".";
 			default -> "It gives you " + gift + ". " + Wards.describe(spell);
 		};
 		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Maxima carries it out to your friends nearby too, at half strength.";

@@ -43,6 +43,8 @@ public final class PlayerData {
 	public boolean initialized;
 	/** True if this player switched off the wand's sprint boost in the Spellbook. */
 	public boolean noWandSprint;
+	/** World time of the last forbidden spell: ten quiet minutes and corruption is gone. */
+	public long lastForbiddenAt;
 
 	public Spell spell(String id) {
 		for (Spell spell : spells) {

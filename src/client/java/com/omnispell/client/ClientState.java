@@ -23,6 +23,17 @@ public final class ClientState {
 	public static final java.util.Map<Integer, Integer> conjureTints = new java.util.HashMap<>();
 	/** The render states this frame that belong to a tinted creature. */
 	public static final java.util.Map<Object, Integer> tintedStates = new java.util.WeakHashMap<>();
+	/** Other players' corruption, by entity id, as the server sent it. */
+	public static final java.util.Map<Integer, Integer> corruptionLevels = new java.util.HashMap<>();
+	/** The render states this frame that belong to a player with veins, and which stage. */
+	public static final java.util.Map<Object, Integer> veinStates = new java.util.WeakHashMap<>();
+
+	/** How corrupted a player looks: your own from your vitals, anyone else's from the server's word. */
+	public static int corruptionOf(net.minecraft.world.entity.Entity entity) {
+		var self = net.minecraft.client.Minecraft.getInstance().player;
+		if (self != null && entity.getId() == self.getId()) return (int) corruption;
+		return corruptionLevels.getOrDefault(entity.getId(), 0);
+	}
 	/** Whether sprinting with a wand in hand gives the Phase-powered speed boost. Kept on the server. */
 	public static boolean wandSprint = true;
 

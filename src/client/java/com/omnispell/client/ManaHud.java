@@ -124,8 +124,26 @@ public final class ManaHud {
 			g.outline(x - 1, by + 1, 42, 8, flashing ? 0xFFFFFFFF : 0xFF3A4260);
 			g.text(font, pools[i].label, x + 45, by + 1, flashing ? 0xFFFFFFFF : fraction <= 0.01f ? 0xFF8A5050 : 0xFFC8D0E0, false);
 		}
-		if (all && ClientState.corruption >= 1) {
-			g.text(font, "Corruption " + (int) ClientState.corruption + "%", x, y + pools.length * 11 + 5, ClientState.corruption >= 50 ? 0xFFFF5555 : 0xFFC080FF, true);
+		// The corruption bar: shown whenever a forbidden spell is on the wand in hand, or any corruption is left.
+		boolean forbiddenOnWand = false;
+		var self = net.minecraft.client.Minecraft.getInstance().player;
+		if (self != null) {
+			var wand = com.omnispell.item.WandItem.heldWand(self);
+			for (int i = 0; i < com.omnispell.item.WandItem.SLOTS && !wand.isEmpty(); i++) {
+				Spell spell = com.omnispell.item.WandItem.spell(wand, i);
+				if (spell != null && spell.forbidden()) forbiddenOnWand = true;
+			}
+		}
+		if (forbiddenOnWand || ClientState.corruption >= 1) {
+			int by = y + pools.length * 11 + 1;
+			g.fill(x - 3, by, x + 106, by + 10, 0x90101420);
+			float fraction = (float) Math.max(0, Math.min(1, ClientState.corruption / 100.0));
+			boolean full = fraction >= 0.995f;
+			int pulse = full ? (int) (Math.sin(ClientState.clientTick * 0.25) * 40 + 40) : 0;
+			g.fill(x, by + 2, x + 40, by + 8, 0xFF1B2030);
+			g.fill(x, by + 2, x + Math.round(40 * fraction), by + 8, full ? 0xFF000000 | (0xA0 + pulse) << 16 | 0x30 << 8 | (0xE0) : 0xFF7A2BB0);
+			g.outline(x - 1, by + 1, 42, 8, fraction >= 0.6f ? 0xFFB050FF : 0xFF3A4260);
+			g.text(font, "Corruption", x + 45, by + 1, fraction >= 0.6f ? 0xFFD090FF : 0xFFA080C0, false);
 		}
 	}
 

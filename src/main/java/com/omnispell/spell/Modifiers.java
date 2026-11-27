@@ -212,6 +212,7 @@ public final class Modifiers {
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
+		amount = com.omnispell.player.Corruption.incoming(player, source, amount);
 		amount = Wards.incoming(player, source, amount);
 		amount = Conjuring.guard(player, source, amount);
 		amount = com.omnispell.item.CoreAbilities.incoming(player, source, amount);

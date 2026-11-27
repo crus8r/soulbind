@@ -553,6 +553,57 @@ os.makedirs(os.path.dirname(path), exist_ok=True)
 img.save(path)
 lang_extra = {'entity.omnispell.conjured_serpent': 'Conjured Serpent'}
 
+# Corruption: dark veins over a player's skin, in four spreading stages, and purple hearts.
+import random as _random
+VEIN_REGIONS = [(16, 20, 40, 32), (40, 20, 56, 32), (0, 20, 16, 32), (16, 52, 32, 64), (32, 52, 48, 64), (0, 8, 32, 16)]
+_rng = _random.Random(1313)
+veins = []
+for n in range(70):
+    x0, y0, x1, y1 = VEIN_REGIONS[n % len(VEIN_REGIONS)] if n >= 8 else VEIN_REGIONS[n % 5]
+    x, y = _rng.randrange(x0, x1), _rng.randrange(y0, y1)
+    path = [(x, y)]
+    for _ in range(_rng.randint(5, 12)):
+        dx, dy = _rng.choice([(0, 1), (0, 1), (1, 1), (-1, 1), (1, 0), (-1, 0), (0, -1)])
+        x, y = max(x0, min(x1 - 1, x + dx)), max(y0, min(y1 - 1, y + dy))
+        path.append((x, y))
+    veins.append(path)
+for stage, count in enumerate((8, 18, 32, 48), start=1):
+    img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+    def overlay(x, y):
+        # The same spot on the skin's outer layer (jacket, sleeves, trousers, hat), so the veins show over clothes too.
+        if 16 <= y < 32 and x < 56: return (x, y + 16)
+        if 48 <= y < 64 and 16 <= x < 32: return (x - 16, y)
+        if 48 <= y < 64 and 32 <= x < 48: return (x + 16, y)
+        if y < 16 and x < 32: return (x + 32, y)
+        return None
+    for path in veins[:count]:
+        for i, (x, y) in enumerate(path):
+            img.putpixel((x, y), (36, 6, 54, 255) if i % 3 else (150, 60, 214, 255))
+            o = overlay(x, y)
+            if o: img.putpixel(o, (36, 6, 54, 255) if i % 3 else (150, 60, 214, 255))
+            # from the third stage the veins swell to two pixels wide
+            if stage >= 4 and i % 3 == 0:
+                nx = x + 1 if (x + 1) % 8 else x - 1
+                if 0 <= nx < 64 and img.getpixel((nx, y))[3] == 0: img.putpixel((nx, y), (56, 12, 80, 255))
+    p_ = os.path.join(ASSETS, 'textures', 'entity', f'corruption_veins_{stage}.png')
+    os.makedirs(os.path.dirname(p_), exist_ok=True)
+    img.save(p_)
+HEART = ['.##...##.', '#hA#.#AA#', '#hAA#AAA#', '#AAAAAAs#', '.#AAAAs#.', '..#AAs#..', '...#s#...', '....#....', '.........']
+def heart(name, half, blink):
+    pal = {'#': (40, 8, 58, 255), 'A': (196, 120, 255, 255) if blink else (150, 60, 214, 255), 'h': (240, 214, 255, 255), 's': (98, 30, 140, 255)}
+    img = Image.new('RGBA', (9, 9), (0, 0, 0, 0))
+    for y, row in enumerate(HEART):
+        for x, ch in enumerate(row):
+            if half and x > 4: continue
+            if ch in pal: img.putpixel((x, y), pal[ch])
+    p_ = os.path.join(ASSETS, 'textures', 'gui', 'sprites', 'hud', 'heart', name + '.png')
+    os.makedirs(os.path.dirname(p_), exist_ok=True)
+    img.save(p_)
+heart('corrupted_full', False, False)
+heart('corrupted_half', True, False)
+heart('corrupted_full_blinking', False, True)
+heart('corrupted_half_blinking', True, True)
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),

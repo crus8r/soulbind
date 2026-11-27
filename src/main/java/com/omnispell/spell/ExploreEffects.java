@@ -53,6 +53,7 @@ public final class ExploreEffects {
 	public static double cooldownSeconds(String toggle) {
 		if (Terraform.handles(toggle)) return Terraform.cooldownSeconds(toggle);
 		if (Rifts.handles(toggle)) return Rifts.cooldownSeconds(toggle);
+		if (Mines.handles(toggle)) return Mines.cooldownSeconds(toggle);
 		if (Wonders.handles(toggle)) return Wonders.cooldownSeconds(toggle);
 		return switch (toggle) {
 			case "projectile", "push", "shrapnel" -> 3;
@@ -93,6 +94,7 @@ public final class ExploreEffects {
 		String rift = Rifts.forEntry(Rifts.entryId(spell));
 		if (rift != null && !Rifts.handles(spell.toggle) && !Terraform.handles(spell.toggle)) spell.toggle = rift;
 		if (Rifts.handles(spell.toggle)) return Rifts.cast(c, spell.toggle);
+		if (Mines.handles(spell.toggle)) return Mines.cast(c, spell.toggle);
 		String wonder = Wonders.primary(Rifts.entryId(spell));
 		if (wonder != null && !Wonders.handles(spell.toggle)) spell.toggle = wonder;
 		if (Wonders.handles(spell.toggle)) return Wonders.cast(c, spell.toggle);

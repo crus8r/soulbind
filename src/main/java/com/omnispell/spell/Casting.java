@@ -101,17 +101,18 @@ public final class Casting {
 
 		double cost = manaCost(spell);
 		com.omnispell.player.ManaPool pool = poolOf(spell);
+		boolean forbidden = spell.forbidden();
+		// Full corruption: a forbidden spell short of mana tears it from every other reserve.
+		if (forbidden && pool != null && !player.getAbilities().instabuild && com.omnispell.player.Corruption.full(player)
+				&& com.omnispell.player.Mana.available(player, pool) < Math.max(cost, 5)) {
+			com.omnispell.player.Corruption.overdraw(player, pool);
+		}
 		if (cost > 0 && pool != null && !player.getAbilities().instabuild && com.omnispell.player.Mana.available(player, pool) < cost) {
 			player.sendOverlayMessage(Component.literal("Not enough " + pool.label + " mana for " + spell.label() + " (" + (int) Math.ceil(cost) + " needed).").withStyle(ChatFormatting.GRAY));
 			return;
 		}
 
 		Cast cast = new Cast(player, wand, spell);
-		if (spell.dark && !corruption(cast)) {
-			setCooldown(cast, cooldowns, now, 1.0);
-			PlayerStore.syncVitals(player);
-			return;
-		}
 
 		Modifiers.noteCast(player);
 		if ("fire".equals(spell.code.element) || "fire".equals(spell.element)) FIRE_UNTIL.put(player.getUUID(), now + (spell.isExploration() ? 500 : 100));
@@ -133,6 +134,7 @@ public final class Casting {
 			return;
 		}
 		if (cost > 0 && pool != null && !player.getAbilities().instabuild) com.omnispell.player.Mana.spend(player, pool, cost);
+		if (forbidden) com.omnispell.player.Corruption.onCast(player, spell);
 		setCooldown(cast, cooldowns, now, cast.cooldownFactor);
 		String screen = spell.visual.screenEffect;
 		if (screen != null && !screen.equals("none")) {
@@ -155,7 +157,7 @@ public final class Casting {
 		}
 		// Conjured creatures and masonry draw on Spirit; defense spells on Restoration when they heal, Barrier when they shield.
 		if (spell.type.equals("conjuration")) return com.omnispell.player.ManaPool.SPIRIT;
-		if (spell.type.equals("defense")) return Defenses.healing(spell) ? com.omnispell.player.ManaPool.RESTORATION : com.omnispell.player.ManaPool.BARRIER;
+		if (spell.type.equals("defense")) return Defenses.controls(spell) ? com.omnispell.player.ManaPool.SPIRIT : Defenses.healing(spell) ? com.omnispell.player.ManaPool.RESTORATION : com.omnispell.player.ManaPool.BARRIER;
 		// Attacks of the body's elements (fire, ice, storm, stone, nature) draw on Force; attacks of the unseen ones (shadow, light, void, blood, arcane) draw on Spirit.
 		if (spell.type.equals("attack")) return spiritElement(spell.code.element) ? com.omnispell.player.ManaPool.SPIRIT : com.omnispell.player.ManaPool.FORCE;
 		return switch (spell.code.type == null ? "" : spell.code.type) {
@@ -208,6 +210,9 @@ public final class Casting {
 				case "crater", "beam", "ring", "disintegrate" -> 5;
 				case "dome", "area_damage", "eruption", "strike", "field", "polymorph" -> 6;
 				case "detonate" -> 7;
+				case "mine" -> 3;
+				case "tripwire" -> 5;
+				case "fuse" -> 6;
 				case "vortex", "sink" -> 12;
 				case "sky_beam" -> 12;
 				case "vacuum", "quicksand" -> 15;
@@ -279,36 +284,6 @@ public final class Casting {
 		}
 		long ticks = Math.round(seconds * 20);
 		cooldowns.put(spell.id, new Cooldown(now, now + ticks));
-	}
-
-	/**
-	 * Dark magic builds corruption. The more there is, the more likely a dark spell
-	 * fizzles or turns on its caster. Returns false if this cast was lost to it.
-	 */
-	private static boolean corruption(Cast cast) {
-		ServerPlayer player = cast.player;
-		PlayerData data = PlayerStore.get(player);
-		int tier = cast.spell.tier;
-		double max = 100;
-		double pct = data.corruption / max * 100;
-		double backfire = pct >= 100 ? 100 : pct >= 75 ? 40 : pct >= 50 ? 20 : pct >= 25 ? 8 : 0;
-		double selfDamage = pct >= 100 ? 0.5 : pct >= 75 ? 0.3 : pct >= 50 ? 0.2 : 0.1;
-		double fizzle = pct >= 100 ? 30 : pct >= 75 ? 15 : pct >= 50 ? 5 : 0;
-		data.corruption = Math.min(max, data.corruption + 5 + tier * 5 + (tier >= 4 ? (tier - 3) * 5 : 0));
-
-		double roll = player.getRandom().nextDouble() * 100;
-		if (roll < fizzle) {
-			cast.tell("The corruption swallows your spell.");
-			player.level().sendParticles(ParticleTypes.SMOKE, player.getX(), player.getY() + 1.2, player.getZ(), 20, 0.3, 0.3, 0.3, 0.02);
-			return false;
-		}
-		if (player.getRandom().nextDouble() * 100 < backfire) {
-			float hurt = (float) (Math.max(10, cast.spell.code.primaryValue) * cast.scale * selfDamage);
-			player.hurtServer(cast.level, cast.level.damageSources().magic(), hurt);
-			cast.tell("The dark magic turns on you.");
-			player.level().sendParticles(ParticleTypes.SCULK_SOUL, player.getX(), player.getY() + 1.2, player.getZ(), 12, 0.3, 0.4, 0.3, 0.02);
-		}
-		return true;
 	}
 
 	/** Spell Vampirism: knocks time off one of the caster's running cooldowns. */

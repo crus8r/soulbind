@@ -523,8 +523,8 @@ public class BookScreen extends Screen {
 		String line = "Tier " + spell.tier + " · " + typeName + (spell.school == null || spell.school.isBlank() || spell.isExploration() ? "" : " · " + spell.school);
 		g.text(font(), line, x, y, DIM, false);
 		y += 12;
-		if (spell.dark) {
-			g.text(font(), "Dark magic: each cast adds corruption.", x, y, 0xFFC080FF, false);
+		if (spell.forbidden()) {
+			g.text(font(), "Forbidden magic: each cast fills your corruption.", x, y, 0xFFC080FF, false);
 			y += 11;
 		}
 		if (spell.offline) {

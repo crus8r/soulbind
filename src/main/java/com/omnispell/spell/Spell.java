@@ -64,6 +64,16 @@ public final class Spell {
 		return words.contains(wordId);
 	}
 
+	/** Forbidden magic: the Oracle called it dark, or it is made with one of the forbidden words (Void, Blood, Death...). */
+	public boolean forbidden() {
+		if (dark) return true;
+		for (String id : words) {
+			com.omnispell.data.Word w = com.omnispell.data.WordBank.word(id);
+			if (w != null && "Forbidden".equals(w.category)) return true;
+		}
+		return false;
+	}
+
 	/** True if the spell uses the charge whose name starts with this (Maxima, Minima, Rapidus, Duratus, Focalis). */
 	/** The name to show: the player's own name for the spell if it has one, otherwise its incantation. */
 	public String label() {
