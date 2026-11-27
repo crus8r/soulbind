@@ -13,6 +13,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -166,6 +167,26 @@ public final class Modifiers {
 			for (Holder<MobEffect> effect : CONFUSIONS) player.removeEffect(effect);
 		}
 		Defenses.aspectSecond(player);
+		double anchor = value(player, "arcane_anchor");
+		if (anchor > 0) ground(player, anchor);
+	}
+
+	/** Effects already shortened by an arcane anchor, so each is cut only once. */
+	private static final java.util.Map<MobEffectInstance, Boolean> GROUNDED = new java.util.WeakHashMap<>();
+
+	/** An arcane anchor grounds what is cast on you: each harmful effect that lands lasts that many turns less. */
+	private static void ground(ServerPlayer player, double turns) {
+		int cut = Omnispell.CONFIG.turnsToTicks(turns);
+		for (MobEffectInstance effect : new java.util.ArrayList<>(player.getActiveEffects())) {
+			if (effect.isInfiniteDuration() || effect.getEffect().value().isBeneficial() || GROUNDED.containsKey(effect)) continue;
+			int left = effect.getDuration() - cut;
+			player.removeEffect(effect.getEffect());
+			if (left > 0) {
+				MobEffectInstance shorter = new MobEffectInstance(effect.getEffect(), left, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon());
+				GROUNDED.put(shorter, true);
+				player.addEffect(shorter);
+			}
+		}
 	}
 
 	// ----- being hit -----
@@ -205,6 +226,35 @@ public final class Modifiers {
 		return true;
 	}
 
+	/** A monster's special attack: anything it sends rather than strikes with (arrows, fireballs, blasts, fangs, breath, sonic booms). */
+	static boolean specialAttack(DamageSource source) {
+		if (!(source.getEntity() instanceof net.minecraft.world.entity.Mob) || source.getEntity() instanceof Player) return false;
+		return source.is(DamageTypeTags.IS_PROJECTILE) || source.is(DamageTypeTags.IS_EXPLOSION) || source.is(DamageTypes.MAGIC) || source.is(DamageTypes.INDIRECT_MAGIC)
+				|| source.is(DamageTypes.SONIC_BOOM) || source.is(DamageTypes.DRAGON_BREATH) || source.is(DamageTypes.WITHER_SKULL) || source.is(DamageTypes.FIREBALL)
+				|| source.is(DamageTypes.MOB_PROJECTILE) || source.is(DamageTypes.ARROW);
+	}
+
+	/** The ward unravels it: the attack comes apart in a ring of runes. */
+	private static void unravel(ServerPlayer player, DamageSource source) {
+		ServerLevel level = player.level();
+		Fx.ring(level, player.position().add(0, 1, 0), 1.4, Fx.color("arcane"), net.minecraft.core.particles.ParticleTypes.ENCHANT);
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, player.getX(), player.getY() + 1, player.getZ(), 20, 0.4, 0.6, 0.4, 0.05);
+		level.playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.6f);
+		if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile projectile) projectile.discard();
+	}
+
+	/** Can a ward among these players unravel a boss's ability? Each warded player tries once; the first to succeed stops it. */
+	public static boolean wardUnravels(ServerLevel level, List<ServerPlayer> near) {
+		for (ServerPlayer p : near) {
+			double counter = value(p, "counter_spell");
+			if (counter > 0 && level.getRandom().nextDouble() * 100 < counter) {
+				unravel(p, level.damageSources().magic());
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Fortify, resistances and mana shield change how much a hit does. Called from the damage mixin. */
 	public static float modifyIncoming(LivingEntity entity, DamageSource source, float amount) {
 		if (amount > 0 && Conjuring.spares(entity, source)) return 0;
@@ -213,6 +263,24 @@ public final class Modifiers {
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
+		// A ward that unravels monsters' special attacks (their arrows, fireballs, blasts, fangs, sonic booms) now and then.
+		double counter = value(player, "counter_spell");
+		if (counter > 0 && specialAttack(source) && player.getRandom().nextDouble() * 100 < counter) {
+			unravel(player, source);
+			return 0;
+		}
+		// Reflection turns part of the whole blow back on the striker, even what a barrier would have caught.
+		// While a barrier holds (any shield of extra hearts) it costs nothing; without one it is paid from Barrier mana.
+		double reflect = value(player, "damage_reflection");
+		if (reflect > 0 && player.getInvulnerableTime() <= 10 && source.getEntity() instanceof LivingEntity striker && striker != player && striker.isAlive() && !source.is(DamageTypes.THORNS)) {
+			double want = amount * reflect / 100.0;
+			double scale = Omnispell.CONFIG.valueScale;
+			double back = player.getAbsorptionAmount() > 0 ? want : Mana.spend(player, ManaPool.BARRIER, want / scale) * scale;
+			if (back > 0) {
+				striker.hurtServer(player.level(), player.level().damageSources().thorns(player), (float) back);
+				player.level().sendParticles(net.minecraft.core.particles.ParticleTypes.ENCHANTED_HIT, striker.getX(), striker.getY() + striker.getBbHeight() * 0.6, striker.getZ(), 8, 0.3, 0.3, 0.3, 0.1);
+			}
+		}
 		// The cat's traits: you land on your feet.
 		if (source.is(DamageTypeTags.IS_FALL) && has(player, "aspect_cat")) return 0;
 		// An Arrow or Bow attack spell's arrows hurt other players at a tenth, like the spell itself.
@@ -297,11 +365,6 @@ public final class Modifiers {
 		double back = 0;
 		double thorns = value(player, "thorns");
 		if (thorns > 0) back += thorns * scale;
-		double reflect = value(player, "damage_reflection");
-		if (reflect > 0) {
-			double want = dealt * reflect / 100.0;
-			back += Mana.spend(player, ManaPool.BARRIER, want / scale) * scale;
-		}
 		if (back > 0) attacker.hurtServer(level, level.damageSources().thorns(player), (float) back);
 	}
 

@@ -3120,6 +3120,54 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- toggles that had no code: a counter-spell ward and an arcane anchor; reflection behind a barrier
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel tgLevel = p.level();
+				p.removeAllEffects();
+				p.setHealth(p.getMaxHealth());
+				var tgFoe = EntityTypes.ZOMBIE.create(tgLevel, EntitySpawnReason.COMMAND);
+				tgFoe.snapTo(p.getX() + 2, p.getY(), p.getZ(), 0f, 0f);
+				tgFoe.setNoAi(true);
+				tgFoe.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200);
+				tgFoe.setHealth(200f);
+				tgLevel.addFreshEntity(tgFoe);
+				var tgArcher = EntityTypes.SKELETON.create(tgLevel, EntitySpawnReason.COMMAND);
+				tgArcher.snapTo(p.getX() - 2, p.getY(), p.getZ(), 0f, 0f);
+				tgArcher.setNoAi(true);
+				tgLevel.addFreshEntity(tgArcher);
+				// Space + Reflect + Warding: half of every blow goes back, even while the barrier catches it.
+				com.omnispell.spell.Modifiers.add(p, "damage_reflection", 50, 200);
+				p.setAbsorptionAmount(10f);
+				p.setInvulnerableTime(0);
+				p.hurtServer(tgLevel, tgLevel.damageSources().mobAttack(tgFoe), 4f);
+				check(tgFoe.getHealth() <= 198.1f, "with the barrier up, half the blow goes back to the striker (zombie at " + tgFoe.getHealth() + ")");
+				com.omnispell.spell.Modifiers.add(p, "damage_reflection", 0, 1);
+				// The counter-spell ward unravels a monster's arrow or blast, never a plain blow.
+				com.omnispell.spell.Modifiers.add(p, "counter_spell", 100, 200);
+				float tgArrow = com.omnispell.spell.Modifiers.modifyIncoming(p, tgLevel.damageSources().mobProjectile(tgArcher, tgArcher), 6f);
+				float tgBlow = com.omnispell.spell.Modifiers.modifyIncoming(p, tgLevel.damageSources().mobAttack(tgFoe), 6f);
+				check(tgArrow == 0f && tgBlow > 0f, "a counter-spell ward unravels a skeleton's arrow but not a zombie's blow (" + tgArrow + ", " + tgBlow + ")");
+				check(com.omnispell.spell.Modifiers.wardUnravels(tgLevel, java.util.List.of(p)), "and it can unravel a boss's special attack");
+				com.omnispell.spell.Modifiers.add(p, "counter_spell", 0, 1);
+				// Mud + Fill + Binding: an arcane anchor cuts a turn off each harmful effect that lands, and leaves the good ones be.
+				com.omnispell.spell.Modifiers.add(p, "arcane_anchor", 1, 200);
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.POISON, 300, 0));
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SPEED, 300, 0));
+				com.omnispell.spell.Modifiers.everySecond(p);
+				com.omnispell.spell.Modifiers.everySecond(p);
+				check(p.getEffect(MobEffects.POISON) != null && p.getEffect(MobEffects.POISON).getDuration() <= 200 && p.getEffect(MobEffects.POISON).getDuration() > 150
+						&& p.getEffect(MobEffects.SPEED).getDuration() > 250,
+						"an arcane anchor cuts a turn off poison, once, and leaves speed alone (poison " + (p.getEffect(MobEffects.POISON) == null ? 0 : p.getEffect(MobEffects.POISON).getDuration()) + ")");
+				com.omnispell.spell.Modifiers.add(p, "arcane_anchor", 0, 1);
+				tgFoe.discard();
+				tgArcher.discard();
+				p.removeAllEffects();
+				p.setAbsorptionAmount(0f);
+				p.setHealth(p.getMaxHealth());
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
