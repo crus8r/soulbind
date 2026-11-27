@@ -3280,10 +3280,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				lbPlain.code.element = "fire";
 				lbPlain.code.primaryValue = 20;
 				lbPlain.description = "Hurls a ball of fire at the target.";
-				lbPlain.words.addAll(java.util.List.of("base:Fire", "command:Illuminate", "intention:Malice"));
+				lbPlain.words.addAll(java.util.List.of("base:Fire", "command:Sever", "intention:Malice")); // a single-target form
 				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
 				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbPlain));
-				check(lbFoes[0].getHealth() < 200f && lbFoes[2].getHealth() >= 200f, "a fireball that is no beam strikes only what it hits first");
+				check(lbFoes[0].getHealth() < 200f && lbFoes[2].getHealth() >= 200f, "a fireball that is no beam strikes only what it hits first (" + lbFoes[0].getHealth() + ", " + lbFoes[2].getHealth() + ")");
 				// A lightning environment spell: a grapple leaves the wand as a bolt and pulls you; landing, it jolts the foes around you.
 				com.omnispell.spell.Spell lbGrap = new com.omnispell.spell.Spell();
 				lbGrap.type = "exploration";
