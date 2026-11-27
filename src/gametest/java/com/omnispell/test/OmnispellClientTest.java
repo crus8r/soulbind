@@ -3267,7 +3267,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				lbBeam.description = "Fires a searing beam of radiant light that burns through its target.";
 				lbBeam.words.addAll(java.util.List.of("base:Light", "command:Illuminate", "intention:Malice"));
 				check(com.omnispell.spell.Beams.piercing(lbBeam) && !com.omnispell.spell.Beams.storm(lbBeam), "Light that says it is a beam pierces");
-				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(lbAt.getX() + 0.5, p.getEyeY() - 0.4, lbAt.getZ() + 20.5)); // straight down the line of them
 				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbBeam));
 				check(lbFoes[0].getHealth() < 200f && lbFoes[1].getHealth() < 200f && lbFoes[2].getHealth() < 200f && lbFoes[2].hasEffect(MobEffects.GLOWING) && lbWolf[0].getHealth() >= lbWolf[0].getMaxHealth(),
 						"the beam strikes everything in its path and lights it up (" + lbFoes[0].getHealth() + ", " + lbFoes[1].getHealth() + ", " + lbFoes[2].getHealth() + ")");

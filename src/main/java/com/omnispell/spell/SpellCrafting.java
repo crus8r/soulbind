@@ -286,12 +286,13 @@ public final class SpellCrafting {
 
 	/** The Oracle's own words for a spell, without what this mod wrote after them. */
 	public static String oracleText(Spell spell) {
+		if (spell.oracle != null) return spell.oracle;
 		String d = spell.description == null ? "" : spell.description;
 		int cut = d.length();
-		String[] marks = "defense".equals(spell.type) ? new String[]{". It "} : new String[]{" It comes as ", " It raises ", " It closes ", " What it hits is ", " Sometimes, ", " Often, ", " It sends a wall"};
+		String[] marks = "defense".equals(spell.type) ? new String[]{" It calls a guardian creature", " It gives you the "} : new String[]{" It comes as ", " It raises ", " It closes ", " What it hits is ", " Sometimes, ", " Often, ", " It sends a wall"};
 		for (String mark : marks) {
 			int i = d.indexOf(mark);
-			if (i >= 0) cut = Math.min(cut, mark.startsWith(".") ? i + 1 : i);
+			if (i >= 0) cut = Math.min(cut, i);
 		}
 		return d.substring(0, cut).trim();
 	}
@@ -300,11 +301,19 @@ public final class SpellCrafting {
 	public static void refresh(Spell spell) {
 		if (spell == null || spell.isExploration() || spell.type == null) return;
 		if (!spell.type.equals("conjuration") && !spell.type.equals("defense") && !spell.type.equals("attack")) return;
-		spell.description = oracleText(spell);
+		if (spell.oracle == null) {
+			String guess = oracleText(spell);
+			String whole = spell.description == null ? "" : spell.description.trim();
+			// An older defense spell whose added text cannot be told apart from the Oracle's own is left exactly as it is.
+			if ("defense".equals(spell.type) && guess.length() >= whole.length()) return;
+			spell.oracle = guess;
+		}
+		spell.description = spell.oracle;
 		describeWorking(spell);
 	}
 
 	private static void finish(ServerPlayer player, Spell spell, boolean stable) {
+		if (spell.oracle == null && !spell.isExploration()) spell.oracle = spell.description == null ? "" : spell.description.trim();
 		describeWorking(spell);
 		finishRest(player, spell, stable);
 	}

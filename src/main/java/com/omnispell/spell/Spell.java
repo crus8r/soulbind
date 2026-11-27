@@ -23,6 +23,7 @@ public final class Spell {
 	public int tier = 1;
 	public String description = "";
 	public String effect = "";
+	public String oracle;        // the Oracle's own description, kept apart from what the game adds after it (null on older spells)
 	public String school = "";
 	public boolean dark;
 	public boolean offline;      // made without the generator (no connection); can be re-crafted later

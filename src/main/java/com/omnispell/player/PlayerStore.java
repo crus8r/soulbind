@@ -25,6 +25,10 @@ public final class PlayerStore {
 	private static final AttachmentType<String> SAVED = AttachmentRegistry.create(
 			Omnispell.id("player"), builder -> builder.persistent(Codec.STRING).copyOnDeath());
 
+	/** A player's saved text that could not be read, kept untouched so nothing is ever lost by starting fresh over it. */
+	private static final AttachmentType<String> UNREADABLE = AttachmentRegistry.create(
+			Omnispell.id("player_unreadable"), builder -> builder.persistent(Codec.STRING).copyOnDeath());
+
 	private static final Map<UUID, PlayerData> LOADED = new HashMap<>();
 
 	private PlayerStore() {
@@ -50,7 +54,8 @@ public final class PlayerStore {
 			try {
 				data = WordBank.GSON.fromJson(json, PlayerData.class);
 			} catch (Exception e) {
-				Omnispell.LOG.error("Could not read Omnispell data for {}; starting fresh", player.getName().getString(), e);
+				Omnispell.LOG.error("Could not read Omnispell data for {}; starting fresh, and keeping the old data aside", player.getName().getString(), e);
+				if (player.getAttached(UNREADABLE) == null) player.setAttached(UNREADABLE, json);
 			}
 		}
 		if (data == null) data = new PlayerData();
@@ -61,7 +66,7 @@ public final class PlayerStore {
 		for (com.omnispell.spell.Spell spell : data.spells) {
 			try {
 				com.omnispell.spell.SpellCrafting.refresh(spell);
-			} catch (RuntimeException e) {
+			} catch (Throwable e) { // a description that cannot be brought up to date is left as it was; the spell itself is never touched
 				Omnispell.LOG.warn("Could not refresh the description of {}", spell.name, e);
 			}
 			if (!spell.archived) continue;
