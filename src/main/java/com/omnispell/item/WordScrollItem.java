@@ -133,6 +133,14 @@ public class WordScrollItem extends Item {
 
 	/** An unknown word of the given rarity; if none are left, the nearest rarity that still has one. */
 	public static Word pickUnknown(PlayerData data, int rarity, RandomSource random) {
+		// A Forbidden scroll holds a forbidden word (Blood, Void, Death...) for as long as there is one left to learn.
+		if (rarity >= 5) {
+			List<Word> dark = new ArrayList<>();
+			for (Word word : WordBank.words()) {
+				if ("Forbidden".equals(word.category) && !word.excluded && !data.words.contains(word.id)) dark.add(word);
+			}
+			if (!dark.isEmpty()) return dark.get(random.nextInt(dark.size()));
+		}
 		for (int distance = 0; distance <= 5; distance++) {
 			for (int sign = -1; sign <= 1; sign += 2) {
 				int r = rarity + sign * distance;
