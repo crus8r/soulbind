@@ -2384,12 +2384,18 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (int i = 0; i < 4; i++) {
 					net.minecraft.world.entity.Mob sgA = i < 2 ? EntityTypes.ZOMBIE.create(sgLevel, EntitySpawnReason.COMMAND) : i == 2 ? EntityTypes.WOLF.create(sgLevel, EntitySpawnReason.COMMAND) : EntityTypes.COW.create(sgLevel, EntitySpawnReason.COMMAND);
 					sgA.snapTo(sgArena.getX() + (i == 0 ? 0.5 : i == 1 ? 2.5 : i == 2 ? -1.5 : -9.5), sgArena.getY(), sgArena.getZ() + 3.5 + (i == 3 ? 0 : i), 0f, 0f);
-					sgA.setNoAi(true);
+					// They keep their AI (a mob without it skips movement altogether, so nothing could push it), but cannot walk off.
+					sgA.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 600, 9));
+					sgA.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 600, 0));
 					if (i < 2) {
 						sgA.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200);
 						sgA.setHealth(200f);
 					}
-					if (sgA instanceof net.minecraft.world.entity.TamableAnimal sgPet) sgPet.tame(p);
+					if (sgA instanceof net.minecraft.world.entity.TamableAnimal sgPet) {
+						sgPet.tame(p);
+						sgPet.setOrderedToSit(true);
+						sgPet.setInSittingPose(true);
+					}
 					sgLevel.addFreshEntity(sgA);
 					surgeMobs[i] = sgA;
 					surgeStart[i] = sgA.getZ();
@@ -2422,11 +2428,12 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				// A defense: Air + Repel + Wall drives hostile creatures back and leaves the cow be.
 				var sgFoe = EntityTypes.ZOMBIE.create(sgLevel, EntitySpawnReason.COMMAND);
 				sgFoe.snapTo(sgArena.getX() + 0.5, sgArena.getY(), sgArena.getZ() + 3.5, 0f, 0f);
-				sgFoe.setNoAi(true);
+				sgFoe.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 600, 9));
+				sgFoe.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 600, 0));
 				sgLevel.addFreshEntity(sgFoe);
 				var sgCow = EntityTypes.COW.create(sgLevel, EntitySpawnReason.COMMAND);
 				sgCow.snapTo(sgArena.getX() + 2.5, sgArena.getY(), sgArena.getZ() + 3.5, 0f, 0f);
-				sgCow.setNoAi(true);
+				sgCow.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 600, 9));
 				sgLevel.addFreshEntity(sgCow);
 				surgeMobs[4] = sgFoe;
 				surgeMobs[5] = sgCow;
