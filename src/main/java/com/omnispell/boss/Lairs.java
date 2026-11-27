@@ -71,6 +71,36 @@ public final class Lairs {
 		}
 	}
 
+	/**
+	 * Can a spell carry someone from here to there? Not into a sealed lair, and not through its walls: a sealed
+	 * lair opens only to an environment spell strong enough to break its door. Returns the spell tier that door
+	 * needs if the way is barred, or 0 if it is clear.
+	 */
+	public static int sealedBetween(ServerLevel level, net.minecraft.world.phys.Vec3 from, net.minecraft.world.phys.Vec3 to) {
+		Guard guard = new Guard(level);
+		net.minecraft.world.phys.Vec3 d = to.subtract(from);
+		int steps = Math.max(1, (int) Math.ceil(d.length() / 0.5));
+		for (int i = 1; i <= steps; i++) {
+			BlockPos at = BlockPos.containing(from.add(d.scale(i / (double) steps)));
+			int need = Math.max(guard.tierNeeded(at), guard.tierNeeded(at.above()));
+			if (need > 0) return need;
+		}
+		return 0;
+	}
+
+	public static String sealedMessage(int tier) {
+		return "A sealed lair turns the spell aside. Only an environment spell of tier " + tier + " or stronger breaks its door.";
+	}
+
+	/** After something moved a player at random (a void ward, a displacing blow): if it put them inside a sealed lair, put them back. */
+	public static void keepOut(net.minecraft.world.entity.LivingEntity who, net.minecraft.world.phys.Vec3 from) {
+		if (!(who instanceof ServerPlayer player) || !(who.level() instanceof ServerLevel level)) return;
+		if (sealedBetween(level, from, who.position()) > 0) {
+			player.teleportTo(from.x, from.y, from.z);
+			player.sendOverlayMessage(Component.literal("A sealed lair turns you aside."));
+		}
+	}
+
 	public static void register() {
 		net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> {
 			if (!(level instanceof ServerLevel serverLevel) || player.getAbilities().instabuild) return true;

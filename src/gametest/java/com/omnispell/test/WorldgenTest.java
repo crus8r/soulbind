@@ -272,6 +272,23 @@ public class WorldgenTest implements FabricClientGameTest {
 				check(needed == com.omnispell.boss.Lairs.spellTierFor(tier[0]), "the sealed door needs an environment spell of tier " + needed);
 				p.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
 				check(!p.gameMode.destroyBlock(door) && !level.getBlockState(door).isAir(), "a sealed lair cannot be broken into by hand");
+				// Nor will a phase carry you through its walls: only an environment spell strong enough breaks the door.
+				BlockPos outside = altar[0].relative(doorSide, 8);
+				p.teleportTo(level, outside.getX() + 0.5, altar[0].getY(), outside.getZ() + 0.5, java.util.Set.of(), doorSide.getOpposite().toYRot(), 0f, true);
+				com.omnispell.player.PlayerStore.get(p).mana[com.omnispell.player.ManaPool.PHASE.ordinal()] = 50;
+				com.omnispell.spell.Spell phase = new com.omnispell.spell.Spell();
+				phase.type = "exploration";
+				phase.toggle = "phase";
+				phase.element = "void";
+				phase.tier = 3;
+				phase.words.add("base:Void");
+				net.minecraft.world.phys.Vec3 before = p.position();
+				com.omnispell.spell.Cast phaseCast = new com.omnispell.spell.Cast(p, com.omnispell.item.WandItem.create("oak", "flint"), phase);
+				boolean went = com.omnispell.spell.ExploreEffects.cast(phaseCast);
+				check(com.omnispell.boss.Lairs.sealedBetween(level, before, net.minecraft.world.phys.Vec3.atCenterOf(altar[0])) == needed,
+						"the way through the lair's wall is sealed to spells that carry you");
+				check(!went && p.position().distanceTo(before) < 0.5 && phaseCast.failure != null && phaseCast.failure.contains("sealed lair"),
+						"a phase spell cannot carry you through a sealed lair's wall (" + phaseCast.failure + ")");
 				p.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
 				BlockPos view = altar[0].relative(doorSide, 12).above(2);
 				p.teleportTo(level, view.getX() + 0.5, view.getY(), view.getZ() + 0.5, java.util.Set.of(), doorSide.getOpposite().toYRot(), 10f, true);

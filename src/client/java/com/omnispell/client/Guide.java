@@ -216,7 +216,7 @@ public final class Guide {
 		s.put("Shrines and lairs", List.of(
 				"Arcane shrines stand in the open across the world: a stone platform, four amethyst-crowned pillars, and an arcane well at the centre. Draw your essence there.",
 				"Boss lairs are white domes of snow and ice, like great igloos, with a single sealed door.",
-				"The door's material tells you how dangerous the lair is: hay, then wood, stone, iron, gold, diamond, and netherite for the worst of them. A sealed lair cannot be broken into by hand. Carve or blast the door with an environment spell: tier 1 opens hay and wood, tier 2 stone, tier 3 iron and gold, tier 4 diamond, tier 5 netherite. Once the boss wakes the seal is gone and the lair is ordinary blocks again.",
+				"The door's material tells you how dangerous the lair is: hay, then wood, stone, iron, gold, diamond, and netherite for the worst of them. A sealed lair cannot be broken into by hand, and no phase, blink or teleport will carry you through its walls. Carve or blast the door with an environment spell: tier 1 opens hay and wood, tier 2 stone, tier 3 iron and gold, tier 4 diamond, tier 5 netherite. Once the boss wakes the seal is gone and the lair is ordinary blocks again.",
 				"Inside is a dark seal. Step close and the boss breaks out. It has a boss bar, an element it resists and one it is weak to, and tricks of its own.",
 				"Each boss drops word scrolls, rarer for harder lairs. Your first victory also teaches Conjuration.",
 				"The Bosses tab keeps count.",

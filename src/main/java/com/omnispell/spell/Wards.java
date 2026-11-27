@@ -295,7 +295,9 @@ public final class Wards {
 					Vec3 away = player.position().subtract(attacker.position()).multiply(1, 0, 1);
 					away = away.lengthSqr() < 0.01 ? new Vec3(1, 0, 0) : away.normalize();
 					level.sendParticles(ParticleTypes.PORTAL, player.getX(), player.getY() + 1, player.getZ(), 30, 0.3, 0.5, 0.3, 0.5);
+					Vec3 wasAt = player.position();
 					player.randomTeleport(player.getX() + away.x * 4, player.getY() + 1, player.getZ() + away.z * 4, true, state -> true);
+					com.omnispell.boss.Lairs.keepOut(player, wasAt);
 					return 0;
 				}
 			}

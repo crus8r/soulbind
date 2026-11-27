@@ -833,6 +833,8 @@ public final class Terraform {
 					}
 				}
 				if (best == null) return c.fail("There is nowhere to step to.");
+				int sealedBlink = com.omnispell.boss.Lairs.sealedBetween(level, p.position(), best);
+				if (sealedBlink > 0) return c.fail(com.omnispell.boss.Lairs.sealedMessage(sealedBlink));
 				level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
 				p.teleportTo(best.x, best.y, best.z);
 				p.fallDistance = 0;

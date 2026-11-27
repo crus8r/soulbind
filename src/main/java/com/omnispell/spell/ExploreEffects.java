@@ -340,6 +340,8 @@ public final class ExploreEffects {
 				else to = Vec3.atBottomCenterOf(hit.getBlockPos().relative(hit.getDirection()));
 				BlockPos feet = BlockPos.containing(to);
 				for (int i = 0; i < 4 && !level.getBlockState(feet).getCollisionShape(level, feet).isEmpty(); i++) feet = feet.above();
+				int sealedTp = com.omnispell.boss.Lairs.sealedBetween(level, p.position(), Vec3.atBottomCenterOf(feet));
+				if (sealedTp > 0) yield c.fail(com.omnispell.boss.Lairs.sealedMessage(sealedTp));
 				Fx.helix(level, p.position(), 2.0, 0.6, color, extra);
 				p.teleportTo(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5);
 				p.fallDistance = 0;
@@ -367,6 +369,9 @@ public final class ExploreEffects {
 					}
 				}
 				if (found == null) yield c.fail("The wall is too thick to pass through.");
+				// A sealed lair's walls do not let a phase through: its door yields only to an environment spell.
+				int sealedPhase = com.omnispell.boss.Lairs.sealedBetween(level, p.position(), Vec3.atBottomCenterOf(found));
+				if (sealedPhase > 0) yield c.fail(com.omnispell.boss.Lairs.sealedMessage(sealedPhase));
 				Fx.burst(level, p.position().add(0, 1, 0), color, extra, 3);
 				p.teleportTo(found.getX() + 0.5, found.getY(), found.getZ() + 0.5);
 				Fx.burst(level, p.position().add(0, 1, 0), color, extra, 3);

@@ -332,6 +332,7 @@ public final class AttackForms {
 					double dist = 3 + tier + level.getRandom().nextDouble() * 2;
 					if (target.randomTeleport(from.x + Math.cos(angle) * dist, from.y + 2, from.z + Math.sin(angle) * dist, true, state -> true)) break;
 				}
+				com.omnispell.boss.Lairs.keepOut(target, from);
 				if (target instanceof Mob mob) mob.setTarget(null);
 				level.sendParticles(ParticleTypes.PORTAL, from.x, from.y + 1, from.z, 40, 0.4, 0.6, 0.4, 0.5);
 			}
