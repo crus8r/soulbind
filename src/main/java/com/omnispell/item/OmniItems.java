@@ -81,6 +81,9 @@ public final class OmniItems {
 			net.minecraft.resources.ResourceKey.create(net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID, Omnispell.id("wizard_boots"));
 	public static final Item WIZARD_ROBE = register("wizard_robe", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.CHEST, ROBE_ASSET));
 	public static final Item WIZARD_BOOTS = register("wizard_boots", Item::new, attire(net.minecraft.world.entity.EquipmentSlot.FEET, BOOTS_ASSET));
+	/** A bundle bound to a totem: catches what falls from you when you die. Six uses; mended with bundles. */
+	public static final Item RELIQUARY = register("reliquary", ReliquaryItem::new, new Item.Properties().durability(com.omnispell.player.Reliquary.USES)
+			.repairable(net.minecraft.world.item.Items.BUNDLE).fireResistant().rarity(net.minecraft.world.item.Rarity.RARE));
 	public static final Item ARCANE_FOCUS = register("arcane_focus", Item::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR_EGG = register("familiar_egg", com.omnispell.familiar.FamiliarEggItem::new, new Item.Properties().stacksTo(1));
 	public static final Item FAMILIAR = register("familiar", com.omnispell.familiar.FamiliarItem::new, new Item.Properties().stacksTo(1));
@@ -121,6 +124,7 @@ public final class OmniItems {
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_WELL_ITEM));
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_POTION));
 					output.accept(new net.minecraft.world.item.ItemStack(ARCANE_FOCUS));
+					output.accept(new net.minecraft.world.item.ItemStack(RELIQUARY));
 					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_HAT));
 					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_ROBE));
 					output.accept(new net.minecraft.world.item.ItemStack(WIZARD_BOOTS));

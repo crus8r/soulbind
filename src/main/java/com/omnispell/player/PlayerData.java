@@ -30,6 +30,27 @@ public final class PlayerData {
 
 	public List<Folder> folders = new ArrayList<>();
 
+	/** A Reliquary lying somewhere with this player's things in it. */
+	public static final class Cache {
+		public String id;
+		public String entity;
+		public String dimension;
+		public double x, y, z;
+
+		public Cache(String id, String entity, String dimension, double x, double y, double z) {
+			this.id = id;
+			this.entity = entity;
+			this.dimension = dimension;
+			this.x = x;
+			this.y = y;
+			this.z = z;
+		}
+	}
+
+	public List<Cache> reliquaries = new ArrayList<>();
+	/** Whether the client was last told there is a Reliquary to point at. */
+	public transient boolean reliquaryShown;
+
 	public Folder folder(String name) {
 		if (name == null) return null;
 		for (Folder folder : folders) if (folder.name.equalsIgnoreCase(name)) return folder;

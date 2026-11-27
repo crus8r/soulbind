@@ -2357,10 +2357,16 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(crosser.isRemoved() || crosser.getHealth() < crosser.getMaxHealth(), "the tripwire shocks the zombie standing across it (health " + crosser.getHealth() + ")");
 				for (var e : mineVictims) if (!e.isRemoved()) e.discard();
 				player(s).teleportTo(player(s).level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+				// A wand named on an anvil: its name shows above the spell bar, clear of it.
+				ItemStack named = WandItem.create("oak", "flint");
+				named.set(DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Brawler's Wand"));
+				player(s).getInventory().setItem(player(s).getInventory().getSelectedSlot(), named);
 			});
 			context.waitTicks(10);
+			context.takeScreenshot("36-wand-name");
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
+			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
 				for (int i = 0; i < 9; i++) if (WandItem.isWand(player(s).getInventory().getItem(i))) player(s).getInventory().setItem(i, ItemStack.EMPTY); // loose wands would simply drop
 				player(s).getInventory().setItem(8, new ItemStack(OmniItems.GRIMOIRE)); // a loose book must not
@@ -2378,6 +2384,15 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				saved.getInventory().setItem(20, WandItem.create("oak", "totem_of_undying")); // off the hotbar it does not save you, but it is never lost
 				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(OmniItems.WIZARD_ROBE)); // nor wizard's attire
 				player(s).setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(OmniItems.WIZARD_BOOTS));
+				// A Reliquary, and loose things for it to catch: iron, dirt and a plain bundle.
+				check(s.getRecipeManager().byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, com.omnispell.Omnispell.id("reliquary"))).isPresent(), "a bundle and a totem make a Reliquary");
+				saved.getInventory().setItem(21, new ItemStack(OmniItems.RELIQUARY));
+				saved.getInventory().setItem(22, new ItemStack(Items.IRON_INGOT, 16));
+				saved.getInventory().setItem(23, new ItemStack(Items.DIRT, 32));
+				ItemStack plainBundle = new ItemStack(Items.BUNDLE);
+				saved.getInventory().setItem(24, plainBundle);
+				saved.giveExperienceLevels(10);
+				deathAt[0] = saved.position();
 			});
 			server.runCommand("kill @a");
 			context.waitForScreen(net.minecraft.client.gui.screens.DeathScreen.class);
@@ -2399,6 +2414,57 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(OmniItems.WIZARD_ROBE) && p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).is(OmniItems.WIZARD_BOOTS), "the robe and boots are kept through death");
 				PlayerData data = PlayerStore.get(p);
 				check(data.spells.size() == 15 && data.words.size() > 200, "words and spells survive death (" + data.spells.size() + " spells)");
+
+				// The Reliquary caught what fell, and only that.
+				ServerLevel level = p.level();
+				var near = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(deathAt[0], deathAt[0]).inflate(8), e -> true);
+				net.minecraft.world.entity.item.ItemEntity token = null;
+				int loose = 0;
+				StringBuilder looseNames = new StringBuilder();
+				for (var e : near) {
+					if (com.omnispell.player.Reliquary.holds(e.getItem())) token = e;
+					else if (e.getAge() < 400) { // fell at the death, not left from an earlier test here
+						loose++;
+						looseNames.append(e.getItem()).append(' ');
+					}
+				}
+				check(token != null && loose == 0, "a Reliquary lies where you fell, and nothing else is scattered (" + loose + " loose: " + looseNames + ")");
+				var held = token.getItem().getOrDefault(DataComponents.CONTAINER, net.minecraft.world.item.component.ItemContainerContents.EMPTY).nonEmptyItemCopyStream().toList();
+				boolean iron = false, dirt = false, plainBundle = false, keptThing = false;
+				for (ItemStack thing : held) {
+					if (thing.is(Items.IRON_INGOT) && thing.getCount() == 16) iron = true;
+					if (thing.is(Items.DIRT) && thing.getCount() == 32) dirt = true;
+					if (thing.is(Items.BUNDLE)) plainBundle = true;
+					boolean totemWand = WandItem.isWand(thing) && "totem_of_undying".equals(WandItem.core(thing));
+					if (thing.is(OmniItems.GRIMOIRE) || totemWand || thing.is(OmniItems.WIZARD_ROBE) || thing.is(OmniItems.WIZARD_BOOTS)) keptThing = true;
+				}
+				check(iron && dirt && plainBundle && !keptThing, "it holds the iron, the dirt and the plain bundle, and none of what Soul Bind keeps (" + held + ")");
+				check(token.getItem().getDamageValue() == 1 && token.getItem().has(DataComponents.DAMAGE_RESISTANT) && token.isInvulnerable(), "one use spent; it cannot burn or be blasted");
+				check(level.getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class, new net.minecraft.world.phys.AABB(deathAt[0], deathAt[0]).inflate(8), e -> true).isEmpty(), "no experience orbs fall: half the experience is in the Reliquary");
+				check(data.reliquaries.size() == 1, "the Reliquary is remembered, for the diamond on the experience bar");
+				deathAt[0] = token.position();
+				// stand a little way off, facing roughly toward it, for a look at the diamond on the experience bar
+				p.teleportTo(level, deathAt[0].x + 10, deathAt[0].y, deathAt[0].z + 3, java.util.Set.of(), 110f, 0f, true);
+				com.omnispell.player.Reliquary.sendTarget(p);
+			});
+			context.waitTicks(10);
+			context.takeScreenshot("37-reliquary-diamond");
+			server.runOnServer(s -> player(s).teleportTo(player(s).level(), deathAt[0].x, deathAt[0].y, deathAt[0].z, java.util.Set.of(), 0f, 0f, true));
+			context.waitTicks(30);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				int iron = 0, dirt = 0;
+				ItemStack reliquary = ItemStack.EMPTY;
+				for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+					ItemStack stack = p.getInventory().getItem(i);
+					if (stack.is(Items.IRON_INGOT)) iron += stack.getCount();
+					if (stack.is(Items.DIRT)) dirt += stack.getCount();
+					if (stack.is(OmniItems.RELIQUARY)) reliquary = stack;
+				}
+				check(iron == 16 && dirt == 32, "picking it up gives everything back (" + iron + " iron, " + dirt + " dirt)");
+				check(!reliquary.isEmpty() && !com.omnispell.player.Reliquary.holds(reliquary) && reliquary.getDamageValue() == 1, "and the empty Reliquary comes back to your inventory, five uses left");
+				check(p.totalExperience > 0 || p.experienceLevel > 0, "with half the lost experience (level " + p.experienceLevel + ")");
+				check(PlayerStore.get(p).reliquaries.isEmpty(), "and it is no longer pointed at");
 			});
 			context.takeScreenshot("30-after-respawn");
 		} finally {

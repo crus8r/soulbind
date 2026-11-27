@@ -193,6 +193,11 @@ public class Omnispell implements ModInitializer {
 			PlayerStore.syncState(player);
 			PlayerStore.syncVitals(player);
 		});
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+			com.omnispell.player.Reliquary.respawned(newPlayer);
+			com.omnispell.player.Corruption.respawned(newPlayer);
+			com.omnispell.player.Reliquary.sendTarget(newPlayer);
+		});
 		ServerPlayerEvents.LEAVE.register(player -> {
 			PlayerStore.unload(player);
 			Casting.forget(player);
@@ -246,6 +251,7 @@ public class Omnispell implements ModInitializer {
 			int tick = server.getTickCount();
 			com.omnispell.spell.Conjuring.tick(server);
 			com.omnispell.spell.Wards.tick(server);
+			com.omnispell.player.Reliquary.tick(server);
 			if (server.getTickCount() % 2 == 0) com.omnispell.spell.Mines.tick(server);
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) com.omnispell.item.CoreAbilities.tick(player);
 			if (tick % 10 == 0) {

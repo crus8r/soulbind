@@ -9,12 +9,16 @@
 		"LivingEntityDamageMixin",
 		"ShroudSightMixin",
 		"PiglinCoreMixin",
+		"DeathCaptureMixin",
+		"CaptureDropsMixin",
+		"ReliquaryPickupMixin",
 		"MobGoalsAccessor"
 	],
 	"client": [
 		"DarkSightMixin",
 		"ConjureTintMixin",
 		"CorruptHeartsMixin",
+		"WandNameMixin",
 		"ShroudMixin"
 	],
 	"injectors": {

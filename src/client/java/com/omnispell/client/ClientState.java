@@ -19,6 +19,9 @@ public final class ClientState {
 	public static Spell pending;
 	public static Set<String> bosses = new LinkedHashSet<>();
 	public static int maxWords = 3;
+	/** Where the diamond on the experience bar points: this player's Reliquary, or the portal toward it. */
+	public static boolean cacheActive;
+	public static double cacheX, cacheY, cacheZ;
 	/** Conjured creatures' colours, by entity id, as the server sent them. Lightened so the creature's markings still show. */
 	public static final java.util.Map<Integer, Integer> conjureTints = new java.util.HashMap<>();
 	/** The render states this frame that belong to a tinted creature. */

@@ -62,6 +62,18 @@ public final class OmniNet {
 		}
 	}
 
+	/** Where the diamond on the experience bar points: the player's Reliquary, or the portal toward it. */
+	public record CacheTarget(boolean active, double x, double y, double z) implements CustomPacketPayload {
+		public static final Type<CacheTarget> TYPE = OmniNet.makeType("cache_target");
+		public static final StreamCodec<ByteBuf, CacheTarget> CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, CacheTarget::active, ByteBufCodecs.DOUBLE, CacheTarget::x,
+				ByteBufCodecs.DOUBLE, CacheTarget::y, ByteBufCodecs.DOUBLE, CacheTarget::z, CacheTarget::new);
+
+		@Override
+		public Type<CacheTarget> type() {
+			return TYPE;
+		}
+	}
+
 	/** How corrupted a player is (0 to 100), so everyone can see their veins. */
 	public record CorruptionLevel(int entityId, int percent) implements CustomPacketPayload {
 		public static final Type<CorruptionLevel> TYPE = OmniNet.makeType("corruption_level");
@@ -187,6 +199,7 @@ public final class OmniNet {
 		PayloadTypeRegistry.clientboundPlay().register(Shroud.TYPE, Shroud.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(ConjureTint.TYPE, ConjureTint.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(CorruptionLevel.TYPE, CorruptionLevel.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(CacheTarget.TYPE, CacheTarget.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(OpenWaypoint.TYPE, OpenWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(EditWaypoint.TYPE, EditWaypoint.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CastSpell.TYPE, CastSpell.CODEC);

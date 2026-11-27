@@ -29,6 +29,7 @@ public final class ManaHud {
 			String at = client.player.getBlockX() + "  " + client.player.getBlockY() + "  " + client.player.getBlockZ();
 			g.text(client.font, at, 4, 4, 0xC0E8ECF8, true);
 		}
+		locator(g, client);
 		ItemStack wand = WandItem.heldWand(client.player);
 		if (wand.isEmpty()) return;
 		Font font = client.font;
@@ -37,6 +38,63 @@ public final class ManaHud {
 
 		spellBar(g, client, font, wand, w, h);
 		mana(g, font, h, ClientSettings.get().showMana);
+	}
+
+	/**
+	 * The Reliquary's mark on the experience bar: a small diamond, where the locator bar would put a
+	 * player's dot. Pinned to the edge, and dimmed, when it lies behind you; a small arrow shows when it
+	 * is well above or below.
+	 */
+	private static void locator(GuiGraphicsExtractor g, Minecraft client) {
+		if (!ClientState.cacheActive) return;
+		double dx = ClientState.cacheX - client.player.getX();
+		double dz = ClientState.cacheZ - client.player.getZ();
+		double dy = ClientState.cacheY - client.player.getY();
+		float toward = (float) Math.toDegrees(Math.atan2(-dx, dz));
+		float rel = net.minecraft.util.Mth.wrapDegrees(toward - client.player.getYRot());
+		boolean ahead = Math.abs(rel) <= 90;
+		int cx = g.guiWidth() / 2;
+		int x = cx + Math.round(Math.max(-90f, Math.min(90f, rel)) / 90f * 87f);
+		int y = g.guiHeight() - 27;
+		int fill = ahead ? 0xFFE8B84A : 0xFF8C7038;
+		for (int r = -4; r <= 4; r++) {
+			int half = 4 - Math.abs(r);
+			g.fill(x - half, y + r, x + half + 1, y + r + 1, 0xFF2A1A08); // a dark rim
+		}
+		for (int r = -3; r <= 3; r++) {
+			int half = 3 - Math.abs(r);
+			g.fill(x - half, y + r, x + half + 1, y + r + 1, fill);
+		}
+		g.fill(x, y - 2, x + 1, y - 1, 0xFFFFF4C8); // a glint
+		if (Math.abs(dy) > 4 && ahead) {
+			int ay = dy > 0 ? y - 8 : y + 6;
+			int dir = dy > 0 ? 1 : -1;
+			for (int i = 0; i < 3; i++) g.fill(x - i, ay + (dir > 0 ? i : 2 - i), x + i + 1, ay + (dir > 0 ? i : 2 - i) + 1, fill);
+		}
+	}
+
+	/** When the held wand changes, its name shows above the spell bar for a moment, as the usual item name would. */
+	private static String lastWandName = "";
+	private static int lastSlot = -1;
+	private static long wandNameAt = -1000;
+
+	private static void wandName(GuiGraphicsExtractor g, Minecraft client, Font font, ItemStack wand, int x0, int y0) {
+		String name = wand.getHoverName().getString();
+		int slot = client.player.getInventory().getSelectedSlot();
+		if (!name.equals(lastWandName) || slot != lastSlot) {
+			lastWandName = name;
+			lastSlot = slot;
+			wandNameAt = ClientState.clientTick;
+		}
+		long age = ClientState.clientTick - wandNameAt;
+		if (age < 0 || age > 60) return;
+		int alpha = age < 40 ? 255 : Math.max(16, 255 - (int) ((age - 40) * 12));
+		int cx = x0 + (WandItem.SLOTS * (SQUARE + GAP) - GAP) / 2;
+		int tw = font.width(name);
+		int tx = cx - tw / 2;
+		int ty = y0 - 26;
+		g.fill(tx - 4, ty - 2, tx + tw + 4, ty + 10, (Math.min(alpha, 0xA0) << 24) | 0x101420);
+		g.text(font, name, tx, ty, (alpha << 24) | 0xF0F4FF, true);
 	}
 
 	/** Left edge and top of the spell bar: directly above the hearts (and the armor row, when there is one). */
@@ -55,6 +113,7 @@ public final class ManaHud {
 	private static void spellBar(GuiGraphicsExtractor g, Minecraft client, Font font, ItemStack wand, int w, int h) {
 		int x0 = barX(w);
 		int y0 = barY(client, h);
+		if (WandItem.isWand(client.player.getMainHandItem())) wandName(g, client, font, wand, x0, y0);
 		int selected = WandItem.selected(wand);
 		for (int i = 0; i < WandItem.SLOTS; i++) {
 			int x = x0 + i * (SQUARE + GAP);

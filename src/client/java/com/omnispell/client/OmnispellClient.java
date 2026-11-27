@@ -94,6 +94,12 @@ public class OmnispellClient implements ClientModInitializer {
 			if (payload.ticks() <= 0) ClientState.shrouded.remove(payload.entityId());
 			else ClientState.shrouded.put(payload.entityId(), ClientState.clientTick + payload.ticks());
 		});
+		ClientPlayNetworking.registerGlobalReceiver(OmniNet.CacheTarget.TYPE, (payload, context) -> {
+			ClientState.cacheActive = payload.active();
+			ClientState.cacheX = payload.x();
+			ClientState.cacheY = payload.y();
+			ClientState.cacheZ = payload.z();
+		});
 		ClientPlayNetworking.registerGlobalReceiver(OmniNet.CorruptionLevel.TYPE, (payload, context) -> {
 			if (payload.percent() <= 0) ClientState.corruptionLevels.remove(payload.entityId());
 			else ClientState.corruptionLevels.put(payload.entityId(), payload.percent());

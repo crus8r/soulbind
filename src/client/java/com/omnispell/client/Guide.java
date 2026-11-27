@@ -226,6 +226,12 @@ public final class Guide {
 				"Corruption drains away by itself, from full to nothing in about ten minutes, and is gone at once after ten minutes without a forbidden cast.",
 				"From half full, dark veins creep over your body for everyone to see, and a faint darkness clings to you. From 60%, your hearts turn purple and fall away, down to half your health when the bar is full. Purple hearts shrug off much of any harm that is not a blow struck by hand: arrows, falls, fire, magic and blasts do up to half as much.",
 				"When the bar is full, forbidden spells no longer need their own reserve. If it runs short, the spell tears a tenth of every other reserve away to pay for itself. It is a poor bargain, and a powerful one."));
+		s.put("The Reliquary", List.of(
+				"A bundle and a Totem of Undying, crafted together, make a Reliquary. Keep it loose in your inventory: not in a bundle, not in the hat.",
+				"When you truly die, it catches everything that falls from you, and half the experience you would have lost, and lies where you fell. What Soul Bind keeps (the bound bundle, the book, the wizard's hat and what is in it, the robe and boots, a totem wand) stays with you as always, so nothing is ever doubled.",
+				"It never burns, is never blasted apart and never despawns, and only you can pick it up. When you do, everything comes back into your inventory, and what does not fit lands at your feet. Armor goes back on if the slot is free.",
+				"A small diamond on your experience bar points to it. From another realm it points to the nearest portal that leads there (a nether portal, the stronghold for the End, a Forest Gate); with no portal near, it waits until you are in the same realm. Its coordinates are also told to you when you die.",
+				"It holds six deaths. Mend it with a bundle on an anvil, one use per bundle."));
 		s.put("Soul Bind", List.of(
 				"Soul-bound items stay with you when you die, at a cost. Your starter bundle is soul-bound, and so is everything inside it.",
 				"Books drop from endermen and lie in dungeon chests. Combine two of the same level in an anvil for the next level.",

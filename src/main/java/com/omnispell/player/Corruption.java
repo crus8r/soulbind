@@ -38,6 +38,13 @@ public final class Corruption {
 	private Corruption() {
 	}
 
+	/** Who has been told, this life, that their corruption is full. */
+	private static final java.util.Set<java.util.UUID> WARNED = new java.util.HashSet<>();
+
+	public static void respawned(ServerPlayer player) {
+		WARNED.remove(player.getUUID());
+	}
+
 	public static double of(ServerPlayer player) {
 		return PlayerStore.get(player).corruption;
 	}
@@ -63,8 +70,9 @@ public final class Corruption {
 		data.lastForbiddenAt = now(player);
 		apply(player, data.corruption);
 		broadcast(player, data.corruption);
-		if (data.corruption >= MAX - 0.5) {
-			player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("Corruption full: forbidden spells feed on your other reserves.").withStyle(net.minecraft.ChatFormatting.DARK_PURPLE));
+		if (data.corruption >= MAX - 0.5 && WARNED.add(player.getUUID())) {
+			// Said once a life; it fades from the screen on its own.
+			player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("Corruption is full. Your power can feed on other reserves.").withStyle(net.minecraft.ChatFormatting.DARK_PURPLE));
 		}
 	}
 

@@ -604,13 +604,36 @@ heart('corrupted_half', True, False)
 heart('corrupted_full_blinking', False, True)
 heart('corrupted_half_blinking', True, True)
 
+# The Reliquary: a leather pouch tied shut with a totem's golden clasp, a purple sigil on its side.
+REL = [
+    '................',
+    '......oooo......',
+    '.....oyyyyo.....',
+    '.....oygGyo.....',
+    '......oyyo......',
+    '.....bbbbbb.....',
+    '....bLLLLLLb....',
+    '...bLLLLLLLLb...',
+    '..bLLLLLLLLLLb..',
+    '..bLLLLppLLLLb..',
+    '..bLLLpLLpLLLb..',
+    '..bLLLLppLLLLb..',
+    '..bLLLLLLLLLLb..',
+    '...bLLLLLLLLb...',
+    '....bbbbbbbb....',
+    '................',
+]
+assert all(len(r) == 16 for r in REL)
+image('reliquary', REL, {'o': (92, 64, 20, 255), 'y': (240, 200, 70, 255), 'g': (60, 200, 110, 255), 'G': (40, 150, 80, 255),
+                         'b': (70, 42, 22, 255), 'L': (150, 98, 52, 255), 'p': (170, 80, 230, 255)})
+
 # ---------------------------------------------------------------- models
 def flat_item(name, layers, parent='minecraft:item/generated'):
     write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
           {'parent': parent, 'textures': {f'layer{i}': f'omnispell:item/{t}' for i, t in enumerate(layers)}})
 
 flat_item('wand', ['wand_wood', 'wand_core'], 'minecraft:item/handheld')
-for n in ('grimoire', 'word_scroll', 'arcane_potion'):
+for n in ('grimoire', 'word_scroll', 'arcane_potion', 'reliquary'):
     flat_item(n, [n])
     write(os.path.join(ASSETS, 'items', n + '.json'), {'model': {'type': 'minecraft:model', 'model': f'omnispell:item/{n}'}})
 write(os.path.join(ASSETS, 'items', 'wand.json'), {'model': {
@@ -863,6 +886,7 @@ lang = {
     'item.omnispell.arcane_potion': 'Arcane Potion',
     'block.omnispell.arcane_well': 'Arcane Well',
     'block.omnispell.hardened_air': 'Hardened Air',
+    'item.omnispell.reliquary': 'Reliquary',
     'entity.omnispell.conjured_serpent': 'Conjured Serpent',
     'block.omnispell.waypoint': 'Waypoint',
     'block.omnispell.boss_altar': 'Boss Seal',
@@ -933,6 +957,11 @@ write(os.path.join(recipe_dir, 'waypoint.json'), {
     'key': {'E': 'minecraft:ender_pearl', 'A': 'minecraft:amethyst_shard', 'S': 'minecraft:stone_bricks'},
     'pattern': [' E ', 'ASA', 'SSS'],
     'result': {'id': 'omnispell:waypoint', 'count': 2}})
+# The Reliquary: a bundle bound to a totem.
+write(os.path.join(recipe_dir, 'reliquary.json'), {
+    'type': 'minecraft:crafting_shapeless', 'category': 'misc',
+    'ingredients': ['minecraft:bundle', 'minecraft:totem_of_undying'],
+    'result': {'id': 'omnispell:reliquary'}})
 # The alchemy cauldron needs a blaze rod, so brewing waits for the Nether, as in vanilla.
 write(os.path.join(recipe_dir, 'alchemy_cauldron.json'), {
     'type': 'minecraft:crafting_shapeless', 'category': 'misc',

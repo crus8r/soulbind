@@ -20,6 +20,10 @@ public abstract class PlayerMixin {
 		int orbs = cir.getReturnValue();
 		if (orbs <= 0) return;
 		Player self = (Player) (Object) this;
+		if (com.omnispell.player.Reliquary.tookXp(self)) {
+			cir.setReturnValue(0); // a Reliquary carried off half of it; the rest is gone
+			return;
+		}
 		int kept = SoulBind.keptXp(self);
 		if (kept <= 0) return;
 		int left = Math.max(0, SoulBind.totalXp(self) - kept);
