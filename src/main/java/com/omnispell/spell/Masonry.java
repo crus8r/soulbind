@@ -131,6 +131,9 @@ public final class Masonry {
 		}
 	}
 
+	/** For tests only: when above zero, how many ticks everything conjured stands, in place of its usual life. */
+	public static int lifeOverride = 0;
+
 	/** Seconds the structure stands, before Duratus. */
 	public static int seconds(Spell spell) {
 		int tier = Math.max(1, Math.min(5, spell.tier));
@@ -275,7 +278,7 @@ public final class Masonry {
 		for (Stone s : b.stones) {
 			if (level.getRandom().nextInt(4) == 0) level.sendParticles(ParticleTypes.ENCHANT, s.pos.getX() + 0.5, s.pos.getY() + 1, s.pos.getZ() + 0.5, 2, 0.3, 0.3, 0.3, 0.3);
 		}
-		schedule(level, b.stones, pal.glass, (int) (seconds(spell) * 20 * (spell.hasCharge("Duratus") ? 1.6 : 1.0)));
+		schedule(level, b.stones, pal.glass, lifeOverride > 0 ? lifeOverride : (int) (seconds(spell) * 20 * (spell.hasCharge("Duratus") ? 1.6 : 1.0)));
 		return true;
 	}
 
@@ -285,7 +288,7 @@ public final class Masonry {
 		int crumble = (int) (ticks * 0.9);
 		Tasks.later(toGlass, () -> {
 			for (Stone s : stones) {
-				if (!level.getBlockState(s.pos).equals(s.now)) continue;
+				if (!level.getBlockState(s.pos).is(s.now.getBlock())) continue; // walls and bars reshape to join their neighbours, so match the block, not its exact shape
 				BlockState next = glass.defaultBlockState();
 				level.setBlock(s.pos, next, 2);
 				s.now = next;
@@ -306,7 +309,7 @@ public final class Masonry {
 
 	private static void remove(ServerLevel level, Stone s) {
 		if (!STANDING.remove(s.pos)) return;
-		if (!level.getBlockState(s.pos).equals(s.now)) return; // someone already broke it
+		if (!level.getBlockState(s.pos).is(s.now.getBlock())) return; // someone already broke it
 		level.setBlock(s.pos, s.before, 3);
 		level.sendParticles(ParticleTypes.POOF, s.pos.getX() + 0.5, s.pos.getY() + 0.5, s.pos.getZ() + 0.5, 2, 0.2, 0.2, 0.2, 0.01);
 	}

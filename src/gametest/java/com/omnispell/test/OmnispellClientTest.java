@@ -2769,6 +2769,43 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- conjured masonry fades completely: deck, rails (walls that reshape to join their neighbours) and lanterns
+			BlockPos[] fadeAt = new BlockPos[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel fdLevel = p.level();
+				BlockPos fdAt = BlockPos.containing(cHome[0]).offset(-30, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(fdAt.offset(-4, -3, -24), fdAt.offset(4, -3, 2))) fdLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(fdAt.offset(-4, -2, -24), fdAt.offset(4, 6, 2))) fdLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				fdLevel.setBlockAndUpdate(fdAt.below(), Blocks.STONE.defaultBlockState());
+				p.teleportTo(fdLevel, fdAt.getX() + 0.5, fdAt.getY(), fdAt.getZ() + 0.5, java.util.Set.of(), 180f, 0f, true);
+				com.omnispell.spell.Spell fdBridge = new com.omnispell.spell.Spell();
+				fdBridge.type = "conjuration";
+				fdBridge.tier = 1;
+				fdBridge.code.element = "stone";
+				fdBridge.words.add("attribute:Bridge");
+				com.omnispell.spell.Masonry.lifeOverride = 60;
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), fdBridge), "Bridge", 8, 20), "a short-lived bridge is conjured");
+				com.omnispell.spell.Masonry.lifeOverride = 0;
+				int fdWalls = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(fdAt.offset(-4, -2, -24), fdAt.offset(4, 4, 0))) if (fdLevel.getBlockState(pos).is(Blocks.STONE_BRICK_WALL)) fdWalls++;
+				check(fdWalls >= 10, "it has railings of stone brick wall (" + fdWalls + ")");
+				fadeAt[0] = fdAt;
+			});
+			context.waitTicks(80);
+			server.runOnServer(s -> {
+				ServerLevel fdLevel = player(s).level();
+				BlockPos fdAt = fadeAt[0];
+				int fdLeft = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(fdAt.offset(-4, -2, -24), fdAt.offset(4, 4, 0))) {
+					var st = fdLevel.getBlockState(pos);
+					if (st.is(Blocks.STONE_BRICK_WALL) || st.is(Blocks.STONE_BRICKS) || st.is(Blocks.LANTERN) || st.getBlock() instanceof net.minecraft.world.level.block.StainedGlassBlock) fdLeft++;
+				}
+				check(fdLeft == 0, "when its time is up, all of it is gone, railings and lanterns too (" + fdLeft + " left)");
+				player(s).teleportTo(fdLevel, cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {
