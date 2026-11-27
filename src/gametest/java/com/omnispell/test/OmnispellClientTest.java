@@ -3075,6 +3075,48 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- a creature word in a defense gives the creature's traits, never a living creature
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel asLevel = p.level();
+				p.removeAllEffects();
+				java.util.function.Function<String, com.omnispell.spell.Spell> asMake = creatureWord -> {
+					com.omnispell.spell.Spell made = new com.omnispell.spell.Spell();
+					made.id = "defense|test-aspect-" + creatureWord;
+					made.type = "defense";
+					made.tier = 3;
+					made.code.type = "shield";
+					made.code.element = "nature";
+					made.words.addAll(java.util.List.of("base:Nature", "command:Shield", "intention:Warding", "attribute:" + creatureWord));
+					return made;
+				};
+				int asBefore = asLevel.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, p.getBoundingBox().inflate(16), x -> !(x instanceof ServerPlayer)).size();
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				com.omnispell.spell.Spell asWolf = asMake.apply("Wolf");
+				check("aspect".equals(com.omnispell.spell.Defenses.form(asWolf)) && com.omnispell.spell.Defenses.describe(asWolf).contains("wolf's traits"), "Wolf in a defense gives the wolf's traits: " + com.omnispell.spell.Defenses.describe(asWolf));
+				check(com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), asWolf), 3), "the wolf defense is cast");
+				int asAfter = asLevel.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, p.getBoundingBox().inflate(16), x -> !(x instanceof ServerPlayer)).size();
+				check(asAfter <= asBefore && p.hasEffect(MobEffects.SPEED) && p.hasEffect(MobEffects.STRENGTH), "it calls nothing living, and you run fast and hit hard (" + asBefore + " creatures before, " + asAfter + " after)");
+				// The cat lands on its feet; the snake poisons what strikes it.
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), asMake.apply("Cat")), 3);
+				check(com.omnispell.spell.Modifiers.modifyIncoming(p, p.damageSources().fall(), 10f) == 0f, "with the cat's traits a fall does nothing");
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), asMake.apply("Snake")), 3);
+				var asBiter = EntityTypes.ZOMBIE.create(asLevel, EntitySpawnReason.COMMAND);
+				asBiter.snapTo(p.getX() + 1.5, p.getY(), p.getZ(), 0f, 0f);
+				asBiter.setNoAi(true);
+				asLevel.addFreshEntity(asBiter);
+				p.setInvulnerableTime(0);
+				p.hurtServer(asLevel, asLevel.damageSources().mobAttack(asBiter), 1f);
+				check(asBiter.hasEffect(MobEffects.POISON), "with the snake's traits, whatever strikes you is poisoned");
+				asBiter.discard();
+				p.removeAllEffects();
+				for (String gone : new String[]{"wolf", "cat", "snake"}) com.omnispell.spell.Modifiers.add(p, "aspect_" + gone, 0, 1);
+				p.setHealth(p.getMaxHealth());
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {

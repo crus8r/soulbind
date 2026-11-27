@@ -94,7 +94,8 @@ public final class Defenses {
 					return "boon";
 				}
 				case "attribute:Bird", "attribute:Wolf", "attribute:Bear", "attribute:Fox", "attribute:Eagle", "attribute:Snake", "attribute:Horse", "attribute:Cat", "attribute:Insect", "attribute:Frog" -> {
-					return "guardian";
+					// A creature word in a defense calls nothing living: you take on the creature's traits.
+					return "aspect";
 				}
 				default -> {
 				}
@@ -447,6 +448,10 @@ public final class Defenses {
 				give(cast, p, amount * 0.5f, heal, ticks);
 				Conjuring.guardian(cast, Math.max(4, turns) * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
 			}
+			case "aspect" -> {
+				give(cast, p, amount * 0.6f, heal, ticks);
+				aspect(cast, creature(spell), ticks);
+			}
 			default -> { // shell
 				float hearts = amount * (Wards.habit(spell).equals("bulwark") ? 1.25f : 1.0f);
 				give(cast, p, hearts, heal, ticks);
@@ -556,6 +561,122 @@ public final class Defenses {
 		}
 	}
 
+	// ------------------------------------------------------------------ a creature's traits
+
+	/** The creature a defense spell's attribute word names (wolf, bear, fox, eagle, bird, snake, horse, cat, insect, frog), or "". */
+	public static String creature(Spell spell) {
+		for (String id : spell.words) {
+			switch (id) {
+				case "attribute:Bird", "attribute:Wolf", "attribute:Bear", "attribute:Fox", "attribute:Eagle", "attribute:Snake", "attribute:Horse", "attribute:Cat", "attribute:Insect", "attribute:Frog" -> {
+					return id.substring("attribute:".length()).toLowerCase(Locale.ROOT);
+				}
+				default -> {
+				}
+			}
+		}
+		return "";
+	}
+
+	private static String aspectText(String creature) {
+		return switch (creature) {
+			case "wolf" -> "the wolf's traits: speed and strength, and a howl that weakens hostile creatures near you, while your pets and friends close by run with you";
+			case "bear" -> "the bear's traits: a thick hide that blows land softer on, and extra hearts";
+			case "fox" -> "the fox's traits: quick feet, a pouncing leap and eyes for the dark, and while you crouch you vanish from sight";
+			case "eagle" -> "the eagle's traits: a slow glide when you fall, eyes for the dark, and every hostile creature within thirty blocks shows itself to you";
+			case "bird" -> "the bird's traits: light as a feather, you leap high, run quick and glide when you fall";
+			case "snake" -> "the snake's traits: quick, and venomous: whatever strikes you is poisoned";
+			case "horse" -> "the horse's traits: great speed and a strong leap";
+			case "cat" -> "the cat's traits: you land on your feet from any height, you see in the dark, and creepers keep their distance";
+			case "insect" -> "the insect's traits: quick hands and feet, and a sting: whatever strikes you is stung and poisoned";
+			case "frog" -> "the frog's traits: a long leap, breath under water and a swimmer's speed";
+			default -> "a creature's traits";
+		};
+	}
+
+	/** Takes on a creature's traits for the spell's length: effects now, and the rest kept as a toggle that other parts of the game look for. */
+	private static void aspect(Cast cast, String creature, int ticks) {
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		switch (creature) {
+			case "wolf" -> {
+				effect(p, MobEffects.SPEED, ticks, 0);
+				effect(p, MobEffects.STRENGTH, ticks, 0);
+				level.playSound(null, p.blockPosition(), SoundEvents.RAVAGER_ROAR, SoundSource.PLAYERS, 0.6f, 1.6f);
+				for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(10), x -> x.isAlive() && x != p)) {
+					if (e instanceof net.minecraft.world.entity.monster.Enemy) e.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 100, 0), p);
+					else if (ally(p, e)) {
+						effect(e, MobEffects.SPEED, Math.min(ticks, 600), 0);
+						effect(e, MobEffects.STRENGTH, Math.min(ticks, 600), 0);
+					}
+				}
+			}
+			case "bear" -> {
+				effect(p, MobEffects.RESISTANCE, ticks, 0);
+				effect(p, MobEffects.HEALTH_BOOST, ticks, 1);
+				p.heal(4f);
+			}
+			case "fox" -> {
+				effect(p, MobEffects.SPEED, ticks, 0);
+				effect(p, MobEffects.JUMP_BOOST, ticks, 0);
+				effect(p, MobEffects.NIGHT_VISION, ticks, 0);
+			}
+			case "eagle" -> {
+				effect(p, MobEffects.SLOW_FALLING, ticks, 0);
+				effect(p, MobEffects.NIGHT_VISION, ticks, 0);
+			}
+			case "bird" -> {
+				effect(p, MobEffects.SLOW_FALLING, ticks, 0);
+				effect(p, MobEffects.JUMP_BOOST, ticks, 1);
+				effect(p, MobEffects.SPEED, ticks, 0);
+			}
+			case "snake" -> effect(p, MobEffects.SPEED, ticks, 0);
+			case "horse" -> {
+				effect(p, MobEffects.SPEED, ticks, 1);
+				effect(p, MobEffects.JUMP_BOOST, ticks, 1);
+			}
+			case "cat" -> effect(p, MobEffects.NIGHT_VISION, ticks, 0);
+			case "insect" -> {
+				effect(p, MobEffects.HASTE, ticks, 1);
+				effect(p, MobEffects.SPEED, ticks, 0);
+			}
+			case "frog" -> {
+				effect(p, MobEffects.JUMP_BOOST, ticks, 1);
+				effect(p, MobEffects.WATER_BREATHING, ticks, 0);
+				effect(p, MobEffects.DOLPHINS_GRACE, ticks, 0);
+			}
+			default -> {
+			}
+		}
+		if (!creature.isEmpty()) Modifiers.add(p, "aspect_" + creature, 1, ticks);
+		level.sendParticles(ParticleTypes.ENCHANT, p.getX(), p.getY() + 1, p.getZ(), 30, 0.5, 0.8, 0.5, 0.5);
+		aspectSecond(p);
+	}
+
+	/** Once a second, the traits that need watching: the fox's crouch, the eagle's eye, the cat that creepers fear. */
+	public static void aspectSecond(ServerPlayer p) {
+		ServerLevel level = p.level();
+		if (Modifiers.has(p, "aspect_fox") && p.isShiftKeyDown()) effect(p, MobEffects.INVISIBILITY, 30, 0);
+		if (Modifiers.has(p, "aspect_eagle")) {
+			for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(30), x -> x.isAlive() && x instanceof net.minecraft.world.entity.monster.Enemy)) {
+				e.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false), p);
+			}
+		}
+		if (Modifiers.has(p, "aspect_cat")) {
+			for (net.minecraft.world.entity.monster.Creeper creeper : level.getEntitiesOfClass(net.minecraft.world.entity.monster.Creeper.class, p.getBoundingBox().inflate(12), x -> x.isAlive())) {
+				if (!MobControl.held(creeper, "fear")) MobControl.apply(p, creeper, "fear", 60, p);
+			}
+		}
+	}
+
+	/** A blow struck at someone wearing a venomous creature's traits poisons the striker. */
+	public static void aspectStruck(ServerPlayer p, LivingEntity attacker) {
+		if (Modifiers.has(p, "aspect_snake")) attacker.addEffect(new MobEffectInstance(MobEffects.POISON, 80, 0), p);
+		if (Modifiers.has(p, "aspect_insect")) {
+			attacker.addEffect(new MobEffectInstance(MobEffects.POISON, 40, 0), p);
+			attacker.hurtServer(p.level(), p.level().damageSources().thorns(p), 2f);
+		}
+	}
+
 	/** A barrier wall two blocks in front of you, in the element's colour, gone when the spell ends. */
 	private static void barrier(Cast cast, String element, int ticks) {
 		ServerPlayer p = cast.player;
@@ -592,6 +713,7 @@ public final class Defenses {
 			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
 			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
 			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
+			case "aspect" -> "It gives you " + aspectText(creature(spell)) + ". You also get " + littleGift + ".";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
 			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get " + littleGift + ".";
 			case "daze" -> "It leaves every hostile creature around you reeling and confused. The weak are lost longest; bosses and the like are not moved. You also get " + littleGift + ".";

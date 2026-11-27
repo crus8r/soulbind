@@ -165,6 +165,7 @@ public final class Modifiers {
 		if (has(player, "true_sight")) {
 			for (Holder<MobEffect> effect : CONFUSIONS) player.removeEffect(effect);
 		}
+		Defenses.aspectSecond(player);
 	}
 
 	// ----- being hit -----
@@ -212,6 +213,8 @@ public final class Modifiers {
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
+		// The cat's traits: you land on your feet.
+		if (source.is(DamageTypeTags.IS_FALL) && has(player, "aspect_cat")) return 0;
 		// An Arrow or Bow attack spell's arrows hurt other players at a tenth, like the spell itself.
 		if (source.getDirectEntity() != null && source.getDirectEntity().entityTags().contains("omnispell_magic_arrow") && source.getEntity() != player) amount *= 0.1f;
 		amount = com.omnispell.player.Corruption.incoming(player, source, amount);
@@ -290,6 +293,7 @@ public final class Modifiers {
 		}
 
 		if (!(source.getEntity() instanceof LivingEntity attacker) || attacker == player || source.is(DamageTypes.THORNS)) return;
+		Defenses.aspectStruck(player, attacker);
 		double back = 0;
 		double thorns = value(player, "thorns");
 		if (thorns > 0) back += thorns * scale;
