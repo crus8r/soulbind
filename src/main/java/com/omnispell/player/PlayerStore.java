@@ -59,6 +59,11 @@ public final class PlayerStore {
 		if (data.folder("Archive") == null) data.folders.add(0, new PlayerData.Folder("Archive", false)); // every spellbook has an Archive, hidden from the main list
 		// The single archive of older saves becomes a folder called Archive, hidden from the main list.
 		for (com.omnispell.spell.Spell spell : data.spells) {
+			try {
+				com.omnispell.spell.SpellCrafting.refresh(spell);
+			} catch (RuntimeException e) {
+				Omnispell.LOG.warn("Could not refresh the description of {}", spell.name, e);
+			}
 			if (!spell.archived) continue;
 			spell.archived = false;
 			spell.folder = "Archive";

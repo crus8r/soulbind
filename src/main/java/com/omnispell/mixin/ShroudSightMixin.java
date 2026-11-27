@@ -15,6 +15,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class ShroudSightMixin {
 	@Inject(method = "getVisibilityPercent", at = @At("HEAD"), cancellable = true)
 	private void omnispell$unseen(ServerLevel level, Entity looker, CallbackInfoReturnable<Double> cir) {
-		if ((Object) this instanceof ServerPlayer player && Shroud.active(player)) cir.setReturnValue(0.0);
+		if ((Object) this instanceof ServerPlayer player && Shroud.hiddenFrom(player, looker)) cir.setReturnValue(0.0);
 	}
 }

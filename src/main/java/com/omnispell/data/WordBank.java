@@ -159,7 +159,7 @@ public final class WordBank {
 			case "Wall" -> List.of("defense", "conjuration", "exploration", "attack");
 			case "Tower", "Bridge" -> List.of("defense", "conjuration", "exploration");
 			case "Bed", "Fireplace", "Chest/Box", "Currency", "Cloud" -> List.of("exploration", "defense");
-			case "Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog" -> List.of("conjuration", "attack", "defense");
+			case "Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog" -> List.of("conjuration", "defense");
 			default -> null;
 		};
 		return kinds == null || kinds.contains(spellType);

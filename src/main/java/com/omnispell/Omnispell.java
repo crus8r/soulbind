@@ -218,6 +218,7 @@ public class Omnispell implements ModInitializer {
 				CONFIG.friendlyFire || !(entity instanceof ServerPlayer victim) || !(source.getEntity() instanceof ServerPlayer attacker) || attacker == victim);
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
 			Modifiers.afterDamage(entity, source, damageTaken);
+			com.omnispell.spell.Shroud.struck(entity, source);
 			com.omnispell.boss.Bosses.afterDamage(entity, source, damageTaken);
 		});
 		ServerLivingEntityEvents.AFTER_DEATH.register(com.omnispell.boss.Bosses::onDeath);
@@ -272,6 +273,7 @@ public class Omnispell implements ModInitializer {
 				}
 				com.omnispell.spell.Shroud.everySecond(server);
 			}
+			if (tick % 10 == 0) com.omnispell.spell.Shroud.tick(server);
 			if (tick % 5 == 0) {
 				for (ServerPlayer player : server.getPlayerList().getPlayers()) PlayerStore.syncVitals(player);
 			}

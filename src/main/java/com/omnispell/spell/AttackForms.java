@@ -31,8 +31,24 @@ public final class AttackForms {
 
 	/** The spell's element, folded into one of twelve. */
 	public static String element(Spell spell) {
+		// The base word's own element comes first: water is water, earth is stone, thunder is storm, whatever the Oracle labelled it.
 		for (String id : spell.words) {
-			if (id.equals("base:Air") || id.equals("base:Gale")) return "wind";
+			if (!id.startsWith("base:")) continue;
+			String own = switch (id.substring(5)) {
+				case "Fire", "Ember", "Lava", "Heat", "Heatwave", "Sulfur" -> "fire";
+				case "Water", "Wave", "Steam", "Mist" -> "water";
+				case "Earth", "Sand", "Dust", "Mud", "Metal", "Crystal", "Obsidian", "Amber", "Pressure", "Gravity" -> "stone";
+				case "Air", "Gale", "Sound", "Echo", "Vibration", "Music" -> "wind";
+				case "Lightning", "Thunder" -> "storm";
+				case "Ice", "Frost", "Frostbite", "Sleet" -> "ice";
+				case "Nature", "Vine", "Verdant", "Thorn", "Wood", "Poison" -> "nature";
+				case "Light", "Radiance", "Starlight", "Moonlight", "Sunlight", "Beacon" -> "light";
+				case "Shadow", "Darkness", "Gloom", "Shroud" -> "shadow";
+				case "Void", "Space", "Hollow" -> "void";
+				case "Blood", "Marrow", "Flesh" -> "blood";
+				default -> null;
+			};
+			if (own != null) return own;
 		}
 		String e = spell.code.element == null ? "" : spell.code.element.toLowerCase();
 		return switch (e) {

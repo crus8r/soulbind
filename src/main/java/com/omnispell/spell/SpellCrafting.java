@@ -71,7 +71,7 @@ public final class SpellCrafting {
 			if (!allowed && typeId.equals("exploration") && (word.type.equals("charge") || word.type.equals("attribute"))) allowed = true;
 			if (!allowed) return capitalize(word.type) + " words cannot go in " + type.name.toLowerCase() + ".";
 			if (word.type.equals("attribute") && !WordBank.attributeFits(typeId, word)) {
-				String hint = typeId.equals("conjuration") ? " Conjurations call creatures, armed warriors, or masonry (Bridge, Wall, Tower). Try it in an Environment or Defense spell." : "";
+				String hint = typeId.equals("attack") && Conjuring.creatureWord(word.english) ? " A creature has to be called up: try it in a Conjuration instead." : typeId.equals("conjuration") ? " Conjurations call creatures, armed warriors, or masonry (Bridge, Wall, Tower). Try it in an Environment or Defense spell." : "";
 				return word.shortName() + " does not belong in " + type.name.toLowerCase() + "." + hint;
 			}
 		}
@@ -284,7 +284,32 @@ public final class SpellCrafting {
 		if (!extras.isEmpty()) spell.description = (spell.description == null ? "" : spell.description) + extras;
 	}
 
+	/** The Oracle's own words for a spell, without what this mod wrote after them. */
+	public static String oracleText(Spell spell) {
+		String d = spell.description == null ? "" : spell.description;
+		int cut = d.length();
+		String[] marks = "defense".equals(spell.type) ? new String[]{". It "} : new String[]{" It comes as ", " It raises ", " It closes ", " What it hits is ", " Sometimes, ", " Often, ", " It sends a wall"};
+		for (String mark : marks) {
+			int i = d.indexOf(mark);
+			if (i >= 0) cut = Math.min(cut, mark.startsWith(".") ? i + 1 : i);
+		}
+		return d.substring(0, cut).trim();
+	}
+
+	/** Rewrites the part of a combat spell's description that says what it really does here, so older spells keep up with the game. */
+	public static void refresh(Spell spell) {
+		if (spell == null || spell.isExploration() || spell.type == null) return;
+		if (!spell.type.equals("conjuration") && !spell.type.equals("defense") && !spell.type.equals("attack")) return;
+		spell.description = oracleText(spell);
+		describeWorking(spell);
+	}
+
 	private static void finish(ServerPlayer player, Spell spell, boolean stable) {
+		describeWorking(spell);
+		finishRest(player, spell, stable);
+	}
+
+	private static void describeWorking(Spell spell) {
 		if ("conjuration".equals(spell.type)) {
 			String really = Conjuring.describe(spell, null);
 			if (spell.description == null || !spell.description.contains(really)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + really;
@@ -298,6 +323,9 @@ public final class SpellCrafting {
 			String forms = Surges.wallAttack(spell) && Weapons.kind(spell) == null ? Surges.describe(true, AttackForms.element(spell)) : AttackForms.describe(spell);
 			if (!forms.isEmpty() && (spell.description == null || !spell.description.contains(forms))) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + forms;
 		}
+	}
+
+	private static void finishRest(ServerPlayer player, Spell spell, boolean stable) {
 		PlayerData data = PlayerStore.get(player);
 		data.pending = spell;
 		PlayerStore.save(player);

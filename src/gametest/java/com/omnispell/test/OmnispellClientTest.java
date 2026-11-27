@@ -2527,6 +2527,128 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			});
 			context.waitTicks(5);
 
+			// ---- elements from the base word, constructs, the cleansing veil, and invisibility that shakes off pursuit
+			net.minecraft.world.entity.Mob[] cageMobs = new net.minecraft.world.entity.Mob[2];
+			float[] cageHealth = new float[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel cgLevel = p.level();
+				BlockPos cgArena = BlockPos.containing(cHome[0]).offset(0, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(cgArena.offset(-12, 0, -6), cgArena.offset(12, 8, 16))) cgLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				p.teleportTo(cgLevel, cgArena.getX() + 0.5, cgArena.getY(), cgArena.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				p.removeAllEffects();
+				// The base word decides the element, whatever the Oracle labelled it.
+				String[][] cgLabels = {{"base:Water", "ice", "water"}, {"base:Earth", "nature", "stone"}, {"base:Thunder", "arcane", "storm"}, {"base:Wave", "nature", "water"}, {"base:Memory", "arcane", "arcane"}};
+				for (String[] row : cgLabels) {
+					com.omnispell.spell.Spell cgSpell = new com.omnispell.spell.Spell();
+					cgSpell.type = "attack";
+					cgSpell.code.element = row[1];
+					cgSpell.words.add(row[0]);
+					check(row[2].equals(com.omnispell.spell.AttackForms.element(cgSpell)), row[0] + " labelled " + row[1] + " by the Oracle works as " + row[2] + " (" + com.omnispell.spell.AttackForms.element(cgSpell) + ")");
+				}
+				com.omnispell.spell.Spell cgRock = new com.omnispell.spell.Spell();
+				cgRock.type = "attack";
+				cgRock.tier = 4;
+				cgRock.code.element = "nature";
+				cgRock.words.addAll(java.util.List.of("base:Earth", "command:Envelop", "intention:Malice"));
+				var cgCow = EntityTypes.COW.create(cgLevel, EntitySpawnReason.COMMAND);
+				cgCow.snapTo(cgArena.getX() + 8.5, cgArena.getY(), cgArena.getZ() + 0.5, 0f, 0f);
+				cgLevel.addFreshEntity(cgCow);
+				for (int i = 0; i < 6; i++) {
+					cgCow.setInvulnerableTime(0);
+					com.omnispell.spell.CombatEffects.strike(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), cgRock), cgCow, 1, false);
+				}
+				check(!cgCow.hasEffect(MobEffects.POISON), "crushing rock never poisons");
+				cgCow.discard();
+				// Creature words no longer go in attack spells.
+				check(!com.omnispell.data.WordBank.attributeFits("attack", com.omnispell.data.WordBank.word("attribute:Snake")) && com.omnispell.data.WordBank.attributeFits("conjuration", com.omnispell.data.WordBank.word("attribute:Snake")),
+						"a creature word is refused in an attack spell and welcome in a conjuration");
+				// Earth + Envelop + Malice, with no creature in it, conjures a cage on what you look at.
+				com.omnispell.spell.Spell cgCage = new com.omnispell.spell.Spell();
+				cgCage.type = "conjuration";
+				cgCage.tier = 2;
+				cgCage.code.element = "nature";
+				cgCage.name = "Violet Enveloper";
+				cgCage.description = "Summons a spiteful violet earth elemental to constrict and batter your opponent. It comes as a spirit. It bites what is close and casts the spell's magic at what is not.";
+				cgCage.words.addAll(java.util.List.of("base:Earth", "command:Envelop", "intention:Malice", "attribute:Violet"));
+				check("cage".equals(com.omnispell.spell.Masonry.structure(cgCage)), "Earth + Envelop + Malice conjures a cage, not a creature (" + com.omnispell.spell.Masonry.structure(cgCage) + ")");
+				com.omnispell.spell.SpellCrafting.refresh(cgCage);
+				check(cgCage.description.contains("barred cage") && !cgCage.description.contains("spirit"), "an older spell's description is brought up to date: " + cgCage.description);
+				var cgFoe = EntityTypes.ZOMBIE.create(cgLevel, EntitySpawnReason.COMMAND);
+				cgFoe.snapTo(cgArena.getX() + 0.5, cgArena.getY(), cgArena.getZ() + 5.5, 180f, 0f);
+				cgFoe.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 600, 9));
+				cgFoe.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 600, 0));
+				cgLevel.addFreshEntity(cgFoe);
+				cageMobs[0] = cgFoe;
+				cageHealth[0] = cgFoe.getHealth();
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, cgFoe.getBoundingBox().getCenter());
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), cgCage), "Violet Enveloper", 10, 20), "the cage is conjured");
+				int cgBars = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(cgArena.offset(-2, 0, 3), cgArena.offset(2, 4, 7))) if (cgLevel.getBlockState(pos).is(Blocks.IRON_BARS)) cgBars++;
+				check(cgBars >= 8, "bars close around the zombie (" + cgBars + ")");
+				// With a gentler intention the same words raise a shelter instead; with a creature named, a creature.
+				com.omnispell.spell.Spell cgHut = new com.omnispell.spell.Spell();
+				cgHut.type = "conjuration";
+				cgHut.code.element = "ice";
+				cgHut.words.addAll(java.util.List.of("base:Ice", "command:Envelop", "intention:Creation"));
+				com.omnispell.spell.Spell cgBeast = new com.omnispell.spell.Spell();
+				cgBeast.type = "conjuration";
+				cgBeast.code.element = "arcane";
+				cgBeast.name = "Crimson_Stormtalon";
+				cgBeast.description = "Summons a malevolent crimson thunder-beast that lacerates enemies with crackling talons.";
+				cgBeast.words.addAll(java.util.List.of("base:Thunder", "command:Sever", "intention:Malice", "attribute:Red"));
+				check("shelter".equals(com.omnispell.spell.Masonry.structure(cgHut)) && com.omnispell.spell.Masonry.structure(cgBeast) == null
+						&& "eagle".equals(com.omnispell.spell.Conjuring.bodyFor(cgBeast, "Crimson_Stormtalon").id()) && com.omnispell.spell.Conjuring.sonic(cgBeast),
+						"Ice + Envelop + Creation is a shelter; the Crimson Stormtalon is an eagle that strikes with sound (" + com.omnispell.spell.Conjuring.bodyFor(cgBeast, "Crimson_Stormtalon").id() + ")");
+				com.omnispell.spell.Spell cgStone = new com.omnispell.spell.Spell();
+				cgStone.type = "conjuration";
+				cgStone.code.element = "nature";
+				cgStone.words.addAll(java.util.List.of("base:Earth", "command:Summon", "intention:Creation"));
+				var cgBody = com.omnispell.spell.Conjuring.bodyFor(cgStone, null);
+				check("golem".equals(cgBody.id()) && !cgBody.flies(), "an earth elemental is a golem, and walks");
+				// The cleansing veil: Light + Disenchant + Concealment strips every effect and hides the one it cleans.
+				com.omnispell.spell.Spell cgClean = new com.omnispell.spell.Spell();
+				cgClean.id = "defense|test-cleanse";
+				cgClean.type = "defense";
+				cgClean.tier = 1;
+				cgClean.code.type = "shield";
+				cgClean.code.element = "light";
+				cgClean.words.addAll(java.util.List.of("base:Light", "command:Disenchant", "intention:Concealment"));
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(p.getX() - 10, p.getY() + 30, p.getZ() - 10));
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.POISON, 400, 0));
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.STRENGTH, 400, 0));
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				check("cleanse".equals(com.omnispell.spell.Defenses.form(cgClean)) && com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), cgClean), 2), "Light + Disenchant + Concealment is cast");
+				check(!p.hasEffect(MobEffects.POISON) && !p.hasEffect(MobEffects.STRENGTH) && p.hasEffect(MobEffects.INVISIBILITY), "it strips poison and strength alike and leaves you invisible");
+				// Invisible: a zombie hunting you loses you, until you strike it.
+				var cgHunter = EntityTypes.ZOMBIE.create(cgLevel, EntitySpawnReason.COMMAND);
+				cgHunter.snapTo(cgArena.getX() - 8.5, cgArena.getY(), cgArena.getZ() + 0.5, 0f, 0f);
+				cgHunter.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 600, 9));
+				cgHunter.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 600, 0));
+				cgLevel.addFreshEntity(cgHunter);
+				cgHunter.setTarget(p);
+				cageMobs[1] = cgHunter;
+				com.omnispell.spell.Shroud.tick(s);
+				check(cgHunter.getTarget() == null && p.getVisibilityPercent(cgLevel, cgHunter) == 0.0, "the zombie hunting you loses track of you when you turn invisible");
+			});
+			context.waitTicks(50);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				var cgFoe = cageMobs[0];
+				var cgHunter = cageMobs[1];
+				check(cgFoe.isRemoved() || cgFoe.getHealth() < cageHealth[0], "the caged zombie is smothered (" + cgFoe.getHealth() + " of " + cageHealth[0] + ")");
+				check(cgHunter.getTarget() == null, "and it stays lost while you are unseen");
+				cgHunter.hurtServer(p.level(), p.damageSources().playerAttack(p), 1f);
+				check(!com.omnispell.spell.Shroud.hiddenFrom(p, cgHunter) && com.omnispell.spell.Shroud.hiddenFrom(p, cgFoe), "strike it while invisible and it alone knows where you are");
+				for (var m : cageMobs) if (m != null && !m.isRemoved()) m.discard();
+				p.removeAllEffects();
+				p.setHealth(p.getMaxHealth());
+				BlockPos cgArena = BlockPos.containing(cHome[0]).offset(0, 0, -90);
+				for (BlockPos pos : BlockPos.betweenClosed(cgArena.offset(-3, 0, 2), cgArena.offset(3, 5, 8))) com.omnispell.spell.Masonry.breakBlock(p.level(), pos.immutable());
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			Vec3[] deathAt = new Vec3[1];
 			server.runOnServer(s -> {

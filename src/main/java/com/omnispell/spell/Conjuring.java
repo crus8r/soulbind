@@ -70,7 +70,7 @@ public final class Conjuring {
 		body("horse", EntityTypes.HORSE, 1.0, false, "horse", "steed", "stallion", "unicorn", "mare", "pegasus", "kelpie");
 		body("frog", EntityTypes.FROG, 1.6, false, "frog", "toad");
 		body("bird", EntityTypes.PARROT, 1.4, true, "bird", "hawk", "falcon", "raven", "crow", "owl", "phoenix", "sparrow", "swallow", "dove");
-		body("eagle", EntityTypes.PARROT, 2.0, true, "eagle", "griffin", "gryphon", "roc", "condor", "thunderbird");
+		body("eagle", EntityTypes.PARROT, 2.0, true, "eagle", "griffin", "gryphon", "roc", "condor", "thunderbird", "talon", "stormtalon");
 		body("insect", EntityTypes.BEE, 1.5, true, "insect", "bee", "wasp", "hornet", "swarm", "beetle", "moth", "locust");
 		body("spider", EntityTypes.SPIDER, 1.0, false, "spider", "scorpion", "arachnid", "tarantula");
 		body("golem", EntityTypes.IRON_GOLEM, 0.85, false, "golem", "construct", "statue", "sentinel", "colossus", "titan", "automaton", "gargoyle");
@@ -121,6 +121,40 @@ public final class Conjuring {
 	}
 
 	/** The body for a spell: its creature attribute word first, then its name and description, then its element. */
+	public static boolean creatureWord(String english) {
+		return java.util.Set.of("Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog").contains(english);
+	}
+
+	/** The creature the spell's own words or the Oracle's naming ask for, or null if nothing names one. */
+	public static Body namedBody(Spell spell, String name) {
+		Body armed = warriorFor(spell);
+		if (armed != null) return armed;
+		for (String id : spell.words) {
+			Word word = WordBank.word(id);
+			if (word != null && word.type.equals("attribute")) {
+				Body b = BODIES.get(word.english.toLowerCase(Locale.ROOT));
+				if (b != null) return b;
+			}
+		}
+		String text = ((name == null ? "" : name) + " " + (spell.name == null ? "" : spell.name) + " " + SpellCrafting.oracleText(spell)).toLowerCase(Locale.ROOT);
+		Body best = null;
+		int at = Integer.MAX_VALUE;
+		for (Map.Entry<String, Body> e : BODIES.entrySet()) {
+			int i = indexOfWord(text, e.getKey());
+			if (i >= 0 && i < at) {
+				at = i;
+				best = e.getValue();
+			}
+		}
+		return best;
+	}
+
+	/** Thunder and its kin strike with sound: the creature's spell is a sonic blast. */
+	public static boolean sonic(Spell spell) {
+		for (String id : spell.words) if (id.equals("base:Thunder") || id.equals("base:Sound") || id.equals("base:Echo") || id.equals("base:Vibration")) return true;
+		return false;
+	}
+
 	public static Body bodyFor(Spell spell, String name) {
 		Body armed = warriorFor(spell);
 		if (armed != null) return armed;
@@ -131,7 +165,7 @@ public final class Conjuring {
 				if (b != null) return b;
 			}
 		}
-		String text = ((name == null ? "" : name) + " " + (spell.name == null ? "" : spell.name) + " " + (spell.description == null ? "" : spell.description)).toLowerCase(Locale.ROOT);
+		String text = ((name == null ? "" : name) + " " + (spell.name == null ? "" : spell.name) + " " + SpellCrafting.oracleText(spell)).toLowerCase(Locale.ROOT);
 		Body best = null;
 		int at = Integer.MAX_VALUE;
 		for (Map.Entry<String, Body> e : BODIES.entrySet()) {
@@ -558,8 +592,22 @@ public final class Conjuring {
 		Cast cast = a.cast;
 		Mob mob = a.mob;
 		Vec3 from = mob.position().add(0, mob.getBbHeight() * 0.7, 0);
-		Fx.play(cast.level, cast.spell.visual, from, foe.getBoundingBox().getCenter());
-		Fx.sound(cast.level, mob.position(), cast.spell.code.element, Math.max(1, cast.spell.visual.intensity - 1));
+		if (sonic(cast.spell)) {
+			// A blast of sound like the warden's, in the creature's own colour, and a good deal gentler.
+			Vec3 to = foe.getBoundingBox().getCenter();
+			Vec3 step = to.subtract(from);
+			int n = Math.max(1, (int) Math.ceil(step.length()));
+			net.minecraft.core.particles.DustParticleOptions dust = new net.minecraft.core.particles.DustParticleOptions(tintFor(cast.spell), 1.6f);
+			for (int i = 1; i <= n; i++) {
+				Vec3 q = from.add(step.scale(i / (double) n));
+				cast.level.sendParticles(net.minecraft.core.particles.ParticleTypes.SONIC_BOOM, q.x, q.y, q.z, 1, 0, 0, 0, 0);
+				cast.level.sendParticles(dust, q.x, q.y, q.z, 6, 0.25, 0.25, 0.25, 0);
+			}
+			cast.level.playSound(null, mob.blockPosition(), net.minecraft.sounds.SoundEvents.WARDEN_SONIC_BOOM, net.minecraft.sounds.SoundSource.PLAYERS, 0.7f, 1.3f);
+		} else {
+			Fx.play(cast.level, cast.spell.visual, from, foe.getBoundingBox().getCenter());
+			Fx.sound(cast.level, mob.position(), cast.spell.code.element, Math.max(1, cast.spell.visual.intensity - 1));
+		}
 		foe.setInvulnerableTime(0);
 		float before = foe.getHealth();
 		CombatEffects.strike(cast, foe, a.base * 0.35, false);

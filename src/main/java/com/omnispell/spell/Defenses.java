@@ -102,6 +102,8 @@ public final class Defenses {
 		}
 		if (spell.words.contains("base:Fear")) return "terror";
 		String word = command(spell, false);
+		// Disenchanting to conceal wipes the slate: every effect is stripped away and the cleansed slip out of sight.
+		if (word.equals("Disenchant") && intention(spell).equals("Concealment")) return "cleanse";
 		switch (word) {
 			case "Banish", "Dismiss" -> {
 				return "terror";
@@ -421,6 +423,22 @@ public final class Defenses {
 				give(cast, p, amount * 0.5f, heal, ticks);
 				barrier(cast, element, ticks);
 			}
+			case "cleanse" -> {
+				LivingEntity looked = Targeting.entity(p, 24);
+				LivingEntity who = looked == null ? p : looked;
+				boolean friend = who == p || ally(p, who);
+				who.removeAllEffects();
+				who.clearFire();
+				level.sendParticles(ParticleTypes.END_ROD, who.getX(), who.getY() + who.getBbHeight() * 0.5, who.getZ(), 40, 0.4, 0.6, 0.4, 0.08);
+				level.playSound(null, who.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 0.7f);
+				if (who != p) Fx.line(level, Targeting.hand(p), who.getBoundingBox().getCenter(), color, ParticleTypes.END_ROD, 4);
+				if (friend) {
+					int unseen = 120 + 40 * tier;
+					effect(who, MobEffects.INVISIBILITY, unseen, 0);
+					if (who instanceof ServerPlayer hidden) Shroud.apply(hidden, unseen);
+					give(cast, who, amount * 0.3f, heal, ticks);
+				}
+			}
 			case "surge" -> {
 				give(cast, p, amount * 0.4f, heal, ticks);
 				Surges.roll(cast, false);
@@ -572,6 +590,7 @@ public final class Defenses {
 			case "lifeline" -> "It reaches out to the friend you look at (or the nearest one hurt), giving them " + gift + " and " + boonText(element) + ". With no friend near, it is yours.";
 			case "sanctuary" -> "It marks a circle on the ground around you. Friends standing in it " + (heal ? "mend every second" : "keep a shield") + " while it lasts, and hostile creatures in it are slowed.";
 			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
+			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
 			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
 			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get " + littleGift + ".";

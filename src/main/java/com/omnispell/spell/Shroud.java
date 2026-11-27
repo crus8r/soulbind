@@ -32,10 +32,29 @@ public final class Shroud {
 		return UNTIL.getOrDefault(player.getUUID(), 0L) > Tasks.now();
 	}
 
-	/** Every creature hunting the player forgets them. */
+	/** Who each invisible player has struck while unseen: those creatures know where they are until the invisibility ends. */
+	private static final Map<UUID, java.util.Set<UUID>> EXPOSED = new HashMap<>();
+
+	/** Can this creature not find this player? True for anyone invisible, except to what they have attacked while invisible. */
+	public static boolean hiddenFrom(ServerPlayer player, net.minecraft.world.entity.Entity looker) {
+		if (!player.hasEffect(MobEffects.INVISIBILITY)) return false;
+		java.util.Set<UUID> knows = EXPOSED.get(player.getUUID());
+		return looker == null || knows == null || !knows.contains(looker.getUUID());
+	}
+
+	/** A blow struck while invisible gives the striker away to the one struck. */
+	public static void struck(net.minecraft.world.entity.LivingEntity victim, net.minecraft.world.damagesource.DamageSource source) {
+		if (source.getEntity() instanceof ServerPlayer player && victim != player && player.hasEffect(MobEffects.INVISIBILITY)) {
+			EXPOSED.computeIfAbsent(player.getUUID(), k -> new java.util.HashSet<>()).add(victim.getUUID());
+		}
+	}
+
+	/** Every creature hunting the player forgets them, except those the player struck while unseen. */
 	private static void loseTrack(ServerPlayer player) {
 		for (net.minecraft.world.entity.Mob mob : player.level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player.getBoundingBox().inflate(48))) {
+			if (!hiddenFrom(player, mob)) continue;
 			if (mob.getTarget() == player) mob.setTarget(null);
+			if (mob.getLastHurtByMob() == player) mob.setLastHurtByMob(null);
 			var brain = mob.getBrain();
 			if (brain.hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET)
 					&& brain.getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET).orElse(null) == player) {
@@ -45,6 +64,14 @@ public final class Shroud {
 					&& player.getUUID().equals(brain.getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT).orElse(null))) {
 				brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT);
 			}
+		}
+	}
+
+	/** Twice a second: whoever is invisible, by spell or potion, is lost to everything hunting them. */
+	public static void tick(MinecraftServer server) {
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+			if (player.hasEffect(MobEffects.INVISIBILITY)) loseTrack(player);
+			else EXPOSED.remove(player.getUUID());
 		}
 	}
 

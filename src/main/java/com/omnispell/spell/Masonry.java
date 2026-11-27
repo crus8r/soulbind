@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Conjured masonry: what a conjuration with Bridge, Wall or Tower raises. Unlike the plain
@@ -47,7 +48,28 @@ public final class Masonry {
 				}
 			}
 		}
-		return null;
+		return construct(spell);
+	}
+
+	/**
+	 * A conjuration with no creature in it (no creature or weapon word, and nothing the Oracle named)
+	 * whose command closes around things builds instead: a cage on what you look at if it is meant
+	 * in malice, a shelter over yourself otherwise.
+	 */
+	private static String construct(Spell spell) {
+		if (!"conjuration".equals(spell.type) || Conjuring.namedBody(spell, null) != null) return null;
+		String kind = "", intention = "";
+		for (String id : spell.words) {
+			com.omnispell.data.Word w = com.omnispell.data.WordBank.word(id);
+			if (w == null) continue;
+			if (w.type.equals("command")) kind = w.explore == null ? "" : w.explore;
+			if (w.type.equals("intention")) intention = w.english;
+		}
+		if (!kind.equals("envelop")) return null;
+		return switch (intention) {
+			case "Malice", "Weakening", "Banishment", "Binding", "Nullification" -> "cage";
+			default -> "shelter";
+		};
 	}
 
 	private record Palette(BlockState deck, BlockState rail, BlockState light, Block glass) {
@@ -111,7 +133,8 @@ public final class Masonry {
 
 	/** Seconds the structure stands, before Duratus. */
 	public static int seconds(Spell spell) {
-		return 40 + 8 * Math.max(1, Math.min(5, spell.tier));
+		int tier = Math.max(1, Math.min(5, spell.tier));
+		return "cage".equals(structure(spell)) ? 8 + 2 * tier : 40 + 8 * tier;
 	}
 
 	public static String describe(Spell spell) {
@@ -121,9 +144,11 @@ public final class Masonry {
 		String kind = switch (what) {
 			case "bridge" -> "a dressed-stone bridge, railed and lit, across the way you face";
 			case "wall" -> "a battlemented wall in front of you";
+			case "cage" -> "a barred cage around the creature you look at, which is crushed and smothered inside it for as long as it holds";
+			case "shelter" -> "a domed shelter over you, with a doorway the way you face";
 			default -> "a tower under your feet that lifts you to its battlements";
 		};
-		return "It raises " + kind + ", built in its element's own stone. It stands about " + secs + " seconds: near the end it turns to glass, so you can see it going, and then it is gone.";
+		return ("cage".equals(what) ? "It closes " : "It raises ") + kind + ", built in its element's own stone. It stands about " + secs + " seconds: near the end it turns to glass, so you can see it going, and then it is gone.";
 	}
 
 	public static boolean build(Cast cast) {
@@ -173,6 +198,57 @@ public final class Masonry {
 					for (int h = 0; h < height; h++) b.set(ground.above(h), pal.deck);
 					if (Math.floorMod(s, 2) == 0) b.set(ground.above(height), pal.rail); // battlements
 					if (s == -half || s == half) b.set(ground.above(height + 1), pal.light);
+				}
+			}
+			case "cage" -> {
+				LivingEntity target = Targeting.entity(p, cast.range);
+				if (target == null || Defenses.ally(p, target)) return cast.fail("The cage needs something to close around: look at a creature.");
+				if (target.getBbWidth() > 2.6 || target.getBbHeight() > 4.2 || com.omnispell.boss.Bosses.defOf(target) != null) return cast.fail("It is too great to be caged.");
+				AABB box = target.getBoundingBox();
+				BlockPos min = BlockPos.containing(box.minX, box.minY, box.minZ);
+				BlockPos max = BlockPos.containing(box.maxX - 1e-4, box.maxY - 1e-4, box.maxZ - 1e-4);
+				BlockState bars = Blocks.IRON_BARS.defaultBlockState();
+				for (BlockPos pos : BlockPos.betweenClosed(min.offset(-1, 0, -1), max.offset(1, 2, 1))) {
+					boolean wallX = pos.getX() < min.getX() || pos.getX() > max.getX();
+					boolean wallZ = pos.getZ() < min.getZ() || pos.getZ() > max.getZ();
+					boolean roof = pos.getY() == max.getY() + 1, crown = pos.getY() == max.getY() + 2;
+					if (crown) {
+						if (wallX && wallZ) b.set(pos, pal.light);
+					} else if (roof) b.set(pos, pal.deck);
+					else if (wallX && wallZ) b.set(pos, pal.deck); // corner posts
+					else if (wallX || wallZ) b.set(pos, bars);
+				}
+				// the bars join up into a proper cage
+				for (Stone st : b.stones) {
+					if (!st.now.is(Blocks.IRON_BARS)) continue;
+					BlockState joined = Block.updateFromNeighbourShapes(st.now, level, st.pos);
+					level.setBlock(st.pos, joined, 2);
+					st.now = joined;
+				}
+				target.setDeltaMovement(0, Math.min(0, target.getDeltaMovement().y), 0);
+				target.syncVelocity = true;
+				Vec3 held = target.position();
+				int life = (int) (seconds(spell) * 20 * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
+				for (int t = 20; t < life; t += 20) {
+					Tasks.later(t, () -> {
+						if (!target.isAlive() || target.position().distanceToSqr(held) > 4) return; // out of the cage, out of its grip
+						target.setAirSupply(Math.max(-19, target.getAirSupply() - 80));
+						target.hurtServer(level, level.damageSources().indirectMagic(p, p), (float) ((1.5 + 0.5 * tier) * cast.damageBonus(spell.code.element)));
+						level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + target.getBbHeight() * 0.6, target.getZ(), 8, 0.3, 0.3, 0.3, 0.01);
+					});
+				}
+			}
+			case "shelter" -> {
+				int r = big ? 4 : 3;
+				for (int dx = -r; dx <= r; dx++) for (int dy = 0; dy <= r; dy++) for (int dz = -r; dz <= r; dz++) {
+					double d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+					if (d > r + 0.5 || d <= r - 0.5) continue;
+					BlockPos pos = feet.offset(dx, dy, dz);
+					// a doorway the way you face, two blocks high
+					boolean door = dy <= 1 && (facing.getAxis() == Direction.Axis.X ? dz == 0 && Integer.signum(dx) == facing.getStepX() : dx == 0 && Integer.signum(dz) == facing.getStepZ());
+					if (door) continue;
+					boolean window = dy == 1 && (Math.abs(dx) + Math.abs(dz)) % 3 == 0;
+					b.set(pos, dy == r ? pal.light : window ? pal.glass.defaultBlockState() : pal.deck);
 				}
 			}
 			default -> { // tower
