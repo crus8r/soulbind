@@ -70,7 +70,10 @@ public final class SpellCrafting {
 			if (!allowed && !typeId.equals("exploration") && (word.type.equals("source") || word.type.equals("attribute") || word.type.equals("charge") || word.type.equals("intention"))) allowed = true;
 			if (!allowed && typeId.equals("exploration") && (word.type.equals("charge") || word.type.equals("attribute"))) allowed = true;
 			if (!allowed) return capitalize(word.type) + " words cannot go in " + type.name.toLowerCase() + ".";
-			if (word.type.equals("attribute") && !WordBank.attributeFits(typeId, word)) return word.shortName() + " does not belong in " + type.name.toLowerCase() + ".";
+			if (word.type.equals("attribute") && !WordBank.attributeFits(typeId, word)) {
+				String hint = typeId.equals("conjuration") ? " Conjurations call creatures, armed warriors, or masonry (Bridge, Wall, Tower). Try it in an Environment or Defense spell." : "";
+				return word.shortName() + " does not belong in " + type.name.toLowerCase() + "." + hint;
+			}
 		}
 		for (WordBank.Slot slot : type.wordSlots) {
 			if (slot.required && !counts.containsKey(slot.type)) return type.name + " need a " + slot.type + " word.";
@@ -109,6 +112,7 @@ public final class SpellCrafting {
 
 		if (typeId.equals("exploration")) {
 			fillExploration(spell);
+			shapeByAttribute(spell);
 			finish(player, spell, true);
 			return;
 		}
@@ -128,6 +132,34 @@ public final class SpellCrafting {
 			}
 			finish(online, spell, error == null && Boolean.TRUE.equals(fromOracle));
 		}));
+	}
+
+	/**
+	 * An attribute word names what an environment spell makes, and it makes that: Bridge a
+	 * bridge, Wall a wall, Tower a pillar to stand on, Cloud a cloud underfoot, Bed a place to
+	 * wake, Fireplace a campfire, Chest/Box your ender chest, Currency the ores nearby.
+	 */
+	static void shapeByAttribute(Spell spell) {
+		if (spell.fizzle) return;
+		String toggle = null;
+		for (String id : spell.words) {
+			toggle = switch (id) {
+				case "attribute:Bridge" -> "bridge";
+				case "attribute:Wall" -> "raise_wall";
+				case "attribute:Tower" -> "pillar";
+				case "attribute:Cloud" -> "cloud";
+				case "attribute:Bed" -> "rest";
+				case "attribute:Fireplace" -> "hearth";
+				case "attribute:Chest/Box" -> "stash";
+				case "attribute:Currency" -> "prospect";
+				default -> toggle;
+			};
+		}
+		if (toggle == null) return;
+		spell.toggle = toggle;
+		spell.siphon = false;
+		spell.effect = Terraform.effectName(toggle);
+		spell.description = Terraform.describe(toggle, spell);
 	}
 
 	/** Exploration spells come from Omnispell's fixed table of 540 combinations: no AI involved. */
@@ -249,8 +281,12 @@ public final class SpellCrafting {
 	}
 
 	private static void finish(ServerPlayer player, Spell spell, boolean stable) {
+		if ("conjuration".equals(spell.type)) {
+			String really = Conjuring.describe(spell, null);
+			if (spell.description == null || !spell.description.contains(really)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + really;
+		}
 		if ("defense".equals(spell.type) || (spell.code != null && "shield".equals(spell.code.type))) {
-			String ward = Wards.describe(spell);
+			String ward = "defense".equals(spell.type) ? Defenses.describe(spell) : Wards.describe(spell);
 			if (spell.description == null || !spell.description.contains(ward)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + ward;
 		}
 		if ("attack".equals(spell.type)) {

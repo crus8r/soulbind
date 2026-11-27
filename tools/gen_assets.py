@@ -1142,7 +1142,7 @@ enchantment('wellspring', 'Wellspring', 4, 3)  # +15% mana refill speed per leve
 enchantment('alacrity', 'Alacrity', 3, 3)      # -4% spell cooldown per level, per piece
 enchantment('attunement', 'Attunement', 2, 2)  # +1 charm slot per level
 # Charm enchantments only ever sit on gems. The mod itself decides which gem gets which.
-write(os.path.join(DATA, 'tags', 'item', 'enchantable', 'mana_gear.json'), {'replace': False, 'values': ['#minecraft:enchantable/armor', 'omnispell:wizard_hat', 'omnispell:wizard_robe', 'omnispell:wizard_boots']})
+write(os.path.join(DATA, 'tags', 'item', 'enchantable', 'mana_gear.json'), {'replace': False, 'values': ['#minecraft:enchantable/armor', 'omnispell:wizard_hat', 'omnispell:wizard_robe', 'omnispell:wizard_boots', 'omnispell:wand']})
 GEMS = ['minecraft:totem_of_undying', 'minecraft:amethyst_shard', 'minecraft:lapis_lazuli', 'minecraft:quartz', 'minecraft:prismarine_crystals',
         'minecraft:emerald', 'minecraft:echo_shard', 'minecraft:diamond', 'minecraft:netherite_ingot']
 write(os.path.join(DATA, 'tags', 'item', 'charm_gems.json'), {'replace': False, 'values': GEMS})

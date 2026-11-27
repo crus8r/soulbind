@@ -57,7 +57,12 @@ public final class CombatEffects {
 		int durationTurns = Math.max(code.duration, 0) + (int) Modifiers.value(player, "debuff_extend") * 0;
 		Vec3 hand = Targeting.hand(player);
 		boolean did;
-		switch (code.type) {
+		boolean conjureAnyway = spell.type.equals("conjuration") && summon == null && !code.type.equals("summon");
+		if (spell.type.equals("defense")) {
+			did = Defenses.cast(cast, Math.max(1, durationTurns));
+		} else if (conjureAnyway) {
+			did = summon(cast, null); // a conjuration always calls something up, whatever else the Oracle wrote
+		} else switch (code.type) {
 			case "heal" -> did = heal(cast, code.primaryValue);
 			case "shield" -> did = shield(cast, code.primaryValue, Math.max(1, durationTurns));
 			case "buff", "utility" -> {
@@ -69,7 +74,7 @@ public final class CombatEffects {
 			default -> did = attack(cast);
 		}
 
-		if (summon != null || code.type.equals("summon")) did |= summon(cast, summon);
+		if (!conjureAnyway && !spell.type.equals("defense") && (summon != null || code.type.equals("summon"))) did |= summon(cast, summon);
 
 		// A spell of another type can still carry a secondary boost or a status.
 		if (did && !code.type.equals("buff") && !code.type.equals("utility")) applySecondary(cast, Math.max(2, durationTurns));
@@ -140,7 +145,7 @@ public final class CombatEffects {
 			damage += sacrifice / cast.scale;
 		}
 
-		double critChance = Modifiers.value(player, "critical_strike") + cast.core.crit;
+		double critChance = Modifiers.value(player, "critical_strike") + cast.core.crit + com.omnispell.player.Mana.armorCrit(player);
 		boolean crit = critChance > 0 && player.getRandom().nextDouble() * 100 < critChance;
 		if (crit) damage *= 2.0;
 

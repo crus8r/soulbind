@@ -421,7 +421,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			check(server.computeOnServer(s -> player(s).level().getEntities(EntityTypes.WOLF, e -> e.entityTags().contains("omnispell_summon")).size()) == 1, "conjuration summoned one ally");
 			context.takeScreenshot("23-summon");
 
-			// ---- bridge: spans a gap with blocks that vanish again
+			// ---- bridge: spans a gap (with real dirt, for Earth)
 			BlockPos[] origin = new BlockPos[1];
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
@@ -483,7 +483,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				ServerLevel level = player(s).level();
 				int left = 0;
 				for (int z = 1; z <= 12; z++) if (!level.getBlockState(origin[0].offset(0, -1, z)).isAir()) left++;
-				check(left == 0, "the conjured bridge vanished again (" + left + " blocks left)");
+				check(left >= 10, "an Earth bridge is real dirt and stays, like the other land spells' common stuff (" + left + " blocks)");
+				for (int z = 1; z <= 12; z++) for (int x = -1; x <= 1; x++) level.setBlockAndUpdate(origin[0].offset(x, -1, z), Blocks.AIR.defaultBlockState());
 				for (BlockPos pos : BlockPos.betweenClosed(origin[0].offset(-5, -6, 3), origin[0].offset(5, 4, 3))) if (level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.TransparentBlock) level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			});
 
@@ -687,8 +688,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.Weapons.forget(p);
 				blade.words.set(1, "attribute:Arrow");
 				int arrowsBefore = level.getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.Arrow.class, p.getBoundingBox().inflate(6)).size();
-				check(com.omnispell.spell.Weapons.cast(new com.omnispell.spell.Cast(p, wand, blade))
-						&& level.getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.Arrow.class, p.getBoundingBox().inflate(6)).size() > arrowsBefore, "an Arrow attack spell looses a magic arrow");
+				boolean arrowOnly = com.omnispell.spell.Weapons.cast(new com.omnispell.spell.Cast(p, wand, blade));
+				check(!arrowOnly && level.getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.Arrow.class, p.getBoundingBox().inflate(6)).size() > arrowsBefore, "an Arrow attack spell looses a magic arrow, and leaves the spell itself to be cast too");
 				// The Wizard's Hat: holds 64 of anything, beds and totems too, and three stacks of sixteen are one pile.
 				ItemStack hat = new ItemStack(OmniItems.WIZARD_HAT);
 				ItemStack beds = new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("red_bed")), 1);
@@ -1990,6 +1991,233 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.teleportTo(s.overworld(), beforeNether[0].x, beforeNether[0].y, beforeNether[0].z, java.util.Set.of(), 0f, 0f, true);
 			});
 			context.waitTicks(20);
+
+			// ---- the friends' notes: costs, attribute shapes, conjured crowds and warriors, masonry, defense forms, wand enchantments, armor
+			net.minecraft.world.entity.monster.zombie.Zombie[] archerPrey = new net.minecraft.world.entity.monster.zombie.Zombie[1];
+			int[] crowd = new int[2];
+			Vec3[] notesHome = new Vec3[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel level = p.level();
+				notesHome[0] = p.position();
+				ItemStack testWand = WandItem.create("oak", "flint");
+				// Every exploration spell either pays as it goes or costs mana up front, and shows its pool.
+				String[] toggles = {"carve", "drill", "crater", "pit", "moat", "flatten", "dry", "clear", "raise_wall", "ring", "dome", "platform", "mend_land", "calm", "attune", "growth",
+						"illuminate", "prospect", "thicket", "solidify", "weather", "gather", "conjure", "path", "tree", "stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury",
+						"waymark", "lull", "bound", "bridge", "projectile", "beam", "area_damage", "shrapnel", "eruption", "detonate", "disintegrate", "barrier_wall", "armor", "deflect", "anchor",
+						"ward_element", "smoke_screen", "blackout", "decoy", "mirage", "phantom", "dash", "leap", "grapple", "tether", "current", "mount", "reveal", "scout", "true_sight", "track",
+						"push", "polymorph", "transmute", "hearth", "stash", "rest", "cloud", "construct_weapon"};
+				int free = 0;
+				String freeOne = "";
+				for (String t : toggles) {
+					com.omnispell.spell.Spell sp = new com.omnispell.spell.Spell();
+					sp.type = "exploration";
+					sp.toggle = t;
+					sp.tier = 2;
+					if (com.omnispell.spell.Casting.manaCost(sp) <= 0 || com.omnispell.spell.Casting.poolOf(sp) == null) {
+						free++;
+						freeOne = t;
+					}
+				}
+				check(free == 0, "every exploration spell that does not pay as it goes costs mana up front and shows its pool (" + free + " free, e.g. " + freeOne + ")");
+				// Attribute words shape exploration spells.
+				PlayerStore.get(p).essence = 500;
+				PlayerStore.get(p).pending = null;
+				p.getInventory().setItem(27, WandItem.create("oak", "nether_star")); // room for four words
+				String why = com.omnispell.spell.SpellCrafting.problem(p, PlayerStore.get(p), "exploration", java.util.List.of("base:Water", "command:Grow", "intention:Warding", "attribute:Bed"));
+				if (why != null) System.out.println("[omnispell-test] bed spell problem: " + why);
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Water", "command:Grow", "intention:Warding", "attribute:Bed"));
+				com.omnispell.spell.Spell bed = PlayerStore.get(p).pending;
+				check(bed != null && "rest".equals(bed.toggle), "Bed in an environment spell makes a place to wake (" + (bed == null ? "nothing" : bed.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				com.omnispell.spell.SpellCrafting.craft(p, "exploration", java.util.List.of("base:Earth", "command:Grow", "intention:Warding", "attribute:Bridge"));
+				com.omnispell.spell.Spell span = PlayerStore.get(p).pending;
+				check(span != null && "bridge".equals(span.toggle), "Bridge in an environment spell builds a bridge (" + (span == null ? "nothing" : span.toggle) + ")");
+				PlayerStore.get(p).pending = null;
+				var bedWord = com.omnispell.data.WordBank.word("attribute:Bed");
+				var bowWord = com.omnispell.data.WordBank.word("attribute:Bow");
+				var swordWord = com.omnispell.data.WordBank.word("attribute:Sword");
+				check(!com.omnispell.data.WordBank.attributeFits("conjuration", bedWord) && com.omnispell.data.WordBank.attributeFits("conjuration", bowWord)
+						&& com.omnispell.data.WordBank.attributeFits("conjuration", swordWord), "conjurations take creatures, weapons and masonry, not beds");
+
+				// Conjuration: how many, how big, which warrior, what it costs.
+				com.omnispell.spell.Spell pack = new com.omnispell.spell.Spell();
+				pack.type = "conjuration";
+				pack.tier = 2;
+				pack.code.element = "fire";
+				pack.words.addAll(java.util.List.of("attribute:Wolf", "charge:Sparsus (Area of effect)"));
+				java.util.Random dice = new java.util.Random(7);
+				int lo = 99, hi = 0;
+				for (int i = 0; i < 40; i++) {
+					int n = com.omnispell.spell.Conjuring.count(pack, dice);
+					lo = Math.min(lo, n);
+					hi = Math.max(hi, n);
+				}
+				check(lo == 2 && hi == 3, "Sparsus conjures two or three (" + lo + "-" + hi + ")");
+				pack.words.add("charge:Maxima (Amplify power)");
+				lo = 99;
+				hi = 0;
+				for (int i = 0; i < 60; i++) {
+					int n = com.omnispell.spell.Conjuring.count(pack, dice);
+					lo = Math.min(lo, n);
+					hi = Math.max(hi, n);
+				}
+				check(lo == 3 && hi == 5, "Sparsus with Maxima conjures three to five (" + lo + "-" + hi + ")");
+				check(com.omnispell.spell.Casting.manaCost(pack) > 0 && com.omnispell.spell.Casting.poolOf(pack) == com.omnispell.player.ManaPool.SPIRIT, "conjurations cost Spirit mana, and show it");
+				com.omnispell.spell.Spell archerSpell = new com.omnispell.spell.Spell();
+				archerSpell.type = "conjuration";
+				archerSpell.tier = 3;
+				archerSpell.code.element = "ice";
+				archerSpell.words.add("attribute:Bow");
+				check("archer".equals(com.omnispell.spell.Conjuring.bodyFor(archerSpell, "Frost Archer").id()), "Bow conjures an archer");
+				com.omnispell.spell.Spell linked = new com.omnispell.spell.Spell();
+				linked.type = "conjuration";
+				linked.description = "A wolf of embers rises to fight. When it is destroyed, its remaining health is redirected to you, and it explodes in a shower of sparks as it dies.";
+				var promised = com.omnispell.spell.Conjuring.traits(linked);
+				check(promised.contains("link") && promised.contains("explode"), "a conjuration keeps the promises its description makes (" + promised + ")");
+
+				// Conjure them for real, in a clear field away from everything else.
+				BlockPos field = BlockPos.containing(notesHome[0]).offset(60, 0, 0);
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-12, -1, -12), field.offset(12, -1, 12))) level.setBlockAndUpdate(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-12, 0, -24), field.offset(12, 8, 12))) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				// a gap to the north for the bridge to span
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-5, -5, -22), field.offset(5, -1, -2))) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-5, -6, -22), field.offset(5, -6, -2))) level.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				p.teleportTo(level, field.getX() + 0.5, field.getY(), field.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				int crowdBefore = level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class, p.getBoundingBox().inflate(20), com.omnispell.spell.Conjuring::isConjured).size();
+				com.omnispell.spell.Spell twoOrThree = new com.omnispell.spell.Spell();
+				twoOrThree.type = "conjuration";
+				twoOrThree.tier = 2;
+				twoOrThree.code.element = "nature";
+				twoOrThree.words.addAll(java.util.List.of("attribute:Frog", "charge:Sparsus (Area of effect)"));
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, testWand, twoOrThree), "Bog Frog", 8, 20), "a Sparsus conjuration is cast");
+				crowd[0] = level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class, p.getBoundingBox().inflate(20), com.omnispell.spell.Conjuring::isConjured).size() - crowdBefore;
+				check(crowd[0] >= 2 && crowd[0] <= 3, "and two or three frogs come (" + crowd[0] + ")");
+				com.omnispell.spell.Spell giant = new com.omnispell.spell.Spell();
+				giant.type = "conjuration";
+				giant.tier = 2;
+				giant.code.element = "stone";
+				giant.words.addAll(java.util.List.of("attribute:Bear", "charge:Maxima (Amplify power)"));
+				p.setYRot(90f);
+				com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, testWand, giant), "Great Bear", 8, 20);
+				var bear = level.getEntitiesOfClass(net.minecraft.world.entity.animal.polarbear.PolarBear.class, p.getBoundingBox().inflate(20), com.omnispell.spell.Conjuring::isConjured);
+				check(!bear.isEmpty() && bear.get(0).getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.SCALE) > 1.6, "Maxima conjures a giant (scale " + (bear.isEmpty() ? 0 : bear.get(0).getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.SCALE)) + ")");
+				// An archer, and something to shoot at.
+				p.setYRot(-90f);
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, testWand, archerSpell), "Frost Archer", 10, 20), "an archer is conjured");
+				var target = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+				target.snapTo(field.getX() + 9.5, field.getY(), field.getZ() + 0.5, 90f, 0f);
+				target.setNoAi(true);
+				target.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, 2000, 0));
+				level.addFreshEntity(target);
+				archerPrey[0] = target;
+				p.hurtServer(level, level.damageSources().mobAttack(target), 0.01f);
+				for (var stray : level.getEntitiesOfClass(net.minecraft.world.entity.monster.skeleton.Stray.class, p.getBoundingBox().inflate(20), com.omnispell.spell.Conjuring::isConjured)) {
+					check(stray.getMainHandItem().is(Items.BOW) && stray.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).is(Items.LEATHER_HELMET), "a frost archer is a stray with a bow and a cap against the sun");
+					break;
+				}
+
+				// Masonry: a conjured bridge of dressed stone.
+				com.omnispell.spell.Spell stoneBridge = new com.omnispell.spell.Spell();
+				stoneBridge.type = "conjuration";
+				stoneBridge.tier = 1;
+				stoneBridge.code.element = "stone";
+				stoneBridge.words.add("attribute:Bridge");
+				p.setYRot(180f); // facing north
+				check(com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, testWand, stoneBridge), "Bridge", 8, 20), "a Bridge conjuration is cast");
+				int bricks = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-3, -12, -20), field.offset(3, 3, -1))) if (level.getBlockState(pos).is(Blocks.STONE_BRICKS) || level.getBlockState(pos).is(Blocks.STONE_BRICK_WALL)) bricks++;
+				check(bricks >= 30, "it raises a bridge of stone bricks and rails (" + bricks + " blocks)");
+				BlockPos brick = null;
+				for (BlockPos pos : BlockPos.betweenClosed(field.offset(-3, -1, -8), field.offset(3, -1, -2))) if (level.getBlockState(pos).is(Blocks.STONE_BRICKS) && com.omnispell.spell.Masonry.isConjured(pos.immutable())) {
+					brick = pos.immutable();
+					break;
+				}
+				check(brick != null && !com.omnispell.spell.Masonry.breakBlock(level, brick) && level.getBlockState(brick).isAir(), "breaking conjured masonry gives nothing");
+
+				// Defense forms.
+				var dog = EntityTypes.WOLF.create(level, EntitySpawnReason.COMMAND);
+				dog.snapTo(field.getX() + 2.5, field.getY(), field.getZ() + 2.5, 0f, 0f);
+				dog.tame(p);
+				dog.setNoAi(true);
+				level.addFreshEntity(dog);
+				dog.setHealth(4f);
+				com.omnispell.spell.Spell steam = new com.omnispell.spell.Spell();
+				steam.id = "defense|test-steam";
+				steam.type = "defense";
+				steam.tier = 3;
+				steam.code.type = "heal";
+				steam.code.element = "water";
+				steam.words.addAll(java.util.List.of("base:Steam", "command:Disperse", "intention:Warding"));
+				check("aegis".equals(com.omnispell.spell.Defenses.form(steam)), "Steam + Disperse + Warding bursts outward to friends (" + com.omnispell.spell.Defenses.form(steam) + ")");
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.RESTORATION.ordinal()] = 75;
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.BARRIER.ordinal()] = 100;
+				check(com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, testWand, steam), 3) && dog.getHealth() > 4f && p.hasEffect(MobEffects.WATER_BREATHING),
+						"it mends the tamed wolf beside you and gives you water breathing (wolf at " + dog.getHealth() + ")");
+				com.omnispell.spell.Spell line = new com.omnispell.spell.Spell();
+				line.id = "defense|test-line";
+				line.type = "defense";
+				line.tier = 3;
+				line.code.type = "shield";
+				line.code.element = "stone";
+				line.words.addAll(java.util.List.of("base:Earth", "command:Release", "intention:Warding"));
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, dog.getBoundingBox().getCenter());
+				check("lifeline".equals(com.omnispell.spell.Defenses.form(line)) && com.omnispell.spell.Defenses.cast(new com.omnispell.spell.Cast(p, testWand, line), 3) && dog.getAbsorptionAmount() > 0,
+						"Earth + Release + Warding casts a shield at the friend you look at (wolf absorption " + dog.getAbsorptionAmount() + ")");
+				com.omnispell.spell.Spell cloak = new com.omnispell.spell.Spell();
+				cloak.type = "defense";
+				cloak.code.element = "shadow";
+				cloak.words.addAll(java.util.List.of("command:Shield", "attribute:Cloak"));
+				com.omnispell.spell.Spell circle = new com.omnispell.spell.Spell();
+				circle.type = "defense";
+				circle.code.element = "light";
+				circle.words.addAll(java.util.List.of("command:Bind"));
+				com.omnispell.spell.Spell statue = new com.omnispell.spell.Spell();
+				statue.type = "defense";
+				statue.code.element = "stone";
+				statue.words.addAll(java.util.List.of("command:Fortify"));
+				check("veil".equals(com.omnispell.spell.Defenses.form(cloak)) && "sanctuary".equals(com.omnispell.spell.Defenses.form(circle)) && "bulwark".equals(com.omnispell.spell.Defenses.form(statue)),
+						"Cloak hides, Bind marks a sanctuary, Fortify makes you a statue");
+				dog.discard();
+
+				// Wands take the mana enchantments, and armor does what the book says.
+				var wellspring = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENCHANTMENT, com.omnispell.Omnispell.id("wellspring")));
+				ItemStack wellBook = new ItemStack(Items.ENCHANTED_BOOK);
+				wellBook.enchant(wellspring, 2);
+				var wellAnvil = new net.minecraft.world.inventory.AnvilMenu(79, p.getInventory(), net.minecraft.world.inventory.ContainerLevelAccess.create(level, field));
+				wellAnvil.getSlot(0).set(WandItem.create("oak", "flint"));
+				wellAnvil.getSlot(1).set(wellBook);
+				ItemStack wellWand = wellAnvil.getSlot(2).getItem();
+				check(WandItem.isWand(wellWand) && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(wellspring, wellWand) == 2, "an anvil puts Wellspring on a wand");
+				wellAnvil.getSlot(0).set(ItemStack.EMPTY);
+				wellAnvil.getSlot(1).set(ItemStack.EMPTY);
+				ItemStack keep = p.getMainHandItem().copy();
+				p.getInventory().setItem(p.getInventory().getSelectedSlot(), WandItem.create("oak", "flint"));
+				double plain = com.omnispell.player.Mana.regenMultiplier(p);
+				p.getInventory().setItem(p.getInventory().getSelectedSlot(), wellWand);
+				double welled = com.omnispell.player.Mana.regenMultiplier(p);
+				check(welled > plain + 0.25, "Wellspring on the wand in hand refills mana faster (" + plain + " to " + welled + ")");
+				p.getInventory().setItem(p.getInventory().getSelectedSlot(), keep);
+				var slots = new net.minecraft.world.entity.EquipmentSlot[]{net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET};
+				var nethers = new net.minecraft.world.item.Item[]{Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS};
+				ItemStack[] worn = new ItemStack[4];
+				for (int i = 0; i < 4; i++) {
+					worn[i] = p.getItemBySlot(slots[i]).copy();
+					p.setItemSlot(slots[i], new ItemStack(nethers[i]));
+				}
+				check(com.omnispell.player.Mana.armorDamage(p) == 20, "four pieces of netherite make spells hit 20% harder, as the book says (" + com.omnispell.player.Mana.armorDamage(p) + ")");
+				for (int i = 0; i < 4; i++) p.setItemSlot(slots[i], worn[i]);
+			});
+			context.waitTicks(80);
+			server.runOnServer(s -> {
+				var z = archerPrey[0];
+				boolean shot = (z.isRemoved() && z.getRemovalReason() == net.minecraft.world.entity.Entity.RemovalReason.KILLED) || z.getHealth() < z.getMaxHealth();
+				check(shot, "the conjured archers shoot the zombie (health " + z.getHealth() + ")");
+				if (!z.isRemoved()) z.discard();
+				for (var e : player(s).level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player(s).getBoundingBox().inflate(40), com.omnispell.spell.Conjuring::isConjured)) com.omnispell.spell.Summons.dismiss(e);
+				player(s).teleportTo(player(s).level(), notesHome[0].x, notesHome[0].y, notesHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(10);
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {

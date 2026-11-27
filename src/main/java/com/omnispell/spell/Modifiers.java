@@ -213,6 +213,7 @@ public final class Modifiers {
 		}
 		if (amount <= 0 || !(entity instanceof ServerPlayer player)) return amount;
 		amount = Wards.incoming(player, source, amount);
+		amount = Conjuring.guard(player, source, amount);
 		amount = com.omnispell.item.CoreAbilities.incoming(player, source, amount);
 		amount = com.omnispell.charm.Charms.incoming(player, source, amount);
 		// The wand's ward (held right-click): most of a hit is turned aside, paid for in Barrier mana, and the ward flashes into view.

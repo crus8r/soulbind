@@ -97,6 +97,25 @@ public final class AttackForms {
 		};
 	}
 
+	/** Tips an arrow with an element: fire burns, ice slows, nature poisons, shadow withers, and so on. */
+	public static void tip(net.minecraft.world.entity.projectile.arrow.Arrow arrow, String element, int tier) {
+		int t = Math.max(1, Math.min(5, tier));
+		switch (element) {
+			case "fire" -> arrow.igniteForSeconds(100);
+			case "ice" -> arrow.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40 + 10 * t, t >= 4 ? 2 : 1));
+			case "nature" -> arrow.addEffect(new MobEffectInstance(MobEffects.POISON, 60 + 10 * t, t >= 4 ? 1 : 0));
+			case "shadow" -> arrow.addEffect(new MobEffectInstance(MobEffects.WITHER, 40 + 10 * t, 0));
+			case "light" -> arrow.addEffect(new MobEffectInstance(MobEffects.GLOWING, 120, 0));
+			case "water", "arcane" -> arrow.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0));
+			case "void" -> arrow.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 15 + 3 * t, 0));
+			case "blood" -> arrow.addEffect(new MobEffectInstance(MobEffects.HUNGER, 100, 1));
+			case "wind", "storm" -> arrow.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 40, 0));
+			case "stone" -> arrow.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40, 0));
+			default -> {
+			}
+		}
+	}
+
 	/** The element's own form, which shows up some of the time. */
 	public static String signature(String element) {
 		return switch (element) {

@@ -49,8 +49,10 @@ public final class Guide {
 				"Attack, Defense and Conjuration spells are interpreted by the Oracle. The same words always give the same spell, for everyone.",
 				"Environment spells follow fixed laws: Base + Command + Intention decide the effect. Light + Envelop + Concealment is invisibility. Experiment.",
 				"Many commands build a shape of their own, even beside others of their kind: Sever bores a tunnel where Release blasts a crater, and Envelop with Warding closes a dome. Try every command you learn with every intention.",
-				"Every shield raises a ward you can see, shaped by its element: flame burns what strikes you, frost slows it, wind turns arrows aside, stone hardens you, shadow lets some blows pass through. Its command adds a habit: Repel throws attackers back, Reflect returns their blows, Absorb drinks a hit into mana, Bind holds them, Mend regrows the shield. The description says what yours does.",
-				"Conjurations call a creature to fight beside you. A creature word (Wolf, Bear, Snake, Bird, Eagle, Fox, Cat, Horse, Frog, Insect) decides its body, or else the creature its name speaks of. The base word colours it, as does a colour word. It bites what is close and casts the spell's own magic at what is not, and never harms you or your friends.",
+				"Defense spells are support spells. The shape comes from the words: Shield and the enveloping commands raise a shell of the element around you; Disperse, Scatter and the pulsing commands burst outward and shield or mend every friend near you; Release, Guide and the reaching commands cast it at the friend you look at; binding commands mark a sanctuary circle; Mend and Regenerate heal over time; Fortify and Statue make you immovable; Conceal and Cloak hide you; Wall raises a barrier; a creature word calls a guardian. Friends are players, pets, golems, villagers, familiars and conjured creatures.",
+				"A defense spell's element is a blessing too: fire gives fire resistance, water breathing, air a slow fall and speed, stone extra armor, nature regeneration. Maxima sometimes carries a spell meant for you out to your friends as well. The description says exactly what yours does.",
+				"Conjurations call creatures, armed warriors or masonry. A creature word picks the beast; a weapon word calls a skeleton warrior (Bow and Arrow archers, Sword, Blade, Club, Spear); Bridge, Wall and Tower raise dressed stone that turns to glass and fades. Sparsus calls two or three at once, Sparsus with Maxima three to five; Maxima alone makes one twice the size. Duratus makes things last longer.",
+				"Each conjured creature bites what is close and casts the spell's own magic at what is not (archers shoot element-tipped arrows instead). If its description promises more, such as health flowing back to you, a burst when it dies, guarding you, or mending you, it keeps that promise. It never harms you or your friends.",
 				"A few environment spells carry a second working on top of their own, and some only once they are strong enough: a raging fire may become an inferno at a high tier. A spell's description says what it carries, and what it would gain at a higher tier.",
 				"An attack's command decides how it takes hold of what it hits: Release hurls it into the air, Repel blasts it back, a binding command roots it, Freeze or Petrify locks it in a shell. Its element adds a touch of its own now and then. Ice freezes its target in a block of ice, wind catches it in a vortex, fire spreads. The spell's description says which.",
 				"UNLOCKING CONJURATION",
@@ -111,25 +113,34 @@ public final class Guide {
 		}
 		wands.add("Some cores come only from great foes. Those are not written here.");
 		s.put("Wands", wands);
-		s.put("Materials", List.of(
-				"Every material has a nature. The same nature shows wherever the material is used, so what you learn here applies to anything made from it.",
-				"Gold is the great vessel. Nothing holds or restores mana as readily, and nothing wears out as fast.",
-				"Leather is soft and holds magic well.",
-				"Copper conducts. Mana flows back through it quickly.",
-				"Iron steadies. Shields and healing hold stronger, though it stores little mana itself.",
-				"Chainmail is light and quick. Spells return sooner.",
-				"Diamond is precision: a spell may strike twice as hard. It is too hard to hold mana.",
-				"Netherite is overwhelming force. It holds no mana at all.",
-				"Amethyst resonates with the arcane. Quartz carries light. Echo shards carry shadow, and quicken it.",
-				"Emerald is life: healing and shields grow much stronger.",
-				"Blaze rods are raw power. Breeze rods are swiftness: spells are ready again sooner.",
-				"Ender pearls are instinct: sometimes a spell lands twice as hard.",
-				"Flint is only flint. It works.",
-				"WOODS",
-				"Oak guards and reflects. Spruce guards and mends. Jungle mends above all. Dark oak controls and reflects. Mangrove reflects. Cherry phases and controls. Pale oak controls life and death. Acacia and bamboo lift everything a little. Birch gives no mana, only force.",
-				"Crimson wood feeds fire. Warped wood feeds shadow.",
-				"ENCHANTMENTS",
-				"Reservoir enlarges every mana reserve. Wellspring refills them faster. Alacrity shortens the wait between casts. All three go on armor."));
+		List<String> materials = new ArrayList<>();
+		materials.add("Every number here is exact, and it is what the game does. Four worn pieces of the same material give four times as much.");
+		materials.add("ARMOR, PER PIECE WORN");
+		materials.add("Wizard's hat, robe or boots: +20% to every mana reserve.");
+		materials.add("Gold: +15% to every reserve, and mana refills 8% faster. It wears out fastest.");
+		materials.add("Leather: +12% to every reserve.");
+		materials.add("Chainmail: +8% to every reserve, and spells are ready again 3% sooner. A turtle shell also gives +8%.");
+		materials.add("Copper: +6% to every reserve, and mana refills 10% faster.");
+		materials.add("Iron: +3% to every reserve, and shields and healing are 5% stronger.");
+		materials.add("Diamond: no mana, but a 4% better chance for a spell to strike twice as hard.");
+		materials.add("Netherite: no mana, but spells hit 5% harder.");
+		materials.add("WOODS (the wand's planks)");
+		for (WandParts.Wood wood : WandParts.WOODS.values()) {
+			StringBuilder sb = new StringBuilder(wood.label + ":");
+			for (Map.Entry<ManaPool, Integer> e : wood.mana.entrySet()) sb.append(" +").append(e.getValue()).append("% ").append(e.getKey().label).append(',');
+			if (wood.damage > 0) sb.append(" +").append((int) wood.damage).append("% spell damage,");
+			if (wood.element != null) sb.append(" ").append(wood.element).append(" spells +20% damage,");
+			if (sb.charAt(sb.length() - 1) == ',') sb.setLength(sb.length() - 1);
+			if (sb.charAt(sb.length() - 1) == ':') sb.append(" nothing extra");
+			materials.add(sb.append('.').toString());
+		}
+		materials.add("WAND CORES");
+		materials.add("Each core and exactly what it does is listed on the Wands page.");
+		materials.add("ENCHANTMENTS (armor, the wizard's attire, and wands)");
+		materials.add("Reservoir: +10% to every reserve per level. Wellspring: mana refills 15% faster per level. Alacrity: spells are ready again 4% sooner per level. Attunement: one more charm slot per level.");
+		materials.add("Cooldowns can be shortened by at most 60% in all.");
+		s.put("Materials", materials);
+
 		s.put("Mana", List.of(
 				"You have five mana reserves. Each pays for one kind of magic and refills on its own.",
 				"Barrier pays for shields, the wand's ward and damage thrown back. Restoration pays for healing. Force pays for attacks of fire, ice, storm, stone and nature, and for the wand's bolt. Spirit pays for attacks of shadow, light, void, blood and the arcane, and for stuns, charms, fear and confusion. Phase pays for dodging, teleporting, vanishing, the wand sprint and air-walking.",

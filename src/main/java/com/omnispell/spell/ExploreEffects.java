@@ -380,7 +380,9 @@ public final class ExploreEffects {
 				yield true;
 			}
 			case "bridge" -> {
-				Block block = TempBlocks.material(element);
+				// Common stuff (dirt, sand, stone, wood...) makes a real, lasting bridge. Strange magic makes one that fades.
+				Block real = Terraform.material(spell);
+				Block block = real != null ? real : TempBlocks.material(element);
 				Vec3 flat = new Vec3(look.x, 0, look.z);
 				if (flat.lengthSqr() < 0.001) yield c.fail("Look where the bridge should go.");
 				flat = flat.normalize();
@@ -393,7 +395,16 @@ public final class ExploreEffects {
 					Vec3 at = p.position().add(flat.scale(i));
 					for (double s = -0.5; s <= 0.5; s += 1.0) {
 						Vec3 q = at.add(sideways.scale(s));
-						if (TempBlocks.place(level, new BlockPos((int) Math.floor(q.x), y, (int) Math.floor(q.z)), block, ticks)) placed++;
+						BlockPos spot = new BlockPos((int) Math.floor(q.x), y, (int) Math.floor(q.z));
+						if (real == null) {
+							if (TempBlocks.place(level, spot, block, ticks)) placed++;
+						} else {
+							BlockState there = level.getBlockState(spot);
+							if (!there.isAir() && !there.canBeReplaced()) continue;
+							if (TempBlocks.melts(block) && TempBlocks.scorching(level, spot)) TempBlocks.placeMelting(level, spot, block, tier);
+							else level.setBlockAndUpdate(spot, block.defaultBlockState());
+							placed++;
+						}
 					}
 				}
 				Fx.line(level, p.position(), p.position().add(flat.scale(length)), color, extra, 2);

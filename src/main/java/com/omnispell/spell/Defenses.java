@@ -1,0 +1,504 @@
+package com.omnispell.spell;
+
+import com.omnispell.data.Word;
+import com.omnispell.data.WordBank;
+import com.omnispell.player.Mana;
+import com.omnispell.player.ManaPool;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Defense spells, which are support spells as much as shields. The same hearts or healing can
+ * take many shapes: a shell of the element around you, a blessing (fire resistance, water
+ * breathing, a slow fall, stone skin), healing over time, a burst that shields and mends
+ * everyone near you, a lifeline cast at the ally you look at, a sanctuary circle on the
+ * ground, a barrier wall, or a guardian creature at your side.
+ *
+ * The shape comes from the attribute word if there is one, then the command, then what the
+ * spell's own description says, then the intention, and the element colours all of it.
+ */
+public final class Defenses {
+	private Defenses() {
+	}
+
+	private static String command(Spell spell, boolean kind) {
+		for (String id : spell.words) {
+			Word w = WordBank.word(id);
+			if (w != null && w.type.equals("command")) return kind ? (w.explore == null ? "" : w.explore) : w.english;
+		}
+		return "";
+	}
+
+	private static String intention(Spell spell) {
+		for (String id : spell.words) {
+			Word w = WordBank.word(id);
+			if (w != null && w.type.equals("intention")) return w.english;
+		}
+		return "";
+	}
+
+	/** The spell's shape. */
+	public static String form(Spell spell) {
+		for (String id : spell.words) {
+			switch (id) {
+				case "attribute:Shield", "attribute:Chest/Box" -> {
+					return "shell";
+				}
+				case "attribute:Cloak" -> {
+					return "veil";
+				}
+				case "attribute:Wall", "attribute:Tower", "attribute:Door" -> {
+					return "barrier";
+				}
+				case "attribute:Statue" -> {
+					return "bulwark";
+				}
+				case "attribute:Bridge" -> {
+					return "lifeline";
+				}
+				case "attribute:Bed" -> {
+					return "mend";
+				}
+				case "attribute:Fireplace" -> {
+					return "sanctuary";
+				}
+				case "attribute:Cloud", "attribute:Currency" -> {
+					return "boon";
+				}
+				case "attribute:Bird", "attribute:Wolf", "attribute:Bear", "attribute:Fox", "attribute:Eagle", "attribute:Snake", "attribute:Horse", "attribute:Cat", "attribute:Insect", "attribute:Frog" -> {
+					return "guardian";
+				}
+				default -> {
+				}
+			}
+		}
+		String word = command(spell, false);
+		switch (word) {
+			case "Repel", "Reflect", "Absorb", "Shield", "Protect", "Envelop", "Harbor", "Cover" -> {
+				return "shell";
+			}
+			case "Conceal", "Obscure", "Distort", "Mislead", "Silence" -> {
+				return "veil";
+			}
+			case "Seal", "Close" -> {
+				return "barrier";
+			}
+			case "Fortify", "Stabilize", "Petrify", "Solidify" -> {
+				return "bulwark";
+			}
+			case "Soothe", "Calm", "Mend", "Regenerate", "Revive", "Grow" -> {
+				return "mend";
+			}
+			case "Empower", "Amplify", "Enhance", "Enchant", "Imbue", "Accelerate" -> {
+				return "boon";
+			}
+			case "Gather" -> {
+				return "aegis";
+			}
+			default -> {
+			}
+		}
+		String kind = command(spell, true);
+		switch (kind) {
+			case "scatter", "pulse" -> {
+				return "aegis";
+			}
+			case "launch", "channel" -> {
+				return "lifeline";
+			}
+			case "bind" -> {
+				return "sanctuary";
+			}
+			case "summon" -> {
+				return "guardian";
+			}
+			case "form", "shift" -> {
+				return "boon";
+			}
+			case "grow" -> {
+				return "mend";
+			}
+			default -> {
+			}
+		}
+		String d = (spell.description == null ? "" : spell.description).toLowerCase(Locale.ROOT);
+		if (d.contains("allies") || d.contains("companions") || d.contains("those around") || d.contains("everyone") || d.contains("teammates")) return "aegis";
+		if (d.contains("circle") || d.contains("sanctuary") || d.contains("consecrat") || d.contains("zone")) return "sanctuary";
+		if (d.contains("resist") || d.contains("immun") || d.contains("breathe") || d.contains("feather") || d.contains("skin")) return "boon";
+		if (d.contains("regenerat") || d.contains("over time")) return "mend";
+		return switch (intention(spell)) {
+			case "Restoration", "Soothing" -> "mend";
+			case "Fortitude" -> "bulwark";
+			case "Preservation" -> "boon";
+			default -> "shell";
+		};
+	}
+
+	/** Does the spell heal, rather than shield? */
+	public static boolean healing(Spell spell) {
+		// The Oracle's own choice comes first: a spell it made a shield stays a shield, whatever the intention.
+		if ("heal".equals(spell.code.type)) return true;
+		if ("shield".equals(spell.code.type)) return false;
+		String i = intention(spell);
+		return i.equals("Restoration") || i.equals("Soothing");
+	}
+
+	/** Maxima sometimes (the same way every time for the same spell) carries a self spell out to everyone near. */
+	private static boolean spreads(Spell spell) {
+		return spell.hasCharge("Maxima") && spell.id != null && (spell.id.hashCode() & 1) == 0;
+	}
+
+	/** Who counts as a friend: players, tamed animals, golems, villagers, familiars and conjured creatures. Never anything hostile. */
+	public static boolean ally(Player caster, LivingEntity e) {
+		if (e == null || !e.isAlive() || e instanceof net.minecraft.world.entity.monster.Enemy) return false;
+		if (e instanceof Player) return !e.isSpectator();
+		if (e instanceof net.minecraft.world.entity.TamableAnimal pet) return pet.isTame();
+		if (e instanceof net.minecraft.world.entity.animal.golem.IronGolem || e instanceof net.minecraft.world.entity.animal.golem.SnowGolem) return true;
+		if (e instanceof net.minecraft.world.entity.npc.villager.AbstractVillager) return true;
+		if (e instanceof net.minecraft.world.entity.animal.allay.Allay) return true;
+		if (e instanceof net.minecraft.world.entity.animal.equine.AbstractHorse horse) return horse.isTamed();
+		return com.omnispell.familiar.Familiars.isFamiliar(e) || Conjuring.isConjured(e);
+	}
+
+	private static List<LivingEntity> alliesNear(ServerPlayer caster, Vec3 at, double radius) {
+		List<LivingEntity> out = new ArrayList<>();
+		for (LivingEntity e : caster.level().getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(at, at).inflate(radius), e -> e != caster && ally(caster, e))) {
+			if (e.position().distanceTo(at) <= radius) out.add(e);
+		}
+		return out;
+	}
+
+	// ------------------------------------------------------------------ the gifts
+
+	private static final net.minecraft.resources.Identifier SHIELD_ID = com.omnispell.Omnispell.id("ally_shield");
+	private static final net.minecraft.resources.Identifier ARMOR_ID = com.omnispell.Omnispell.id("stone_boon");
+	private static final Map<UUID, Long> SHIELD_UNTIL = new HashMap<>();
+
+	/** Absorption hearts for anyone, for a while. */
+	private static void shield(Cast cast, LivingEntity e, float amount, int ticks) {
+		if (e == cast.player) {
+			CombatEffects.giveShield(cast, amount, ticks);
+			return;
+		}
+		AttributeInstance max = e.getAttribute(Attributes.MAX_ABSORPTION);
+		if (max == null) return;
+		float total = Math.max(amount, e.getAbsorptionAmount());
+		max.addOrUpdateTransientModifier(new AttributeModifier(SHIELD_ID, total, AttributeModifier.Operation.ADD_VALUE));
+		e.setAbsorptionAmount(total);
+		long token = Tasks.now() + ticks;
+		SHIELD_UNTIL.put(e.getUUID(), token);
+		Tasks.later(ticks, () -> {
+			if (SHIELD_UNTIL.getOrDefault(e.getUUID(), 0L) != token) return;
+			SHIELD_UNTIL.remove(e.getUUID());
+			AttributeInstance again = e.getAttribute(Attributes.MAX_ABSORPTION);
+			if (again != null) again.removeModifier(SHIELD_ID);
+			e.setAbsorptionAmount(Math.min(e.getAbsorptionAmount(), e.getMaxAbsorption()));
+		});
+	}
+
+	/** The spell's heal or shield, given to one creature. */
+	private static void give(Cast cast, LivingEntity e, float amount, boolean heal, int ticks) {
+		if (heal) {
+			e.heal(amount);
+			cast.level.sendParticles(ParticleTypes.HEART, e.getX(), e.getY() + e.getBbHeight() + 0.2, e.getZ(), 3, 0.3, 0.2, 0.3, 0.0);
+		} else {
+			shield(cast, e, amount, ticks);
+			cast.level.sendParticles(ParticleTypes.ENCHANTED_HIT, e.getX(), e.getY() + e.getBbHeight() * 0.6, e.getZ(), 10, 0.3, 0.4, 0.3, 0.05);
+		}
+	}
+
+	private static void effect(LivingEntity e, Holder<MobEffect> effect, int ticks, int amplifier) {
+		e.addEffect(new MobEffectInstance(effect, ticks, amplifier, false, true, true));
+	}
+
+	/** The element's blessing: what a defense spell of that element is good for. */
+	public static void boon(ServerPlayer caster, LivingEntity e, String element, int ticks) {
+		switch (element) {
+			case "fire" -> effect(e, MobEffects.FIRE_RESISTANCE, ticks, 0);
+			case "water" -> {
+				effect(e, MobEffects.WATER_BREATHING, ticks, 0);
+				effect(e, MobEffects.DOLPHINS_GRACE, ticks, 0);
+			}
+			case "wind" -> {
+				effect(e, MobEffects.SLOW_FALLING, ticks, 0);
+				effect(e, MobEffects.JUMP_BOOST, ticks, 0);
+				effect(e, MobEffects.SPEED, ticks, 0);
+			}
+			case "storm" -> {
+				effect(e, MobEffects.SPEED, ticks, 1);
+				effect(e, MobEffects.HASTE, ticks, 0);
+			}
+			case "stone" -> {
+				effect(e, MobEffects.RESISTANCE, ticks, 0);
+				AttributeInstance armor = e.getAttribute(Attributes.ARMOR);
+				if (armor != null) {
+					armor.addOrUpdateTransientModifier(new AttributeModifier(ARMOR_ID, 6, AttributeModifier.Operation.ADD_VALUE));
+					Tasks.later(ticks, () -> {
+						AttributeInstance again = e.getAttribute(Attributes.ARMOR);
+						if (again != null) again.removeModifier(ARMOR_ID);
+					});
+				}
+			}
+			case "ice" -> {
+				effect(e, MobEffects.RESISTANCE, ticks, 0);
+				e.setTicksFrozen(0);
+			}
+			case "light" -> {
+				effect(e, MobEffects.NIGHT_VISION, Math.max(ticks, 400), 0);
+				for (LivingEntity foe : e.level().getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(16), x -> x instanceof net.minecraft.world.entity.monster.Enemy)) {
+					foe.addEffect(new MobEffectInstance(MobEffects.GLOWING, ticks, 0), caster);
+				}
+			}
+			case "shadow" -> effect(e, MobEffects.INVISIBILITY, ticks, 0);
+			case "nature" -> effect(e, MobEffects.REGENERATION, ticks, 0);
+			case "blood" -> {
+				effect(e, MobEffects.HEALTH_BOOST, ticks, 1);
+				effect(e, MobEffects.REGENERATION, Math.min(ticks, 100), 0);
+			}
+			case "void" -> {
+				effect(e, MobEffects.SLOW_FALLING, ticks, 0);
+				e.fallDistance = 0;
+			}
+			default -> effect(e, MobEffects.RESISTANCE, ticks, 0);
+		}
+	}
+
+	/** Mending reaches plants too: crops nearby grow a little. */
+	private static void tendPlants(ServerLevel level, Vec3 at, int radius) {
+		int grown = 0;
+		BlockPos center = BlockPos.containing(at);
+		for (BlockPos pos : BlockPos.betweenClosed(center.offset(-radius, -2, -radius), center.offset(radius, 2, radius))) {
+			if (grown >= 8) break;
+			BlockState state = level.getBlockState(pos);
+			if (!(state.getBlock() instanceof CropBlock crop) || crop.isMaxAge(state)) continue;
+			crop.growCrops(level, pos.immutable(), state);
+			level.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 0.6, pos.getZ() + 0.5, 4, 0.3, 0.2, 0.3, 0);
+			grown++;
+		}
+	}
+
+	// ------------------------------------------------------------------ casting
+
+	public static boolean cast(Cast cast, int turns) {
+		Spell spell = cast.spell;
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		String form = form(spell);
+		String element = AttackForms.element(spell);
+		boolean heal = healing(spell);
+		int tier = Math.max(1, Math.min(5, spell.tier));
+		int ticks = (int) (cast.turns(Math.max(2, turns)) * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
+		double want = spell.code.primaryValue > 0 ? spell.code.primaryValue : heal ? tier * 8.0 + 10 : tier * 5.0 + 10;
+		if (!heal) want *= 1.0 + Modifiers.value(p, "shield_overcharge") / 100.0;
+		if (form.equals("aegis") || form.equals("sanctuary")) want *= 1.3; // reaching others costs more
+		ManaPool pool = heal ? ManaPool.RESTORATION : ManaPool.BARRIER;
+		double paid = Mana.spend(p, pool, want);
+		if (paid < 1) return cast.fail("Your " + pool.label + " mana is spent.");
+		float amount = (float) (paid * cast.scale * cast.mendingBonus() / (form.equals("aegis") || form.equals("sanctuary") ? 1.3 : 1.0));
+		int color = Conjuring.tintFor(spell);
+		Fx.play(level, spell.visual, Targeting.hand(p), p.position());
+		switch (form) {
+			case "veil" -> {
+				give(cast, p, amount * 0.6f, heal, ticks);
+				effect(p, MobEffects.INVISIBILITY, ticks, 0);
+				Wards.raise(cast, ticks, "shadow", true);
+			}
+			case "boon" -> {
+				boon(p, p, element, ticks);
+				give(cast, p, amount * 0.6f, heal, ticks);
+				level.sendParticles(ParticleTypes.ENCHANT, p.getX(), p.getY() + 1, p.getZ(), 30, 0.5, 0.8, 0.5, 0.5);
+			}
+			case "bulwark" -> {
+				effect(p, MobEffects.RESISTANCE, ticks, 1);
+				effect(p, MobEffects.SLOWNESS, ticks, 0);
+				AttributeInstance kb = p.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+				if (kb != null) {
+					kb.addOrUpdateTransientModifier(new AttributeModifier(ARMOR_ID, 1.0, AttributeModifier.Operation.ADD_VALUE));
+					Tasks.later(ticks, () -> {
+						AttributeInstance again = p.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+						if (again != null) again.removeModifier(ARMOR_ID);
+					});
+				}
+				give(cast, p, amount, heal, ticks);
+				level.playSound(null, p.blockPosition(), SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 1.0f, 0.5f);
+			}
+			case "mend" -> {
+				effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), tier >= 4 ? 1 : 0);
+				give(cast, p, amount * 0.5f, true, ticks);
+				tendPlants(level, p.position(), 4);
+			}
+			case "aegis" -> {
+				double radius = 8 + (spell.hasCharge("Maxima") ? 4 : 0) + (spell.hasCharge("Sparsus") ? 3 : 0);
+				give(cast, p, amount, heal, ticks);
+				boon(p, p, element, Math.min(ticks, 400));
+				int reached = 0;
+				for (LivingEntity friend : alliesNear(p, p.position(), radius)) {
+					give(cast, friend, amount * 0.75f, heal, ticks);
+					boon(p, friend, element, Math.min(ticks, 400));
+					Fx.line(level, p.getBoundingBox().getCenter(), friend.getBoundingBox().getCenter(), color, null, 2);
+					reached++;
+				}
+				Fx.ring(level, p.position().add(0, 0.2, 0), radius, color, null);
+				if (heal) tendPlants(level, p.position(), 6);
+				if (reached == 0) cast.tell("No one was near enough to share it with, so it was yours alone.");
+			}
+			case "lifeline" -> {
+				LivingEntity target = Targeting.entity(p, 24);
+				if (target == null || !ally(p, target)) {
+					target = null;
+					double best = 10 * 10;
+					for (LivingEntity friend : alliesNear(p, p.position(), 10)) {
+						double d = friend.distanceToSqr(p);
+						if (d < best && friend.getHealth() < friend.getMaxHealth() + 1) {
+							best = d;
+							target = friend;
+						}
+					}
+				}
+				LivingEntity who = target == null ? p : target;
+				give(cast, who, amount, heal, ticks);
+				boon(p, who, element, Math.min(ticks, 400));
+				if (who != p) {
+					Fx.line(level, Targeting.hand(p), who.getBoundingBox().getCenter(), color, ParticleTypes.END_ROD, 4);
+					level.playSound(null, who.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 1.4f);
+					if (who instanceof ServerPlayer friend) friend.sendOverlayMessage(net.minecraft.network.chat.Component.literal(p.getName().getString() + "'s spell reaches you.").withStyle(net.minecraft.ChatFormatting.AQUA));
+				}
+			}
+			case "sanctuary" -> sanctuary(cast, p.position(), amount, heal, ticks, element, color);
+			case "barrier" -> {
+				give(cast, p, amount * 0.5f, heal, ticks);
+				barrier(cast, element, ticks);
+			}
+			case "guardian" -> {
+				give(cast, p, amount * 0.5f, heal, ticks);
+				Conjuring.guardian(cast, Math.max(4, turns) * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
+			}
+			default -> { // shell
+				float hearts = amount * (Wards.habit(spell).equals("bulwark") ? 1.25f : 1.0f);
+				give(cast, p, hearts, heal, ticks);
+				Wards.raise(cast, ticks);
+			}
+		}
+		// Maxima sometimes reaches out: a self spell also covers the friends close by, at half strength.
+		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) {
+			for (LivingEntity friend : alliesNear(p, p.position(), 6)) {
+				give(cast, friend, amount * 0.5f, heal, ticks);
+				boon(p, friend, element, Math.min(ticks, 400));
+				Fx.line(level, p.getBoundingBox().getCenter(), friend.getBoundingBox().getCenter(), color, null, 2);
+			}
+		}
+		return true;
+	}
+
+	/** A circle on the ground: friends inside mend or keep their shield; hostile creatures inside are slowed. */
+	private static void sanctuary(Cast cast, Vec3 center, float amount, boolean heal, int ticks, String element, int color) {
+		ServerLevel level = cast.level;
+		ServerPlayer p = cast.player;
+		double radius = 4 + cast.spell.tier / 2.0 + (cast.spell.hasCharge("Maxima") ? 2 : 0);
+		int seconds = Math.max(4, ticks / 20);
+		float perSecond = Math.max(0.5f, amount * 1.5f / seconds);
+		level.playSound(null, BlockPos.containing(center), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8f, 1.4f);
+		for (int k = 0; k < ticks; k += 10) {
+			int beat = k;
+			Tasks.later(k, () -> {
+				Fx.ring(level, center.add(0, 0.1, 0), radius, color, null);
+				for (int i = 0; i < 6; i++) {
+					double a = level.getRandom().nextDouble() * Math.PI * 2, r = level.getRandom().nextDouble() * radius;
+					level.sendParticles(ParticleTypes.END_ROD, center.x + Math.cos(a) * r, center.y + 0.2, center.z + Math.sin(a) * r, 0, 0, 0.08, 0, 1);
+				}
+				if (beat % 20 != 0) return;
+				List<LivingEntity> inside = new ArrayList<>(alliesNear(p, center, radius));
+				if (p.isAlive() && p.position().distanceTo(center) <= radius) inside.add(p);
+				for (LivingEntity friend : inside) {
+					if (heal) friend.heal(perSecond);
+					else if (friend.getAbsorptionAmount() < amount * 0.5f) shield(cast, friend, amount * 0.5f, 40);
+				}
+				for (LivingEntity foe : level.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(center, center).inflate(radius), x -> x instanceof net.minecraft.world.entity.monster.Enemy)) {
+					foe.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 30, 1), p);
+				}
+				if (heal && beat % 100 == 0) tendPlants(level, center, (int) radius);
+			});
+		}
+	}
+
+	/** A barrier wall two blocks in front of you, in the element's colour, gone when the spell ends. */
+	private static void barrier(Cast cast, String element, int ticks) {
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		net.minecraft.core.Direction facing = p.getDirection();
+		net.minecraft.core.Direction side = facing.getClockWise();
+		boolean big = cast.spell.hasCharge("Maxima");
+		int half = big ? 2 : 1;
+		int height = big ? 4 : 3;
+		net.minecraft.world.level.block.Block block = element.equals("wind") ? Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.WHITE) : TempBlocks.material(element);
+		BlockPos base = p.blockPosition().relative(facing, 2);
+		for (int s = -half; s <= half; s++) {
+			for (int h = 0; h < height; h++) TempBlocks.place(level, base.relative(side, s).above(h), block, ticks);
+		}
+		level.playSound(null, base, SoundEvents.AMETHYST_BLOCK_PLACE, SoundSource.PLAYERS, 1.0f, 0.8f);
+	}
+
+	// ------------------------------------------------------------------ the book
+
+	public static String describe(Spell spell) {
+		String form = form(spell);
+		String element = AttackForms.element(spell);
+		boolean heal = healing(spell);
+		String gift = heal ? "healing" : "a shield of extra hearts";
+		String what = switch (form) {
+			case "veil" -> "It hides you: you turn invisible, take " + gift + ", and some blows pass through you.";
+			case "boon" -> "It blesses you with " + boonText(element) + ", and a little " + gift + ".";
+			case "bulwark" -> "It roots you like a statue: blows land much softer and nothing moves you, but you walk slowly. You also take " + gift + ".";
+			case "mend" -> "It mends you over time, and makes crops nearby grow.";
+			case "aegis" -> "It bursts outward: you and every friend near you (players, pets, golems, villagers, familiars, conjured creatures) get " + gift + " and " + boonText(element) + ".";
+			case "lifeline" -> "It reaches out to the friend you look at (or the nearest one hurt), giving them " + gift + " and " + boonText(element) + ". With no friend near, it is yours.";
+			case "sanctuary" -> "It marks a circle on the ground around you. Friends standing in it " + (heal ? "mend every second" : "keep a shield") + " while it lasts, and hostile creatures in it are slowed.";
+			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
+			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
+			default -> "It gives you " + gift + ". " + Wards.describe(spell);
+		};
+		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Maxima carries it out to your friends nearby too, at half strength.";
+		return what;
+	}
+
+	private static String boonText(String element) {
+		return switch (element) {
+			case "fire" -> "fire resistance";
+			case "water" -> "water breathing and swift swimming";
+			case "wind" -> "slow falling, higher jumps and speed";
+			case "storm" -> "speed and haste";
+			case "stone" -> "stone skin (resistance and extra armor)";
+			case "ice" -> "resistance and warmth against the cold";
+			case "light" -> "night vision, and every hostile creature near you glows";
+			case "shadow" -> "invisibility";
+			case "nature" -> "regeneration";
+			case "blood" -> "extra hearts of health";
+			case "void" -> "slow falling";
+			default -> "resistance";
+		};
+	}
+}

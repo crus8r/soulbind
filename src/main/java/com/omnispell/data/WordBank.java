@@ -151,11 +151,13 @@ public final class WordBank {
 	public static boolean attributeFits(String spellType, Word attribute) {
 		String name = attribute.english;
 		List<String> kinds = switch (name) {
-			case "Sword", "Blade/Knife", "Club", "Spear" -> List.of("attack");
+			// Conjurations call creatures, armed warriors (the weapon words) or masonry (Bridge, Wall, Tower).
+			case "Sword", "Blade/Knife", "Club", "Spear" -> List.of("attack", "conjuration");
 			case "Arrow", "Bow" -> List.of("attack", "conjuration");
-			case "Shield", "Cloak", "Door", "Statue" -> List.of("defense", "conjuration");
-			case "Wall", "Tower" -> List.of("defense", "conjuration", "exploration");
-			case "Bridge", "Bed", "Fireplace", "Chest/Box", "Currency", "Cloud" -> List.of("exploration", "conjuration", "defense");
+			case "Shield", "Cloak", "Door" -> List.of("defense");
+			case "Statue" -> List.of("defense", "conjuration");
+			case "Wall", "Tower", "Bridge" -> List.of("defense", "conjuration", "exploration");
+			case "Bed", "Fireplace", "Chest/Box", "Currency", "Cloud" -> List.of("exploration", "defense");
 			case "Bird", "Wolf", "Bear", "Fox", "Eagle", "Snake", "Horse", "Cat", "Insect", "Frog" -> List.of("conjuration", "attack", "defense");
 			default -> null;
 		};

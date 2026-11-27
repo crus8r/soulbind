@@ -153,6 +153,9 @@ public final class Casting {
 				default -> explorePool(spell.toggle);
 			};
 		}
+		// Conjured creatures and masonry draw on Spirit; defense spells on Restoration when they heal, Barrier when they shield.
+		if (spell.type.equals("conjuration")) return com.omnispell.player.ManaPool.SPIRIT;
+		if (spell.type.equals("defense")) return Defenses.healing(spell) ? com.omnispell.player.ManaPool.RESTORATION : com.omnispell.player.ManaPool.BARRIER;
 		// Attacks of the body's elements (fire, ice, storm, stone, nature) draw on Force; attacks of the unseen ones (shadow, light, void, blood, arcane) draw on Spirit.
 		if (spell.type.equals("attack")) return spiritElement(spell.code.element) ? com.omnispell.player.ManaPool.SPIRIT : com.omnispell.player.ManaPool.FORCE;
 		return switch (spell.code.type == null ? "" : spell.code.type) {
@@ -172,7 +175,10 @@ public final class Casting {
 			case "heal", "nourish", "salve", "growth", "mend_land", "thicket", "clear", "calm" -> com.omnispell.player.ManaPool.RESTORATION;
 			case "bound", "launch", "dash", "leap", "grapple", "tether", "current", "mount", "gust", "blink", "shade", "decoy", "mirage", "phantom", "smoke_screen", "blackout", "bridge", "platform" -> com.omnispell.player.ManaPool.PHASE;
 			case "black_hole", "vacuum", "vortex", "sky_beam" -> com.omnispell.player.ManaPool.SPIRIT;
-			case "reveal", "scout", "true_sight", "track", "charm", "restraint", "entangle", "polymorph", "transmute", "prospect", "glimmer", "illuminate", "weather", "attune" -> com.omnispell.player.ManaPool.SPIRIT;
+			case "reveal", "scout", "true_sight", "track", "charm", "restraint", "entangle", "polymorph", "transmute", "prospect", "glimmer", "illuminate", "weather", "attune",
+					"survey", "echo", "augury", "waymark", "lull", "stash" -> com.omnispell.player.ManaPool.SPIRIT;
+			case "rest" -> com.omnispell.player.ManaPool.RESTORATION;
+			case "cloud" -> com.omnispell.player.ManaPool.PHASE;
 			default -> com.omnispell.player.ManaPool.FORCE;
 		};
 	}
@@ -189,17 +195,40 @@ public final class Casting {
 		if (spell != null && spell.isExploration()) {
 			// Exploration spells mostly pay as they go. Those that move you, or tear at space, pay up front.
 			double cost = switch (spell.toggle == null ? "" : spell.toggle) {
-				case "bound", "launch" -> 1.5;
+				// These pay as they go, from inside the effect, so they cost nothing up front.
+				case "kindle", "nourish", "gust", "clod", "chill", "blink", "shade", "salve",
+						"invisibility", "fade", "camouflage", "silent_step", "teleport", "phase",
+						"force_field", "heal", "stun", "charm", "restraint", "entangle", "trap", "golem", "guardian", "" -> 0;
+				case "glimmer", "augury", "waymark", "platform", "smoke_screen", "decoy", "mirage", "phantom" -> 1.0;
+				case "bound", "launch", "current", "mount", "bridge", "cloud", "blackout" -> 1.5;
 				case "dash", "leap", "grapple", "tether" -> 1.0;
-				case "current", "mount" -> 1.5;
-				case "vortex" -> 12;
-				case "vacuum" -> 15;
-				case "black_hole" -> 30;
+				case "path", "stairs", "gather", "survey", "stash" -> 2;
+				case "carve", "drill", "pit", "transmute", "push", "projectile", "solidify", "dry", "clear", "calm", "reveal", "track", "prospect", "echo", "deflect", "anchor", "pillar", "conjure", "tree", "attune", "hearth", "rest", "illuminate" -> 3;
+				case "moat", "flatten", "raise_wall", "shrapnel", "construct_weapon", "barrier_wall", "armor", "ward_element", "mend_land", "growth", "thicket", "weather", "scout", "true_sight", "lull" -> 4;
+				case "crater", "beam", "ring", "disintegrate" -> 5;
+				case "dome", "area_damage", "eruption", "strike", "field", "polymorph" -> 6;
+				case "detonate" -> 7;
+				case "vortex", "sink" -> 12;
 				case "sky_beam" -> 12;
-				case "sink" -> 12;
-				case "quicksand" -> 15;
-				default -> 0;
+				case "vacuum", "quicksand" -> 15;
+				case "black_hole" -> 30;
+				default -> 3;
 			};
+			// Stronger spells cost a little more; Maxima more again, Minima less.
+			if (cost > 0 && cost < 10) cost *= 0.8 + 0.1 * Math.max(1, Math.min(5, spell.tier));
+			if (spell.hasCharge("Maxima")) cost *= 1.3;
+			if (spell.hasCharge("Minima")) cost *= 0.7;
+			if (infinity(spell)) cost *= com.omnispell.player.Mana.INFINITY_DISCOUNT;
+			return cost;
+		}
+		if (spell != null && "conjuration".equals(spell.type)) {
+			// A conjuration pays up front in Spirit. Bigger, or more of them, costs more.
+			double cost = 8 + 3 * Math.max(1, Math.min(5, spell.tier));
+			boolean many = spell.hasCharge("Sparsus"), big = spell.hasCharge("Maxima");
+			if (many && big) cost *= 2.2;
+			else if (many) cost *= 1.6;
+			else if (big) cost *= 1.5;
+			if (spell.hasCharge("Minima")) cost *= 0.6;
 			if (infinity(spell)) cost *= com.omnispell.player.Mana.INFINITY_DISCOUNT;
 			return cost;
 		}
@@ -238,6 +267,7 @@ public final class Casting {
 			double turns = cooldownTurns(spell);
 			turns -= Modifiers.value(player, "cooldown_reduction") + Modifiers.value(player, "mana_efficiency");
 			seconds = Math.max(0, turns) * Omnispell.CONFIG.turnSeconds;
+			if (spell.type.equals("conjuration") && spell.hasCharge("Sparsus")) seconds *= spell.hasCharge("Maxima") ? 2.0 : 1.5; // a crowd takes longer to call again
 			if (spell.type.equals("attack")) seconds *= 0.7; // attack spells are paid for in Force mana now, so they come back sooner
 		}
 		seconds *= 1.0 - Math.min(60.0, cast.core.haste + com.omnispell.player.Mana.alacrityPercent(player)) / 100.0;

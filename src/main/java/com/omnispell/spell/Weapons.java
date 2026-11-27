@@ -65,10 +65,10 @@ public final class Weapons {
 				Arrow arrow = new Arrow(level, p, new ItemStack(Items.ARROW), null);
 				float spread = kind.equals("bow") ? (n - 1) * 6f : 0f;
 				arrow.shootFromRotation(p, p.getXRot(), p.getYRot() + spread, 0f, 3.2f, 0.4f);
-				arrow.setBaseDamage(damage / 3.2 / (kind.equals("bow") ? 1.6 : 1.0)); // an arrow's damage grows with its speed
+				arrow.setBaseDamage(damage * 0.5 / 3.2 / (kind.equals("bow") ? 1.6 : 1.0)); // the spell itself follows the arrows, so they carry half; an arrow's damage grows with its speed
 				arrow.setCritArrow(true);
 				arrow.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
-				if ("fire".equals(cast.spell.code.element)) arrow.igniteForSeconds(100);
+				AttackForms.tip(arrow, AttackForms.element(cast.spell), cast.spell.tier);
 				arrow.addTag("omnispell_magic_arrow");
 				level.addFreshEntity(arrow);
 				for (int k = 1; k <= 6; k++) {
@@ -77,7 +77,7 @@ public final class Weapons {
 				}
 			}
 			level.playSound(null, p.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 1.0f, 1.4f);
-			return true;
+			return false; // the arrows fly, and the spell is still cast: its own effect follows them
 		}
 		int seconds = 20 + 10 * Math.max(1, Math.min(5, cast.spell.tier));
 		IMBUED.put(p.getUUID(), new Imbued(cast.spell, kind, Tasks.now() + seconds * 20L));

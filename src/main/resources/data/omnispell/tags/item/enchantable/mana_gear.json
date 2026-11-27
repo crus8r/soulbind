@@ -4,6 +4,7 @@
     "#minecraft:enchantable/armor",
     "omnispell:wizard_hat",
     "omnispell:wizard_robe",
-    "omnispell:wizard_boots"
+    "omnispell:wizard_boots",
+    "omnispell:wand"
   ]
 }

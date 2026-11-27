@@ -58,6 +58,9 @@ public class Omnispell implements ModInitializer {
 		com.omnispell.charm.Charms.register();
 		com.omnispell.familiar.Familiars.register();
 		com.omnispell.spell.Conjuring.register();
+		// Conjured masonry gives nothing when broken: the block simply goes.
+		net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
+				!(level instanceof net.minecraft.server.level.ServerLevel server) || com.omnispell.spell.Masonry.breakBlock(server, pos));
 		com.omnispell.boss.Lairs.register();
 		com.omnispell.world.Cauldrons.register();
 		com.omnispell.world.ForestFeatures.register();

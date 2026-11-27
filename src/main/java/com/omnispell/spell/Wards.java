@@ -42,6 +42,7 @@ public final class Wards {
 		final int tier;
 		final long until;
 		final int color;
+		boolean quiet;
 
 		Ward(Cast cast, String element, String habit, int tier, long until, int color) {
 			this.cast = cast;
@@ -123,11 +124,17 @@ public final class Wards {
 
 	/** Raised by every shield spell, for as long as its hearts last. */
 	public static void raise(Cast cast, int ticks) {
+		raise(cast, ticks, null, false);
+	}
+
+	/** A ward with its element chosen for it (a veil is always shadow), and quiet ones draw no shell. */
+	public static void raise(Cast cast, int ticks, String elementOverride, boolean quiet) {
 		ServerPlayer player = cast.player;
 		Spell spell = cast.spell;
-		String element = AttackForms.element(spell);
+		String element = elementOverride != null ? elementOverride : AttackForms.element(spell);
 		int color = Conjuring.tintFor(spell);
 		Ward ward = new Ward(cast, element, habit(spell), Math.max(1, Math.min(5, spell.tier)), Tasks.now() + ticks, color);
+		ward.quiet = quiet;
 		ACTIVE.put(player.getUUID(), ward);
 		if (element.equals("fire")) player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, ticks, 0, true, false));
 		if (element.equals("water")) player.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, ticks, 0, true, false));
@@ -142,7 +149,7 @@ public final class Wards {
 			case "wind" -> SoundEvents.BREEZE_IDLE_GROUND;
 			default -> SoundEvents.AMETHYST_BLOCK_RESONATE;
 		}, SoundSource.PLAYERS, 1.0f, 1.0f);
-		shell(cast.level, player, ward, 3);
+		if (!quiet) shell(cast.level, player, ward, 3);
 	}
 
 	private static final net.minecraft.resources.Identifier STONE_ID = com.omnispell.Omnispell.id("stone_ward");
@@ -198,7 +205,7 @@ public final class Wards {
 			}
 			if (now % 4 != 0) continue;
 			ServerLevel level = player.level();
-			shell(level, player, ward, 2);
+			if (!ward.quiet) shell(level, player, ward, 2);
 			if (ward.habit.equals("burst") && player.getAbsorptionAmount() <= 0) broken(player);
 			if (now % 20 == 0) {
 				if (ward.element.equals("nature")) player.heal(0.5f + 0.25f * ward.tier);

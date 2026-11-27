@@ -34,14 +34,14 @@ public final class Cast {
 
 	/** Wand bonus to damage for a spell of this element. */
 	public double damageBonus(String element) {
-		double percent = wood.damage + core.damage;
+		double percent = wood.damage + core.damage + com.omnispell.player.Mana.armorDamage(player);
 		if (element != null && (element.equals(wood.element) || element.equals(core.element))) percent += 20;
 		return 1.0 + percent / 100.0;
 	}
 
 	/** Wand bonus to healing and shields. */
 	public double mendingBonus() {
-		return 1.0 + core.mending / 100.0;
+		return 1.0 + (core.mending + com.omnispell.player.Mana.armorMending(player)) / 100.0;
 	}
 
 	public int turns(double turns) {

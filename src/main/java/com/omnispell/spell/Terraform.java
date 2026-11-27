@@ -247,7 +247,7 @@ public final class Terraform {
 		return switch (toggle == null ? "" : toggle) {
 			case "carve", "drill", "crater", "pit", "moat", "flatten", "dry", "clear", "raise_wall", "ring", "dome", "platform", "mend_land",
 					"calm", "attune", "growth", "illuminate", "prospect", "thicket", "solidify", "weather", "gather", "conjure", "path", "tree",
-					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull", "bound", "kindle", "nourish", "gust", "clod", "chill", "glimmer", "blink", "shade", "salve" -> true;
+					"stairs", "pillar", "strike", "field", "launch", "survey", "echo", "augury", "waymark", "lull", "bound", "hearth", "stash", "rest", "cloud", "kindle", "nourish", "gust", "clod", "chill", "glimmer", "blink", "shade", "salve" -> true;
 			default -> false;
 		};
 	}
@@ -311,6 +311,11 @@ public final class Terraform {
 			case "waymark" -> "The first cast marks where you stand. Cast it again anywhere to be shown the way back.";
 			case "lull" -> "Every creature within " + (8 + 3 * t) + " blocks forgets it was hunting you, for a while.";
 			case "pillar" -> "Lifts you on a pillar of " + stuff + ", " + (2 + t * 3) + " blocks high.";
+			case "bridge" -> "Lays a bridge of " + stuff + " across the gap ahead of you, two blocks wide and " + (spell.hasCharge("Maxima") ? 21 : spell.hasCharge("Minima") ? 10 : 14) + " long.";
+			case "hearth" -> "Kindles a campfire where you look. It lights the dark and cooks what you lay on it, and burns out after " + (60 + 20 * t) + " seconds.";
+			case "stash" -> "Opens your ender chest wherever you are.";
+			case "rest" -> "Makes this spot your home: you will wake here when you die. Also mends " + (2 + t) + " hearts.";
+			case "cloud" -> "Gathers a cloud of hardened air under your feet, " + (1 + t / 2) * 2 + 1 + " blocks across, and lets you drift down gently. Hostile creatures fall straight through it.";
 			default -> OLD.getOrDefault(toggle, "Its effect is its own.");
 		};
 	}
@@ -428,7 +433,10 @@ public final class Terraform {
 			case "carve", "drill", "platform", "pillar", "gather", "path", "stairs", "launch", "augury", "waymark", "bound" -> 6;
 			case "kindle", "nourish", "gust", "clod", "chill", "glimmer", "blink" -> 1.5;
 			case "shade", "salve" -> 8;
-			case "attune", "weather", "calm", "dome", "ring", "thicket" -> 20;
+			case "attune", "weather", "calm", "dome", "ring", "thicket", "hearth" -> 20;
+			case "rest" -> 30;
+			case "stash" -> 3;
+			case "cloud" -> 8;
 			default -> 10;
 		};
 	}
@@ -1048,6 +1056,43 @@ public final class Terraform {
 				p.setDeltaMovement(p.getDeltaMovement().multiply(1, 0, 1));
 				p.syncVelocity = true;
 				Fx.impact(level, p.position(), fx, tier);
+			}
+			case "hearth" -> {
+				BlockHitResult hit = Targeting.block(p, 8);
+				if (hit.getType() == HitResult.Type.MISS) return c.fail("Look at the ground where the fire should burn.");
+				BlockPos at = hit.getBlockPos().relative(hit.getDirection());
+				if (!level.getBlockState(at).canBeReplaced() || !level.getFluidState(at).isEmpty()) return c.fail("There is no room for a fire there.");
+				if (!TempBlocks.place(level, at, Blocks.CAMPFIRE, (60 + 20 * tier) * 20)) return c.fail("There is no room for a fire there.");
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, 12, 0.3, 0.2, 0.3, 0.02);
+				level.playSound(null, at, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8f, 1.2f);
+				job.changed++;
+			}
+			case "stash" -> {
+				p.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inventory, who) -> net.minecraft.world.inventory.ChestMenu.threeRows(id, inventory, who.getEnderChestInventory()),
+						net.minecraft.network.chat.Component.translatable("container.enderchest")));
+				level.playSound(null, p.blockPosition(), SoundEvents.ENDER_CHEST_OPEN, SoundSource.PLAYERS, 0.8f, 1.0f);
+				job.changed++;
+			}
+			case "rest" -> {
+				p.setRespawnPosition(new ServerPlayer.RespawnConfig(net.minecraft.world.level.storage.LevelData.RespawnData.of(level.dimension(), p.blockPosition(), p.getYRot(), 0f), true), false);
+				p.heal(2f * (2 + tier));
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.HEART, p.getX(), p.getY() + 1.8, p.getZ(), 6, 0.4, 0.2, 0.4, 0.0);
+				c.tell("You will wake here.");
+				job.changed++;
+			}
+			case "cloud" -> {
+				BlockPos under = p.blockPosition().below();
+				int r = 1 + tier / 2;
+				for (int dx = -r; dx <= r; dx++) {
+					for (int dz = -r; dz <= r; dz++) {
+						if (dx * dx + dz * dz > r * r + 1) continue;
+						if (TempBlocks.place(level, under.offset(dx, 0, dz), com.omnispell.item.OmniItems.HARDENED_AIR, 600)) job.changed++;
+					}
+				}
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOW_FALLING, 200, 0, false, false));
+				p.fallDistance = 0;
+				level.sendParticles(net.minecraft.core.particles.ParticleTypes.CLOUD, p.getX(), p.getY(), p.getZ(), 30, 1.2, 0.1, 1.2, 0.02);
+				if (job.changed == 0) job.changed++; // the gentle fall still happens
 			}
 			case "pillar" -> {
 				BlockPos foot = p.blockPosition();

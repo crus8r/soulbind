@@ -171,7 +171,7 @@ public final class Charms {
 
 	/** One slot, plus one for each level of Attunement. */
 	public static int slots(ItemStack armor) {
-		if (com.omnispell.item.WandItem.isWand(armor)) return 3;
+		if (com.omnispell.item.WandItem.isWand(armor)) return 3 + SoulBind.enchantmentLevel(armor, ATTUNEMENT);
 		if (!isArmor(armor)) return 0;
 		return (com.omnispell.item.Attire.isAttire(armor) ? 2 : 1) + SoulBind.enchantmentLevel(armor, ATTUNEMENT);
 	}

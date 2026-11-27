@@ -40,6 +40,46 @@ public final class Mana {
 		return 0;
 	}
 
+	/** What a worn piece's material does besides holding mana, in percent: regen, mending, crit, damage. */
+	private static int materialBonus(ItemStack stack, String kind) {
+		if (stack.isEmpty()) return 0;
+		String path = BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
+		return switch (kind) {
+			case "regen" -> path.startsWith("golden_") ? 8 : path.startsWith("copper_") ? 10 : 0; // gold restores, copper conducts
+			case "mending" -> path.startsWith("iron_") ? 5 : 0;                                    // iron steadies shields and healing
+			case "crit" -> path.startsWith("diamond_") ? 4 : 0;                                    // diamond is precision
+			case "damage" -> path.startsWith("netherite_") ? 5 : 0;                                // netherite is force
+			default -> 0;
+		};
+	}
+
+	private static int worn(ServerPlayer player, String kind) {
+		int total = 0;
+		for (EquipmentSlot slot : ARMOR) total += materialBonus(player.getItemBySlot(slot), kind);
+		return total;
+	}
+
+	/** Extra healing and shield strength from worn iron, in percent. */
+	public static int armorMending(ServerPlayer player) {
+		return worn(player, "mending");
+	}
+
+	/** Extra chance for a spell to strike twice as hard from worn diamond, in percent. */
+	public static int armorCrit(ServerPlayer player) {
+		return worn(player, "crit");
+	}
+
+	/** Extra spell damage from worn netherite, in percent. */
+	public static int armorDamage(ServerPlayer player) {
+		return worn(player, "damage");
+	}
+
+	/** An enchantment's level on the wand in hand: the mana enchantments work on wands as they do on armor. */
+	private static int onWand(ServerPlayer player, String id) {
+		ItemStack wand = WandItem.heldWand(player);
+		return wand.isEmpty() ? 0 : SoulBind.enchantmentLevel(wand, id);
+	}
+
 	public static double max(ServerPlayer player, ManaPool pool) {
 		double percent = 0;
 		ItemStack wand = WandItem.heldWand(player);
@@ -54,6 +94,7 @@ public final class Mana {
 			percent += armorPercent(piece);
 			percent += 10 * SoulBind.enchantmentLevel(piece, RESERVOIR);
 		}
+		percent += 10 * onWand(player, RESERVOIR);
 		percent += com.omnispell.charm.Charms.manaPercent(player);
 		return Math.round(pool.baseMax * (1.0 + percent / 100.0) * 10.0) / 10.0;
 	}
@@ -66,6 +107,7 @@ public final class Mana {
 		for (EquipmentSlot slot : ARMOR) {
 			percent += 15 * SoulBind.enchantmentLevel(player.getItemBySlot(slot), WELLSPRING);
 		}
+		percent += 15 * onWand(player, WELLSPRING) + worn(player, "regen");
 		percent += com.omnispell.charm.Charms.regenPercent(player) + com.omnispell.familiar.Familiars.spiritPercent(player);
 		return 1.0 + percent / 100.0;
 	}
@@ -78,6 +120,7 @@ public final class Mana {
 			percent += 4 * SoulBind.enchantmentLevel(piece, ALACRITY);
 			if (!piece.isEmpty() && BuiltInRegistries.ITEM.getKey(piece.getItem()).getPath().startsWith("chainmail_")) percent += 3;
 		}
+		percent += 4 * onWand(player, ALACRITY);
 		return percent;
 	}
 

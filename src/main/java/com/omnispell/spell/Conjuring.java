@@ -48,7 +48,8 @@ public final class Conjuring {
 	}
 
 	/** A body: its entity type and how much bigger or smaller than usual. */
-	public record Body(String id, EntityType<? extends Mob> type, double scale, boolean flies) {
+	/** A body: its entity type, its size, whether it flies, and the weapon it carries (null for none). */
+	public record Body(String id, EntityType<? extends Mob> type, double scale, boolean flies, String weapon) {
 	}
 
 	private static final Map<String, Body> BODIES = new HashMap<>();
@@ -65,17 +66,57 @@ public final class Conjuring {
 		body("eagle", EntityTypes.PARROT, 2.0, true, "eagle", "griffin", "gryphon", "roc", "condor", "thunderbird");
 		body("insect", EntityTypes.BEE, 1.5, true, "insect", "bee", "wasp", "hornet", "swarm", "beetle", "moth", "locust");
 		body("spider", EntityTypes.SPIDER, 1.0, false, "spider", "scorpion", "arachnid", "tarantula");
-		body("golem", EntityTypes.IRON_GOLEM, 0.85, false, "golem", "construct", "statue", "sentinel", "colossus", "titan", "knight", "automaton", "gargoyle");
+		body("golem", EntityTypes.IRON_GOLEM, 0.85, false, "golem", "construct", "statue", "sentinel", "colossus", "titan", "automaton", "gargoyle");
+		warrior("archer", EntityTypes.SKELETON, 1.0, "bow", "archer", "archers", "bowman", "ranger", "marksman", "skeleton");
+		warrior("swordsman", EntityTypes.SKELETON, 1.05, "sword", "swordsman", "warrior", "soldier", "knight", "legionnaire", "champion");
+		warrior("duelist", EntityTypes.SKELETON, 0.95, "dagger", "assassin", "rogue", "duelist", "thief", "cutthroat");
+		warrior("brute", EntityTypes.VINDICATOR, 1.0, "club", "brute", "barbarian", "berserker", "ogre", "troll");
+		warrior("spearman", EntityTypes.DROWNED, 1.0, "spear", "spearman", "lancer", "hoplite", "pikeman", "harpooner");
 		body("spirit", EntityTypes.VEX, 1.4, true, "spirit", "wisp", "wraith", "ghost", "specter", "spectre", "phantom", "shade", "imp", "fairy", "sprite", "elemental", "familiar");
 	}
 
 	private static void body(String id, EntityType<? extends Mob> type, double scale, boolean flies, String... words) {
-		Body b = new Body(id, type, scale, flies);
+		Body b = new Body(id, type, scale, flies, null);
 		for (String w : words) BODIES.put(w, b);
+	}
+
+	/** Armed warriors: skeletons and their kin, each fighting with its weapon. They walk; they do not fly. */
+	private static void warrior(String id, EntityType<? extends Mob> type, double scale, String weapon, String... words) {
+		Body b = new Body(id, type, scale, false, weapon);
+		BODIES.put(id, b);
+		for (String w : words) BODIES.put(w, b);
+	}
+
+	/** The weapon words make warriors: Bow and Arrow archers, Sword swordsmen, Blade duelists, Club brutes, Spear spearmen. */
+	private static Body warriorFor(Spell spell) {
+		for (String id : spell.words) {
+			String warrior = switch (id) {
+				case "attribute:Bow", "attribute:Arrow" -> "archer";
+				case "attribute:Sword" -> "swordsman";
+				case "attribute:Blade/Knife" -> "duelist";
+				case "attribute:Club" -> "brute";
+				case "attribute:Spear" -> "spearman";
+				default -> null;
+			};
+			if (warrior != null) return BODIES.get(warrior);
+		}
+		return null;
+	}
+
+	/** Some bodies change with the element: a frost archer is a stray, a fire swordsman a wither skeleton. */
+	private static EntityType<? extends Mob> variant(Body body, String element) {
+		return switch (body.id) {
+			case "archer" -> element.equals("ice") ? EntityTypes.STRAY : element.equals("nature") || element.equals("water") ? EntityTypes.BOGGED : EntityTypes.SKELETON;
+			case "swordsman" -> element.equals("fire") || element.equals("shadow") || element.equals("void") || element.equals("blood") ? EntityTypes.WITHER_SKELETON : EntityTypes.SKELETON;
+			case "brute" -> element.equals("fire") ? EntityTypes.PIGLIN_BRUTE : EntityTypes.VINDICATOR;
+			default -> body.type;
+		};
 	}
 
 	/** The body for a spell: its creature attribute word first, then its name and description, then its element. */
 	public static Body bodyFor(Spell spell, String name) {
+		Body armed = warriorFor(spell);
+		if (armed != null) return armed;
 		for (String id : spell.words) {
 			Word word = WordBank.word(id);
 			if (word != null && word.type.equals("attribute")) {
@@ -160,7 +201,10 @@ public final class Conjuring {
 		final double base;
 		LivingEntity foe;
 		int biteReady;
+		int shootReady = 20;
 		float bite = 4;
+		final java.util.Set<String> traits = new java.util.HashSet<>();
+		boolean ended;
 		int boltReady = 20;
 
 		Active(Mob mob, UUID owner, Cast cast, Body body, double base, LivingEntity foe) {
@@ -179,14 +223,56 @@ public final class Conjuring {
 		return entity != null && ACTIVE.containsKey(entity.getUUID());
 	}
 
-	/** Brings the creature into the world. Returns false if it could not be. */
+	/** How many come: one, or two to three with Sparsus, or three to five with Sparsus and Maxima. */
+	public static int count(Spell spell, java.util.Random random) {
+		if (!spell.hasCharge("Sparsus")) return 1;
+		return spell.hasCharge("Maxima") ? 3 + random.nextInt(3) : 2 + random.nextInt(2);
+	}
+
+	/** Maxima alone makes one great creature: twice the size, harder hits, a shorter stay. */
+	private static boolean giant(Spell spell) {
+		return spell.hasCharge("Maxima") && !spell.hasCharge("Sparsus");
+	}
+
+	/** Brings the creature (or creatures, or the masonry) into the world. Returns false if it could not. */
 	public static boolean spawn(Cast cast, String name, double damage, double turns) {
+		if (Masonry.structure(cast.spell) != null) return Masonry.build(cast);
+		Spell spell = cast.spell;
+		double life = turns;
+		if (giant(spell)) life *= 0.6;
+		if (spell.hasCharge("Minima")) life *= 1.3;
+		if (spell.hasCharge("Duratus")) life *= 1.6;
+		int n = count(spell, new java.util.Random());
+		int made = 0;
+		for (int i = 0; i < n; i++) if (spawnOne(cast, name, damage, life, i, n) != null) made++;
+		return made > 0 || cast.fail("The conjuration finds no purchase here.");
+	}
+
+	/** A defense spell's guardian: one creature that fights beside you and takes a share of your blows. */
+	public static boolean guardian(Cast cast, double turns) {
+		Spell spell = cast.spell;
+		String name = (spell.label() == null ? "Spell" : spell.label()) + " Guardian";
+		double damage = spell.code.primaryValue > 0 ? spell.code.primaryValue * 0.6 : spell.tier * 5.0;
+		Active a = spawnOne(cast, name, damage, turns, 0, 1);
+		if (a == null) return false;
+		a.traits.add("guard");
+		a.traits.add("taunt");
+		return true;
+	}
+
+	private static Active spawnOne(Cast cast, String name, double damage, double turns, int index, int of) {
 		ServerPlayer player = cast.player;
 		ServerLevel level = cast.level;
-		Body body = bodyFor(cast.spell, name);
-		Mob mob = body.type.create(level, EntitySpawnReason.MOB_SUMMONED);
-		if (mob == null) return cast.fail("The conjuration finds no purchase here.");
-		Vec3 at = player.position().add(player.getLookAngle().multiply(1.8, 0, 1.8)).add(0, body.flies ? 1.2 : 0, 0);
+		Spell spell = cast.spell;
+		String element = AttackForms.element(spell);
+		Body body = bodyFor(spell, name);
+		Mob mob = variant(body, element).create(level, EntitySpawnReason.MOB_SUMMONED);
+		if (mob == null) return null;
+		// Several come in an arc in front of the caster.
+		double spread = of == 1 ? 0 : (index - (of - 1) / 2.0) * 1.6;
+		Vec3 look = player.getLookAngle().multiply(1, 0, 1);
+		look = look.lengthSqr() < 0.01 ? new Vec3(1, 0, 0) : look.normalize();
+		Vec3 at = player.position().add(look.scale(1.8)).add(-look.z * spread, 0, look.x * spread);
 		mob.snapTo(at.x, player.getY() + (body.flies ? 1.2 : 0), at.z, player.getYRot(), 0);
 		((com.omnispell.mixin.MobGoalsAccessor) mob).omnispell$targetSelector().removeAllGoals(goal -> true);
 		mob.setTarget(null);
@@ -194,31 +280,123 @@ public final class Conjuring {
 		if (mob instanceof net.minecraft.world.entity.TamableAnimal pet) pet.tame(player);
 		if (mob instanceof net.minecraft.world.entity.animal.golem.IronGolem golem) golem.setPlayerCreated(true);
 		if (mob instanceof net.minecraft.world.entity.monster.Vex vex) vex.setLimitedLife((int) Math.max(40, cast.turns(turns) + 20));
+		if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
+		arm(mob, body, tintFor(spell));
 		mob.setCustomName(Component.literal(name));
 		mob.setCustomNameVisible(true);
-		int tier = Math.max(1, Math.min(5, cast.spell.tier));
-		set(mob.getAttribute(Attributes.SCALE), body.scale * (0.85 + 0.06 * tier));
-		set(mob.getAttribute(Attributes.MAX_HEALTH), 14 + tier * 7);
-		double biteDamage = Math.max(2.0, damage * cast.scale * cast.damageBonus(cast.spell.code.element) * 0.6);
+		int tier = Math.max(1, Math.min(5, spell.tier));
+		double size = giant(spell) ? 2.0 : spell.hasCharge("Minima") ? 0.65 : spell.hasCharge("Sparsus") && spell.hasCharge("Maxima") ? 1.1 : 1.0;
+		double might = giant(spell) ? 1.6 : spell.hasCharge("Minima") ? 0.7 : 1.0;
+		set(mob.getAttribute(Attributes.SCALE), body.scale * (0.85 + 0.06 * tier) * size);
+		set(mob.getAttribute(Attributes.MAX_HEALTH), (14 + tier * 7) * (giant(spell) ? 2.0 : spell.hasCharge("Minima") ? 0.6 : 1.0));
+		double biteDamage = Math.max(2.0, damage * cast.scale * cast.damageBonus(spell.code.element) * 0.6 * might);
 		set(mob.getAttribute(Attributes.ATTACK_DAMAGE), biteDamage);
 		set(mob.getAttribute(Attributes.FOLLOW_RANGE), 32);
+		if (giant(spell)) set(mob.getAttribute(Attributes.KNOCKBACK_RESISTANCE), 0.8);
 		mob.setHealth(mob.getMaxHealth());
-		if (isInvisibleWord(cast.spell)) mob.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, cast.turns(turns) + 40, 0, false, false));
+		if (isInvisibleWord(spell)) mob.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, cast.turns(turns) + 40, 0, false, false));
 		mob.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, cast.turns(turns) + 40, 0, false, false));
 		Summons.track(mob, cast.turns(turns)); // before it enters the world, or it would be taken for a stray
 		level.addFreshEntity(mob);
-		int tint = tintFor(cast.spell);
+		int tint = tintFor(spell);
 		net.minecraft.world.entity.Entity e = mob;
 		for (ServerPlayer viewer : level.players()) {
 			net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(viewer, new com.omnispell.net.OmniNet.ConjureTint(e.getId(), tint));
 		}
-		Fx.play(level, cast.spell.visual, Targeting.hand(player), mob.position());
+		Fx.play(level, spell.visual, Targeting.hand(player), mob.position());
 		LivingEntity target = Targeting.entity(player, cast.range);
-		double base = cast.spell.code.primaryValue > 0 ? cast.spell.code.primaryValue : tier * 6.0;
+		double base = (spell.code.primaryValue > 0 ? spell.code.primaryValue : tier * 6.0) * might;
 		Active active = new Active(mob, player.getUUID(), cast, body, base, target != null && target != mob && hostileTo(player, target) ? target : null);
 		active.bite = (float) biteDamage;
+		active.traits.addAll(traits(spell));
 		ACTIVE.put(mob.getUUID(), active);
-		return true;
+		return active;
+	}
+
+	/** Warriors get their weapon; the undead also get a cap in the spell's colour, which keeps the sun off them. */
+	private static void arm(Mob mob, Body body, int tint) {
+		if (body.weapon == null) return;
+		net.minecraft.world.item.Item weapon = switch (body.weapon) {
+			case "bow" -> net.minecraft.world.item.Items.BOW;
+			case "sword", "dagger" -> mob instanceof net.minecraft.world.entity.monster.skeleton.WitherSkeleton ? net.minecraft.world.item.Items.STONE_SWORD : net.minecraft.world.item.Items.IRON_SWORD;
+			case "club" -> mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin ? net.minecraft.world.item.Items.GOLDEN_AXE : net.minecraft.world.item.Items.IRON_AXE;
+			case "spear" -> net.minecraft.world.item.Items.TRIDENT;
+			default -> null;
+		};
+		if (weapon != null) mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new net.minecraft.world.item.ItemStack(weapon));
+		if (mob.isInvertedHealAndHarm()) {
+			net.minecraft.world.item.ItemStack cap = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.LEATHER_HELMET);
+			cap.set(net.minecraft.core.component.DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(tint));
+			cap.set(net.minecraft.core.component.DataComponents.UNBREAKABLE, net.minecraft.util.Unit.INSTANCE);
+			mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, cap);
+		}
+		for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) mob.setDropChance(slot, 0f);
+	}
+
+	/**
+	 * What the spell's own words promise beyond the creature itself. The Oracle writes the
+	 * description; these are the promises it most often makes, and the creature keeps them.
+	 */
+	public static java.util.Set<String> traits(Spell spell) {
+		java.util.Set<String> out = new java.util.HashSet<>();
+		String d = ((spell.description == null ? "" : spell.description) + " " + (spell.effect == null ? "" : spell.effect)).toLowerCase(Locale.ROOT);
+		boolean you = d.contains("you") || d.contains("caster") || d.contains("summoner") || d.contains("master");
+		if (d.contains("health") && you && (d.contains("redirect") || d.contains("transfer") || d.contains("return") || d.contains("flow")
+				|| d.contains("share") || d.contains("link") || d.contains("siphon") || d.contains("drain") || d.contains("back to"))) out.add("link");
+		if ((d.contains("explod") || d.contains("detonat") || d.contains("burst") || d.contains("erupt"))
+				&& (d.contains("death") || d.contains("dies") || d.contains("die ") || d.contains("destroy") || d.contains("fade") || d.contains("expire")
+				|| d.contains("vanish") || d.contains("perish") || d.contains("slain") || d.contains("killed") || d.contains("dissipat"))) out.add("explode");
+		if ((d.contains("heal") || d.contains("mend") || d.contains("restor")) && (d.contains("allies") || d.contains("nearby") || d.contains("companions") || d.contains("friends") || d.contains("party"))) out.add("allies");
+		else if ((d.contains("heal") || d.contains("mend") || d.contains("restor")) && you && !out.contains("link")) out.add("mend");
+		if ((d.contains("protect") || d.contains("guard") || d.contains("shield") || d.contains("defend") || d.contains("intercept") || d.contains("bodyguard")) && you) out.add("guard");
+		if (d.contains("taunt") || d.contains("lure") || d.contains("distract") || d.contains("attention") || d.contains("draws enemies") || d.contains("aggro")) out.add("taunt");
+		return out;
+	}
+
+	/** The book's account of what the conjuration really does. */
+	public static String describe(Spell spell, String name) {
+		if (Masonry.structure(spell) != null) return Masonry.describe(spell);
+		Body body = bodyFor(spell, name);
+		String what = switch (body.id) {
+			case "archer" -> "an archer that keeps its distance and looses arrows tipped with its element";
+			case "swordsman" -> "a swordsman";
+			case "duelist" -> "a quick duelist with a blade";
+			case "brute" -> "a brute with a heavy axe that knocks its foes back";
+			case "spearman" -> "a spearman that hurls tridents and fights up close";
+			case "serpent" -> "a serpent that swims through the air";
+			case "eagle" -> "a great bird";
+			case "spirit" -> "a spirit";
+			case "golem" -> "a golem";
+			default -> "a " + body.id;
+		};
+		StringBuilder sb = new StringBuilder("It comes as " + what);
+		if (spell.hasCharge("Sparsus")) sb.append(spell.hasCharge("Maxima") ? ", three to five of them at once" : ", two or three of them at once");
+		else if (spell.hasCharge("Maxima")) sb.append(", twice the usual size: it hits much harder but does not stay as long");
+		else if (spell.hasCharge("Minima")) sb.append(", small and weaker, but it stays longer");
+		sb.append('.');
+		if (body.weapon == null || !body.weapon.equals("bow")) sb.append(" It bites what is close and casts the spell's magic at what is not.");
+		java.util.Set<String> t = traits(spell);
+		if (t.contains("link")) sb.append(" When it falls or fades, a share of its life flows back to you, and so does a share of what it deals.");
+		if (t.contains("explode")) sb.append(" When it falls or fades, it bursts.");
+		if (t.contains("mend")) sb.append(" While it is near you, it mends you slowly.");
+		if (t.contains("allies")) sb.append(" It slowly mends you and your allies nearby.");
+		if (t.contains("guard")) sb.append(" While it is near you, it takes a share of the blows meant for you.");
+		if (t.contains("taunt")) sb.append(" Hostile creatures nearby turn on it instead of you.");
+		return sb.toString();
+	}
+
+	/** A guarding creature near its caster takes a share of a blow meant for them. Returns what is left for the caster. */
+	public static float guard(ServerPlayer player, net.minecraft.world.damagesource.DamageSource source, float amount) {
+		if (ACTIVE.isEmpty() || amount <= 0) return amount;
+		for (Active a : ACTIVE.values()) {
+			if (!a.traits.contains("guard") || !a.owner.equals(player.getUUID()) || !a.mob.isAlive() || a.mob.distanceToSqr(player) > 8 * 8) continue;
+			if (source.getEntity() == a.mob) continue;
+			float share = amount * 0.35f;
+			a.mob.hurtServer(player.level(), player.level().damageSources().generic(), share);
+			Fx.line(player.level(), player.getBoundingBox().getCenter(), a.mob.getBoundingBox().getCenter(), tintFor(a.cast.spell), null, 2);
+			return amount - share;
+		}
+		return amount;
 	}
 
 	private static boolean isInvisibleWord(Spell spell) {
@@ -259,11 +437,12 @@ public final class Conjuring {
 		if (ACTIVE.isEmpty()) return;
 		for (Active a : List.copyOf(ACTIVE.values())) {
 			Mob mob = a.mob;
+			ServerPlayer owner = server.getPlayerList().getPlayer(a.owner);
 			if (mob.isRemoved() || !mob.isAlive()) {
+				end(a, owner);
 				ACTIVE.remove(mob.getUUID());
 				continue;
 			}
-			ServerPlayer owner = server.getPlayerList().getPlayer(a.owner);
 			if (owner == null || owner.level() != mob.level()) {
 				Summons.dismiss(mob);
 				ACTIVE.remove(mob.getUUID());
@@ -276,28 +455,62 @@ public final class Conjuring {
 			if (a.boltReady > 0) a.boltReady--;
 			if (mob.tickCount % 10 == 0) a.foe = pickFoe(owner, a);
 			if (mob.tickCount % 8 == 0) aura(level, mob, a);
+			if (mob.tickCount % 60 == 0) keepPromises(level, owner, a);
+			if (a.shootReady > 0) a.shootReady--;
+			String weapon = a.body.weapon == null ? "" : a.body.weapon;
 			LivingEntity foe = a.foe;
 			Vec3 goal;
 			if (foe != null) {
 				goal = foe.position().add(0, a.body.flies ? 1.5 : 0, 0);
 				double reach = 1.8 + mob.getBbWidth() / 2 + foe.getBbWidth() / 2;
+				double dist = Math.sqrt(mob.distanceToSqr(foe));
 				mob.getLookControl().setLookAt(foe);
-				if (mob.distanceToSqr(foe) <= reach * reach && a.biteReady <= 0) {
-					a.biteReady = 20;
-					level.broadcastEntityEvent(mob, (byte) 4); // the attack animation, for the bodies that have one
-					foe.hurtServer(level, level.damageSources().mobAttack(mob), a.bite);
-				}
-				// The spell's own magic, cast at what it fights.
-				if (a.boltReady <= 0 && mob.distanceToSqr(foe) < 14 * 14 && mob.hasLineOfSight(foe)) {
-					a.boltReady = 40;
-					bolt(a, foe);
+				if (weapon.equals("bow")) {
+					// An archer stands off and shoots; it only closes in to find its range.
+					if (dist <= 11 && mob.hasLineOfSight(foe)) {
+						goal = null;
+						mob.getNavigation().stop();
+					}
+					if (a.shootReady <= 0 && dist < 16 && mob.hasLineOfSight(foe)) {
+						a.shootReady = Math.max(14, 30 - 3 * a.cast.spell.tier);
+						shoot(a, foe);
+					}
+				} else {
+					if (weapon.equals("spear") && a.shootReady <= 0 && dist > 4 && dist < 14 && mob.hasLineOfSight(foe)) {
+						a.shootReady = 50;
+						throwSpear(a, foe);
+					}
+					if (dist <= reach && a.biteReady <= 0) {
+						a.biteReady = switch (weapon) {
+							case "dagger" -> 10;
+							case "club" -> 28;
+							case "sword" -> 18;
+							default -> 20;
+						};
+						level.broadcastEntityEvent(mob, (byte) 4); // the attack animation, for the bodies that have one
+						mob.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);
+						float before = foe.getHealth();
+						foe.hurtServer(level, level.damageSources().mobAttack(mob), weapon.equals("dagger") ? a.bite * 0.6f : weapon.equals("club") ? a.bite * 1.3f : a.bite);
+						if (mob instanceof net.minecraft.world.entity.monster.skeleton.WitherSkeleton) foe.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, 0), mob);
+						if (weapon.equals("club")) {
+							Vec3 away = foe.position().subtract(mob.position()).multiply(1, 0, 1);
+							if (away.lengthSqr() > 0.01) foe.push(away.normalize().x * 0.9, 0.35, away.normalize().z * 0.9);
+							foe.syncVelocity = true;
+						}
+						if (a.traits.contains("link")) owner.heal(Math.max(0, before - foe.getHealth()) * 0.2f);
+					}
+					// The spell's own magic, cast at what it fights.
+					if (a.boltReady <= 0 && dist < 14 && mob.hasLineOfSight(foe)) {
+						a.boltReady = 40;
+						bolt(a, foe);
+					}
 				}
 			} else {
 				Vec3 side = owner.getLookAngle().multiply(1, 0, 1);
 				side = side.lengthSqr() < 0.01 ? new Vec3(1, 0, 0) : side.normalize();
 				goal = owner.position().add(-side.z * 2.2, a.body.flies ? 1.8 : 0, side.x * 2.2);
 			}
-			move(a, goal, foe != null);
+			if (goal != null) move(a, goal, foe != null);
 		}
 	}
 
@@ -343,6 +556,89 @@ public final class Conjuring {
 		Spell.EffectCode code = cast.spell.code;
 		if (code.status != null && !code.status.equals("none") && !code.status.equals("null") && foe.isAlive()) CombatEffects.status(cast, foe, code.status, 1);
 		if (foe.isAlive() && mob.getRandom().nextFloat() < 0.3f) AttackForms.apply(cast, foe, a.base * 0.35);
+	}
+
+	/** An archer's arrow, tipped with the spell's element. */
+	private static void shoot(Active a, LivingEntity foe) {
+		Mob mob = a.mob;
+		ServerLevel level = a.cast.level;
+		net.minecraft.world.entity.projectile.arrow.Arrow arrow = new net.minecraft.world.entity.projectile.arrow.Arrow(level, mob,
+				new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ARROW), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.BOW));
+		double dx = foe.getX() - mob.getX();
+		double dy = foe.getY(0.33) - arrow.getY();
+		double dz = foe.getZ() - mob.getZ();
+		double flat = Math.sqrt(dx * dx + dz * dz);
+		arrow.shoot(dx, dy + flat * 0.18, dz, 1.7f, 4f);
+		arrow.setBaseDamage(Math.max(1.0, a.bite * 0.45));
+		arrow.pickup = net.minecraft.world.entity.projectile.arrow.AbstractArrow.Pickup.DISALLOWED;
+		AttackForms.tip(arrow, AttackForms.element(a.cast.spell), a.cast.spell.tier);
+		level.addFreshEntity(arrow);
+		Tasks.later(100, () -> {
+			if (!arrow.isRemoved()) arrow.discard();
+		});
+		level.playSound(null, mob.blockPosition(), net.minecraft.sounds.SoundEvents.SKELETON_SHOOT, net.minecraft.sounds.SoundSource.HOSTILE, 0.8f, 1.1f);
+	}
+
+	/** A spearman's thrown trident. It is gone again a few seconds later. */
+	private static void throwSpear(Active a, LivingEntity foe) {
+		Mob mob = a.mob;
+		ServerLevel level = a.cast.level;
+		var spear = new net.minecraft.world.entity.projectile.arrow.ThrownTrident(level, mob, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.TRIDENT));
+		double dx = foe.getX() - mob.getX();
+		double dy = foe.getY(0.33) - spear.getY();
+		double dz = foe.getZ() - mob.getZ();
+		double flat = Math.sqrt(dx * dx + dz * dz);
+		spear.shoot(dx, dy + flat * 0.2, dz, 1.6f, 3f);
+		spear.setBaseDamage(Math.max(2.0, a.bite * 0.8));
+		spear.pickup = net.minecraft.world.entity.projectile.arrow.AbstractArrow.Pickup.DISALLOWED;
+		level.addFreshEntity(spear);
+		Tasks.later(60, () -> {
+			if (!spear.isRemoved()) spear.discard();
+		});
+		level.playSound(null, mob.blockPosition(), net.minecraft.sounds.SoundEvents.DROWNED_SHOOT, net.minecraft.sounds.SoundSource.HOSTILE, 0.8f, 1.0f);
+	}
+
+	/** Every three seconds: the promises in its description that work over time. */
+	private static void keepPromises(ServerLevel level, ServerPlayer owner, Active a) {
+		Mob mob = a.mob;
+		if (a.traits.contains("mend") && mob.distanceToSqr(owner) < 10 * 10 && owner.getHealth() < owner.getMaxHealth()) {
+			owner.heal(1.0f + 0.25f * a.cast.spell.tier);
+			Fx.line(level, mob.getBoundingBox().getCenter(), owner.getBoundingBox().getCenter(), 0x7CF08A, net.minecraft.core.particles.ParticleTypes.HEART, 1);
+		}
+		if (a.traits.contains("allies")) {
+			for (LivingEntity friend : level.getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(6), e -> e != mob && Defenses.ally(owner, e))) {
+				if (friend.getHealth() < friend.getMaxHealth()) friend.heal(1.0f + 0.25f * a.cast.spell.tier);
+			}
+			level.sendParticles(net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER, mob.getX(), mob.getY() + 1, mob.getZ(), 8, 2, 0.5, 2, 0);
+		}
+		if (a.traits.contains("taunt")) {
+			for (Mob hunter : level.getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(10), e -> e instanceof net.minecraft.world.entity.monster.Enemy && e.getTarget() == owner)) {
+				if (!MobControl.immune(hunter)) hunter.setTarget(mob);
+			}
+		}
+	}
+
+	/** A conjured creature is gone, slain or faded. Some leave something behind. */
+	private static void end(Active a, ServerPlayer owner) {
+		if (a.ended) return;
+		a.ended = true;
+		Mob mob = a.mob;
+		ServerLevel level = a.cast.level;
+		if (a.traits.contains("explode")) {
+			Vec3 at = mob.position();
+			level.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION, at.x, at.y + 0.8, at.z, 2, 0.4, 0.4, 0.4, 0);
+			level.playSound(null, mob.blockPosition(), net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.HOSTILE, 0.8f, 1.2f);
+			if (owner != null) {
+				for (LivingEntity e : Targeting.around(owner, at, 3.5, false)) {
+					if (!hostileTo(owner, e)) continue;
+					CombatEffects.strike(a.cast, e, a.base * 0.5, false);
+				}
+			}
+		}
+		if (a.traits.contains("link") && owner != null && owner.isAlive() && owner.level() == level) {
+			owner.heal((float) (mob.getMaxHealth() * 0.25));
+			Fx.line(level, mob.getBoundingBox().getCenter(), owner.getBoundingBox().getCenter(), 0xE03A5A, net.minecraft.core.particles.ParticleTypes.HEART, 2);
+		}
 	}
 
 	/** A faint haze of its element, so you can tell a fire wolf from a frost one at a glance. */
