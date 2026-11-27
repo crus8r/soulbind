@@ -76,4 +76,26 @@ public final class TempBlocks {
 		});
 		return true;
 	}
+
+	/** Ice and snow: what the Nether's heat will not let stand. */
+	public static boolean melts(Block block) {
+		return block == Blocks.ICE || block == Blocks.PACKED_ICE || block == Blocks.BLUE_ICE || block == Blocks.SNOW_BLOCK || block == Blocks.POWDER_SNOW;
+	}
+
+	/** How long ice holds in the heat: ten seconds at tier 1, twenty at tier 5. */
+	public static int meltTicks(int tier) {
+		return 200 + 50 * (Math.max(1, Math.min(5, tier)) - 1);
+	}
+
+	/** Sets ice where it will melt: after a while whatever was there before comes back, lava included. */
+	public static void placeMelting(ServerLevel level, BlockPos pos, Block block, int tier) {
+		BlockPos fixed = pos.immutable();
+		BlockState before = level.getBlockState(fixed);
+		level.setBlockAndUpdate(fixed, block.defaultBlockState());
+		Tasks.later(meltTicks(tier), () -> {
+			if (!level.getBlockState(fixed).is(block)) return;
+			level.setBlockAndUpdate(fixed, before.canBeReplaced() && before.getFluidState().isEmpty() ? Blocks.AIR.defaultBlockState() : before);
+			level.sendParticles(ParticleTypes.FALLING_WATER, fixed.getX() + 0.5, fixed.getY() + 0.8, fixed.getZ() + 0.5, 3, 0.3, 0.1, 0.3, 0.0);
+		});
+	}
 }

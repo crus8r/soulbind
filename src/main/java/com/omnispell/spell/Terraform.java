@@ -533,6 +533,9 @@ public final class Terraform {
 			if (!existing.isAir() && !existing.canBeReplaced()) return;
 			if (real == null) {
 				if (TempBlocks.place(c.level, pos, magic(c.spell), 600 + 300 * tier)) changed++;
+			} else if (TempBlocks.melts(real) && TempBlocks.scorching(c.level, pos)) {
+				// Ice built in the Nether melts away again, back to lava where it covered lava.
+				if (TempBlocks.place(c.level, pos, real, TempBlocks.meltTicks(tier))) changed++;
 			} else {
 				c.level.setBlockAndUpdate(pos, real.defaultBlockState());
 				changed++;
@@ -545,6 +548,8 @@ public final class Terraform {
 			if (!c.level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, new net.minecraft.world.phys.AABB(pos)).isEmpty()) return;
 			if (real == null) {
 				if (TempBlocks.place(c.level, pos, magic(c.spell), 600 + 300 * tier)) changed++;
+			} else if (TempBlocks.melts(real) && TempBlocks.scorching(c.level, pos)) {
+				if (TempBlocks.place(c.level, pos, real, TempBlocks.meltTicks(tier))) changed++;
 			} else {
 				c.level.setBlockAndUpdate(pos, realState == null ? real.defaultBlockState() : realState);
 				changed++;
@@ -1087,6 +1092,9 @@ public final class Terraform {
 						if (existing.hasBlockEntity() || existing.getDestroySpeed(level, pos) < 0 || job.guard.tierNeeded(pos) > 0) continue;
 						if (block == null) {
 							if (existing.canBeReplaced() && TempBlocks.place(level, pos, magic(c.spell), 600 + 300 * tier)) job.changed++;
+						} else if (TempBlocks.melts(block) && TempBlocks.scorching(level, pos)) {
+							TempBlocks.placeMelting(level, pos, block, tier);
+							job.changed++;
 						} else {
 							level.setBlockAndUpdate(pos, (block == Blocks.DIRT ? Blocks.DIRT_PATH : block).defaultBlockState());
 							job.changed++;
@@ -1291,6 +1299,9 @@ public final class Terraform {
 							if (!level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, new net.minecraft.world.phys.AABB(pos)).isEmpty()) continue;
 							if (block == null) {
 								if (TempBlocks.place(level, pos, magic(c.spell), 600 + 300 * tier)) job.changed++;
+							} else if (TempBlocks.melts(block) && TempBlocks.scorching(level, pos)) {
+								TempBlocks.placeMelting(level, pos, block, tier); // ice laid on Nether lava melts back to lava
+								job.changed++;
 							} else {
 								level.setBlockAndUpdate(pos, block.defaultBlockState());
 								job.changed++;

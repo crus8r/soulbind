@@ -1909,22 +1909,76 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(com.omnispell.spell.Wards.describe(windShield).contains("arrows aside") && com.omnispell.spell.Wards.describe(windShield).contains("sent back"), "a wind shield with Reflect turns arrows aside and sends spells back");
 			});
 
-			// ---- ice on lava in the Nether holds only for a while
+			// ---- ice on lava in the Nether holds only for a while: real casts, by the player standing there
 			BlockPos netherLava = new BlockPos(8, 100, 8);
+			Vec3[] beforeNether = new Vec3[1];
 			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				beforeNether[0] = p.position();
 				ServerLevel nether = s.getLevel(net.minecraft.world.level.Level.NETHER);
-				ServerLevel overworld = player(s).level();
-				nether.setBlockAndUpdate(netherLava.below(), Blocks.NETHERRACK.defaultBlockState());
-				nether.setBlockAndUpdate(netherLava, Blocks.LAVA.defaultBlockState());
-				check(com.omnispell.spell.TempBlocks.scorching(nether, netherLava) && !com.omnispell.spell.TempBlocks.scorching(overworld, player(s).blockPosition()), "the Nether is scorching and the Overworld is not");
-				check(com.omnispell.spell.TempBlocks.freezeLava(nether, netherLava, 1) && nether.getBlockState(netherLava).is(Blocks.PACKED_ICE), "ice magic freezes Nether lava over");
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-8, -2, -8), netherLava.offset(8, -1, 8))) nether.setBlockAndUpdate(pos, Blocks.NETHERRACK.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-8, 0, -8), netherLava.offset(8, 6, 8))) nether.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				// a lava pool ahead of the player, 3 x 3, one deep
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-1, -1, 3), netherLava.offset(1, -1, 5))) nether.setBlockAndUpdate(pos, Blocks.LAVA.defaultBlockState());
+				p.teleportTo(nether, netherLava.getX() + 0.5, netherLava.getY(), netherLava.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				check(com.omnispell.spell.TempBlocks.scorching(nether, netherLava) && !com.omnispell.spell.TempBlocks.scorching(s.overworld(), BlockPos.containing(beforeNether[0])), "the Nether is scorching and the Overworld is not");
 			});
-			context.waitTicks(205);
+			context.waitTicks(20);
 			server.runOnServer(s -> {
-				ServerLevel nether = s.getLevel(net.minecraft.world.level.Level.NETHER);
-				check(nether.getBlockState(netherLava).is(Blocks.LAVA), "and after ten seconds it melts back to lava");
-				nether.setBlockAndUpdate(netherLava, Blocks.AIR.defaultBlockState());
+				ServerPlayer p = player(s);
+				ServerLevel nether = p.level();
+				PlayerStore.get(p).mana[com.omnispell.player.ManaPool.FORCE.ordinal()] = 60;
+				// The Ice cantrip (chill), looking down at the pool.
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(netherLava.offset(0, -1, 4)));
+				com.omnispell.spell.Spell chill = new com.omnispell.spell.Spell();
+				chill.type = "exploration";
+				chill.words.add("base:Ice");
+				chill.toggle = "chill";
+				chill.element = "ice";
+				chill.tier = 1;
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), chill)), "the Ice cantrip is cast at Nether lava");
+				int ice = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-1, -1, 3), netherLava.offset(1, -1, 5))) if (nether.getBlockState(pos).is(Blocks.PACKED_ICE)) ice++;
+				check(ice >= 4, "it freezes the lava over (" + ice + " of 9)");
+				// Ice + Freeze + Warding: solidify, around the player, on a second pool behind them.
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-1, -1, -3), netherLava.offset(1, -1, -2))) nether.setBlockAndUpdate(pos, Blocks.LAVA.defaultBlockState());
+				com.omnispell.spell.Spell hold = new com.omnispell.spell.Spell();
+				hold.type = "exploration";
+				hold.words.addAll(java.util.List.of("base:Ice", "command:Freeze", "intention:Warding"));
+				hold.toggle = "solidify";
+				hold.element = "ice";
+				hold.tier = 2;
+				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), hold)), "an ice Solidify is cast beside Nether lava");
+				int held = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-1, -1, -3), netherLava.offset(1, -1, -2))) if (nether.getBlockState(pos).is(Blocks.PACKED_ICE)) held++;
+				check(held >= 4, "it freezes that pool too (" + held + " of 6)");
+				// Ice + Envelop + Restoration (mend the land) fills a lava pool with packed ice; in the Nether that melts too.
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(4, -1, -1), netherLava.offset(5, -1, 1))) nether.setBlockAndUpdate(pos, Blocks.LAVA.defaultBlockState());
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(netherLava.offset(4, -1, 0)));
+				com.omnispell.spell.Spell mend = new com.omnispell.spell.Spell();
+				mend.type = "exploration";
+				mend.words.addAll(java.util.List.of("base:Ice", "command:Envelop", "intention:Restoration"));
+				mend.toggle = "mend_land";
+				mend.element = "ice";
+				mend.tier = 1;
+				com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), mend));
+				int filled = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(4, -1, -1), netherLava.offset(5, -1, 1))) if (nether.getBlockState(pos).is(Blocks.PACKED_ICE)) filled++;
+				check(filled >= 3, "mending the land with Ice fills Nether lava with packed ice (" + filled + " of 6)");
 			});
+			context.waitTicks(270);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel nether = p.level();
+				int left = 0, lava = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(netherLava.offset(-1, -1, -3), netherLava.offset(5, -1, 5))) {
+					if (nether.getBlockState(pos).is(Blocks.PACKED_ICE)) left++;
+					if (nether.getBlockState(pos).is(Blocks.LAVA)) lava++;
+				}
+				check(left == 0 && lava >= 12, "after its time the ice melts back to lava (" + left + " ice left, " + lava + " lava)");
+				p.teleportTo(s.overworld(), beforeNether[0].x, beforeNether[0].y, beforeNether[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(20);
 
 			// ---- death: the soul-bound bundle and all Omnispell progress survive
 			server.runOnServer(s -> {
