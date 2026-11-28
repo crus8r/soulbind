@@ -163,7 +163,7 @@ public final class AttackForms {
 	public static String describe(Spell spell) {
 		String element = element(spell);
 		String form = commandForm(spell);
-		String sig = signature(element);
+		String sig = Conjuring.sonic(spell) ? "blast" : signature(element); // sound throws back; it does not spin
 		StringBuilder sb = new StringBuilder();
 		if (form != null) sb.append("What it hits is ").append(phrase(form, element)).append('.');
 		if (!sig.equals(form)) {
@@ -222,7 +222,7 @@ public final class AttackForms {
 		if ("engulf".equals(form) && element.equals("wind")) form = "vortex";
 		if ("engulf".equals(form) && element.equals("ice")) form = "encase";
 		if (form != null) manifest(cast, target, form, element, base);
-		String sig = signature(element);
+		String sig = Conjuring.sonic(cast.spell) ? "blast" : signature(element); // sound throws back; it does not spin
 		float chance = element.equals("ice") ? 0.5f : 0.3f;
 		if (!sig.equals(form) && target.isAlive() && cast.level.getRandom().nextFloat() < chance) manifest(cast, target, sig, element, base);
 	}

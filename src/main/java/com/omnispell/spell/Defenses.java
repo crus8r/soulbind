@@ -870,7 +870,7 @@ public final class Defenses {
 			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
 			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
 			case "aspect" -> "It gives you " + aspectText(creature(spell)) + ". You also get " + littleGift + ".";
-			case "cocoon" -> "A small sphere of " + cocoonName(spell, element) + " closes around you for a few seconds, keeping foes off while you take " + gift + ". You can break out of it.";
+			case "cocoon" -> "A small dome of " + cocoonName(spell, element) + " closes around you like an igloo for a few seconds, with a doorway of hardened air the way you face (crouch to slip out; foes only wade in slowly), while you take " + gift + ".";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
 			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get " + littleGift + ".";
 			case "daze" -> "It leaves every hostile creature around you reeling and confused. The weak are lost longest; bosses and the like are not moved. You also get " + littleGift + ".";
@@ -893,7 +893,7 @@ public final class Defenses {
 	private static String cocoonName(Spell spell, String element) {
 		Block block = cocoonBlock(spell, element);
 		return block == Blocks.DIRT ? "dirt" : block == Blocks.PACKED_ICE ? "ice" : block == Blocks.MOSS_BLOCK ? "moss" : block == Blocks.MAGMA_BLOCK ? "magma"
-				: block == Blocks.COBBLESTONE || block == Blocks.COBBLED_DEEPSLATE ? "stone" : block == Blocks.SAND ? "sand" : block == Blocks.MUD ? "mud" : block == Blocks.GRAVEL ? "gravel"
+				: block == Blocks.COBBLED_DEEPSLATE ? "deepslate" : block == Blocks.COBBLESTONE ? "stone" : block == Blocks.SAND ? "sand" : block == Blocks.MUD ? "mud" : block == Blocks.GRAVEL ? "gravel"
 				: block == Blocks.OAK_PLANKS ? "wood" : block == Blocks.BASALT ? "basalt" : "coloured glass";
 	}
 

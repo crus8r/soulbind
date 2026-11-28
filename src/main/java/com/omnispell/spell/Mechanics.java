@@ -65,7 +65,8 @@ public final class Mechanics {
 		List<String> out = new ArrayList<>();
 		Spell.EffectCode code = spell.code;
 		var pool = Casting.poolOf(spell);
-		out.add("Tier " + spell.tier + " " + spell.type + ", draws on " + (pool == null ? "nothing" : pool.label) + " (" + Math.round(Casting.manaCost(spell)) + " mana), cooldown about "
+		String cost = "defense".equals(spell.type) ? "paying for what it gives" : Math.round(Casting.manaCost(spell)) + " mana";
+		out.add("Tier " + spell.tier + " " + spell.type + ", draws on " + (pool == null ? "nothing" : pool.label) + " (" + cost + "), cooldown about "
 				+ Math.round(Casting.cooldownTurns(spell) * Omnispell.CONFIG.turnSeconds * ("attack".equals(spell.type) ? 0.7 : 1.0)) + "s.");
 		switch (spell.type) {
 			case "attack" -> {
