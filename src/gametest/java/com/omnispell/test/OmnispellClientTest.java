@@ -115,9 +115,64 @@ public class OmnispellClientTest implements FabricClientGameTest {
 		context.waitTicks(3);
 	}
 
+	/** Reads Oracle replies (OMNISPELL_EXPLAIN), works each through the game's rules, writes the result (OMNISPELL_EXPLAIN_OUT). Saves nothing. */
+	private static void explainOracle(ClientGameTestContext context) {
+		try (TestSingleplayerContext world = context.worldBuilder().create()) {
+			TestServerContext server = world.getServer();
+			context.waitTicks(20);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.getAbilities().instabuild = true;
+				com.google.gson.JsonArray out = new com.google.gson.JsonArray();
+				try {
+					com.google.gson.JsonArray in = WordBank.GSON.fromJson(java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("OMNISPELL_EXPLAIN"))), com.google.gson.JsonArray.class);
+					for (var element : in) {
+						com.google.gson.JsonObject row = element.getAsJsonObject();
+						com.google.gson.JsonObject result = new com.google.gson.JsonObject();
+						result.add("n", row.get("n"));
+						String type = row.get("type").getAsString();
+						java.util.List<String> ids = new java.util.ArrayList<>();
+						for (var w : row.getAsJsonArray("pairs")) {
+							String english = w.getAsJsonArray().get(0).getAsString(), wordType = w.getAsJsonArray().get(1).getAsString();
+							for (var word : WordBank.wordsOfType(wordType)) if (word.english.equals(english) || word.english.startsWith(english + " ")) {
+								ids.add(word.id);
+								break;
+							}
+						}
+						String problem = com.omnispell.spell.SpellCrafting.problem(p, PlayerStore.get(p), type, ids);
+						result.addProperty("craftable", problem == null || problem.startsWith("That spell is already") ? "yes" : problem);
+						com.google.gson.JsonObject reply = row.getAsJsonObject("result");
+						if (reply == null || !reply.has("spell")) {
+							result.addProperty("game", "no reply");
+							out.add(result);
+							continue;
+						}
+						com.omnispell.spell.Spell spell = new com.omnispell.spell.Spell();
+						spell.type = type;
+						spell.words.addAll(ids);
+						spell.id = com.omnispell.spell.Spell.idFor(type, ids);
+						spell.readGenerated(reply.getAsJsonObject("spell"));
+						com.google.gson.JsonArray lines = new com.google.gson.JsonArray();
+						for (String line : com.omnispell.spell.Mechanics.explain(spell)) lines.add(line);
+						result.add("game", lines);
+						out.add(result);
+					}
+					java.nio.file.Files.writeString(java.nio.file.Path.of(System.getenv("OMNISPELL_EXPLAIN_OUT")), WordBank.GSON.toJson(out));
+					System.out.println("[omnispell-explain] wrote " + out.size());
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
+		}
+	}
+
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		if (System.getenv("OMNISPELL_WORLDGEN") != null) return; // the worldgen test runs alone
+		if (System.getenv("OMNISPELL_EXPLAIN") != null) {
+			explainOracle(context); // only: work Oracle replies through the game's rules and write what each really does
+			return;
+		}
 		var realGenerator = SpellGenerator.transport;
 		var realOracle = SpellGenerator.oracle;
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
@@ -2553,7 +2608,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.teleportTo(cgLevel, cgArena.getX() + 0.5, cgArena.getY(), cgArena.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
 				p.removeAllEffects();
 				// The base word decides the element, whatever the Oracle labelled it.
-				String[][] cgLabels = {{"base:Water", "ice", "water"}, {"base:Earth", "nature", "stone"}, {"base:Thunder", "arcane", "storm"}, {"base:Wave", "nature", "water"}, {"base:Memory", "arcane", "arcane"}};
+				String[][] cgLabels = {{"base:Water", "ice", "water"}, {"base:Earth", "nature", "stone"}, {"base:Lightning", "arcane", "storm"}, {"base:Thunder", "storm", "wind"}, {"base:Wave", "nature", "water"}, {"base:Memory", "arcane", "arcane"}};
 				for (String[] row : cgLabels) {
 					com.omnispell.spell.Spell cgSpell = new com.omnispell.spell.Spell();
 					cgSpell.type = "attack";
@@ -3236,8 +3291,11 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				lbBolt.code.primaryValue = 20;
 				lbBolt.description = "Unleashes a strike of malicious lightning that chains shocking energy.";
 				lbBolt.code.modifiers.add("chain_lightning:50:1");
-				lbBolt.words.addAll(java.util.List.of("base:Thunder", "command:Release", "intention:Malice"));
-				check(com.omnispell.spell.Beams.storm(lbBolt) && !com.omnispell.spell.Beams.piercing(lbBolt), "a thunder attack leaves the wand as lightning, and is not a beam");
+				lbBolt.words.addAll(java.util.List.of("base:Lightning", "command:Release", "intention:Malice"));
+				com.omnispell.spell.Spell lbClap = new com.omnispell.spell.Spell();
+				lbClap.type = "attack";
+				lbClap.words.add("base:Thunder");
+				check(com.omnispell.spell.Beams.storm(lbBolt) && !com.omnispell.spell.Beams.piercing(lbBolt) && !com.omnispell.spell.Beams.storm(lbClap), "a lightning attack leaves the wand as lightning, and is not a beam; thunder is sound, not lightning");
 				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
 				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbBolt)), "the lightning is cast");
 				check(lbFoes[0].getHealth() < 200f && lbFoes[1].getHealth() < 200f && lbFoes[2].getHealth() < 200f && wolf.getHealth() >= wolf.getMaxHealth(),
@@ -3481,6 +3539,34 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				check(plFoe[0].getHealth() < plFoe[0].getMaxHealth(), "a foe following along the trail is struck (" + plFoe[0].getHealth() + ")");
 				plFoe[0].discard();
+			});
+			// Thunder as sound: a thunderclap rolls out in front of you; Gravity drawing foes in slams them together.
+			net.minecraft.world.entity.Mob[] clapFoes = new net.minecraft.world.entity.Mob[2];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel plLevel = p.level();
+				p.teleportTo(plLevel, cHome[0].x - 40, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+				for (int i = 0; i < 2; i++) {
+					var z = EntityTypes.ZOMBIE.create(plLevel, EntitySpawnReason.COMMAND);
+					z.snapTo(cHome[0].x - 37, cHome[0].y, cHome[0].z + (i == 0 ? -1 : 1), 0f, 0f);
+					z.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 400, 9));
+					plLevel.addFreshEntity(z);
+					clapFoes[i] = z;
+				}
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(cHome[0].x - 30, p.getEyeY(), cHome[0].z));
+				com.omnispell.spell.Spell clap = new com.omnispell.spell.Spell();
+				clap.type = "attack";
+				clap.tier = 3;
+				clap.code.primaryValue = 20;
+				clap.words.addAll(java.util.List.of("base:Thunder", "command:Scatter", "intention:Malice"));
+				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), clap)), "a thunderclap is cast");
+				check(clapFoes[0].getHealth() < clapFoes[0].getMaxHealth() && clapFoes[1].getHealth() < clapFoes[1].getMaxHealth() && clapFoes[0].getDeltaMovement().x > 0.3,
+						"Thunder + Scatter rolls out as a shockwave: both foes in front are struck and thrown back (" + clapFoes[0].getHealth() + ", " + clapFoes[1].getHealth() + ")");
+				com.omnispell.spell.Spell pull = new com.omnispell.spell.Spell();
+				pull.type = "attack";
+				pull.words.addAll(java.util.List.of("base:Gravity", "command:Attract", "intention:Malice"));
+				check("slam".equals(com.omnispell.spell.AttackForms.commandForm(pull)), "Gravity + Attract slams foes together instead of merely dragging (" + com.omnispell.spell.AttackForms.commandForm(pull) + ")");
+				for (var z : clapFoes) z.discard();
 			});
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);

@@ -108,13 +108,18 @@ public final class CombatEffects {
 
 	/** The spell's look on its way from the wand: lightning as a jagged bolt, everything else as its manifest says. */
 	private static void send(Cast cast, Vec3 from, Vec3 to) {
-		if (Beams.storm(cast.spell)) Beams.bolt(cast.level, from, to, Conjuring.tintFor(cast.spell));
+		if (Conjuring.sonic(cast.spell)) Sonic.rings(cast.level, from, to, Conjuring.tintFor(cast.spell)); // thunder and sound travel as rings
+		else if (Beams.storm(cast.spell)) Beams.bolt(cast.level, from, to, Conjuring.tintFor(cast.spell));
 		else Fx.play(cast.level, cast.spell.visual, from, to);
 	}
 
 	private static boolean attack(Cast cast) {
 		// A spell that says it is a beam (a beam, ray, lance, jet, stream, torrent) pierces everything in its path.
 		if (Beams.piercing(cast.spell)) return Beams.attack(cast);
+		// A thunderclap: a wave of sound in front of you (planned, or a sound spell that spreads).
+		String delivery = cast.spell.planned("delivery");
+		String form = AttackForms.commandForm(cast.spell);
+		if ("shockwave".equals(delivery) || (delivery == null && Conjuring.sonic(cast.spell) && (wide(cast.spell) || "burst".equals(form) || "blast".equals(form)))) return Sonic.shockwave(cast);
 		ServerPlayer player = cast.player;
 		Spell.EffectCode code = cast.spell.code;
 		LivingEntity target = Targeting.entity(player, cast.range);

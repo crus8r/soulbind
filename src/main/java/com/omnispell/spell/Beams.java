@@ -39,9 +39,9 @@ public final class Beams {
 		return stormWords(spell) || "lightning".equals(spell.planned("delivery")) || (!spell.isExploration() && AttackForms.element(spell).equals("storm"));
 	}
 
-	/** The base word is Lightning or Thunder (an environment spell of either explores like the wind, but it is lightning). */
+	/** The base word is Lightning (an environment spell of it explores like the wind, but it is lightning). Thunder is sound, not lightning. */
 	public static boolean stormWords(Spell spell) {
-		return spell.words.contains("base:Lightning") || spell.words.contains("base:Thunder");
+		return spell.words.contains("base:Lightning");
 	}
 
 	/** Does the spell say it is a beam (a beam, ray, lance, laser, jet, stream or torrent)? */

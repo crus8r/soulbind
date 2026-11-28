@@ -581,13 +581,17 @@ public final class Defenses {
 		int life = Math.max(60, Math.min(ticks, 100 + 20 * tier));
 		BlockPos feet = p.blockPosition();
 		Vec3 heart = new Vec3(feet.getX() + 0.5, feet.getY() + 1.0, feet.getZ() + 0.5);
+		// Like an igloo, it has a doorway the way you face, of hardened air: crouch to slip out; foes only wade in slowly.
+		net.minecraft.core.Direction facing = p.getDirection();
+		BlockPos door = feet.relative(facing, 2);
 		int placed = 0;
 		for (BlockPos pos : BlockPos.betweenClosed(feet.offset(-2, -1, -2), feet.offset(2, 3, 2))) {
 			double d = Vec3.atCenterOf(pos).distanceTo(heart);
 			if (d < 1.6 || d > 2.6) continue;
 			BlockPos at = pos.immutable();
 			if (!level.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(at), e -> e != p).isEmpty()) continue;
-			if (TempBlocks.place(level, at, block, life)) placed++;
+			boolean doorway = at.getX() == door.getX() && at.getZ() == door.getZ() && (at.getY() == feet.getY() || at.getY() == feet.getY() + 1);
+			if (TempBlocks.place(level, at, doorway ? com.omnispell.item.OmniItems.HARDENED_AIR : block, life)) placed++;
 		}
 		if (placed > 0) {
 			level.playSound(null, feet, block.defaultBlockState().getSoundType().getPlaceSound(), SoundSource.PLAYERS, 1.0f, 0.8f);
@@ -875,6 +879,14 @@ public final class Defenses {
 			default -> "It gives you " + gift + ". " + Wards.describe(spell);
 		};
 		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Maxima carries it out to your friends nearby too, at half strength.";
+		// What the Oracle added on top, as the cast carries it out.
+		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) what += " A small sphere of " + cocoonName(spell, element) + " closes around you too.";
+		if (spell.plannedExtra("regen") && !form.equals("mend")) what += " You regenerate for a while.";
+		if (spell.plannedExtra("unseen") && !form.equals("veil") && !form.equals("cleanse")) what += " You turn invisible for a few seconds.";
+		if (spell.plannedExtra("boon") && !form.equals("boon") && !form.equals("aegis") && !form.equals("lifeline")) what += " It blesses you with " + boonText(element) + ".";
+		if (spell.plannedExtra("cleanse") && !form.equals("cleanse")) what += " Harmful effects on you are cleared.";
+		if (spell.plannedExtra("sate")) what += " It fills your hunger" + (form.equals("aegis") || form.equals("sanctuary") || form.equals("lifeline") || spell.plannedExtra("share") ? ", and your friends'." : ".");
+		if (spell.plannedExtra("share") && !spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Friends close by get half of it.";
 		return what;
 	}
 

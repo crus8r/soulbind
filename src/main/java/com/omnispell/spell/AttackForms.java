@@ -38,8 +38,8 @@ public final class AttackForms {
 				case "Fire", "Ember", "Lava", "Heat", "Heatwave", "Sulfur" -> "fire";
 				case "Water", "Wave", "Steam", "Mist" -> "water";
 				case "Earth", "Sand", "Dust", "Mud", "Metal", "Crystal", "Obsidian", "Amber", "Pressure", "Gravity" -> "stone";
-				case "Air", "Gale", "Sound", "Echo", "Vibration", "Music" -> "wind";
-				case "Lightning", "Thunder" -> "storm";
+				case "Air", "Gale", "Sound", "Echo", "Vibration", "Music", "Thunder" -> "wind"; // thunder is sound, not lightning
+				case "Lightning" -> "storm";
 				case "Ice", "Frost", "Frostbite", "Sleet" -> "ice";
 				case "Nature", "Vine", "Verdant", "Thorn", "Wood", "Poison" -> "nature";
 				case "Light", "Radiance", "Starlight", "Moonlight", "Sunlight", "Beacon" -> "light";
@@ -75,7 +75,7 @@ public final class AttackForms {
 		return null;
 	}
 
-	public static final java.util.Set<String> PLANNED_FORMS = java.util.Set.of("none", "hurl", "blast", "root", "encase", "engulf", "burst", "smite", "siphon", "displace", "linger", "pull", "rend", "crumble");
+	public static final java.util.Set<String> PLANNED_FORMS = java.util.Set.of("none", "hurl", "blast", "root", "encase", "engulf", "burst", "smite", "siphon", "displace", "linger", "pull", "slam", "rend", "crumble");
 
 	/** The form the command gives, or null for none. */
 	public static String commandForm(Spell spell) {
@@ -98,6 +98,8 @@ public final class AttackForms {
 				return "encase";
 			}
 			case "Gather", "Attract", "Retract" -> {
+				// Gravity and its kin do not merely drag: they slam what they draw together.
+				for (String id : spell.words) if (id.equals("base:Gravity") || id.equals("base:Magnetism") || id.equals("base:Pressure")) return "slam";
 				return "pull";
 			}
 			case "Drain", "Absorb", "Consume" -> {
@@ -200,6 +202,7 @@ public final class AttackForms {
 			case "displace" -> "flung a few blocks away through space";
 			case "linger" -> "left hurting and slowed for a while";
 			case "pull" -> "dragged toward you";
+			case "slam" -> "dragged together with the foes around it and slammed into them (alone, it is lifted and slammed into the ground)";
 			case "rend" -> "cut deep, bleeding for a while";
 			case "crumble" -> switch (element) {
 				case "stone" -> "swallowed by the ground crumbling to sand beneath it";
@@ -345,6 +348,7 @@ public final class AttackForms {
 				MobControl.dot(player, target, (float) Math.max(1.0, base * cast.scale * 0.15) * CombatEffects.versusPlayers(cast, target), 3, element);
 				target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 0), player);
 			}
+			case "slam" -> slam(cast, target, base, tier, color);
 			case "pull" -> {
 				if (steadfast(target)) return;
 				Vec3 toward = player.position().subtract(at);
@@ -383,6 +387,61 @@ public final class AttackForms {
 			default -> {
 			}
 		}
+	}
+
+	/**
+	 * Slam: the foes around what it hits are hauled in toward it and smashed together; each takes a share of the
+	 * spell, the target once for every foe that strikes it. With no other foe near, the target is lifted and
+	 * slammed into the ground. Bosses and the like are not moved, but still feel the impact.
+	 */
+	static void slam(Cast cast, LivingEntity target, double base, int tier, int color) {
+		ServerLevel level = cast.level;
+		ServerPlayer player = cast.player;
+		java.util.List<LivingEntity> drawn = new java.util.ArrayList<>();
+		for (LivingEntity e : Targeting.around(player, target.position(), 5 + tier * 0.5, false)) {
+			if (e == target || e == player || !e.isAlive() || Defenses.ally(player, e) || steadfast(e)) continue;
+			drawn.add(e);
+			if (drawn.size() >= 4) break;
+		}
+		Vec3 heart = target.position();
+		if (drawn.isEmpty()) {
+			if (steadfast(target)) return;
+			target.setDeltaMovement(0, 0.9, 0);
+			target.syncVelocity = true;
+			Tasks.later(8, () -> {
+				if (!target.isAlive()) return;
+				target.setDeltaMovement(0, -2.2, 0);
+				target.syncVelocity = true;
+			});
+			Tasks.later(13, () -> {
+				if (!target.isAlive()) return;
+				CombatEffects.strike(cast, target, base * 0.45, false);
+				level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY(), target.getZ(), 1, 0, 0, 0, 0);
+				BlockState under = level.getBlockState(target.blockPosition().below());
+				if (!under.isAir()) level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, under), target.getX(), target.getY() + 0.1, target.getZ(), 30, 0.6, 0.1, 0.6, 0.2);
+				level.playSound(null, target.blockPosition(), SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.PLAYERS, 1.0f, 0.9f);
+			});
+			return;
+		}
+		for (LivingEntity e : drawn) {
+			Vec3 in = heart.subtract(e.position());
+			double dist = in.length();
+			Vec3 v = in.normalize().scale(Math.min(2.2, 0.5 + dist * 0.28));
+			e.setDeltaMovement(v.x, 0.25, v.z);
+			e.syncVelocity = true;
+			Fx.line(level, e.getBoundingBox().getCenter(), target.getBoundingBox().getCenter(), color, null, 2);
+		}
+		Tasks.later(7, () -> {
+			for (LivingEntity e : drawn) {
+				if (!e.isAlive()) continue;
+				CombatEffects.strike(cast, e, base * 0.4, false);
+				if (target.isAlive()) CombatEffects.strike(cast, target, base * 0.2, false);
+				Vec3 mid = e.position().add(target.position()).scale(0.5);
+				level.sendParticles(ParticleTypes.CRIT, mid.x, mid.y + 1, mid.z, 14, 0.4, 0.4, 0.4, 0.3);
+				level.sendParticles(ParticleTypes.EXPLOSION, mid.x, mid.y + 1, mid.z, 1, 0, 0, 0, 0);
+			}
+			level.playSound(null, target.blockPosition(), SoundEvents.MACE_SMASH_AIR, SoundSource.PLAYERS, 1.0f, 0.8f);
+		});
 	}
 
 	/** The shell: temporary blocks in the empty spaces around the target, gone again a few seconds later. */
