@@ -92,6 +92,14 @@ public final class Spell {
 		public String screenEffect = "none";
 	}
 
+	/**
+	 * A legacy spell: a combat spell the old Oracle made, before spells were planned for Minecraft. It still works,
+	 * but it cannot be remade: forgotten, it is gone for good, and its words can be crafted again by the new Oracle.
+	 */
+	public boolean legacy() {
+		return type != null && !isExploration() && plan == null && !offline;
+	}
+
 	public boolean isExploration() {
 		return "exploration".equals(type);
 	}

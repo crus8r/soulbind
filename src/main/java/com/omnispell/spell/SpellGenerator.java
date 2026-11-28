@@ -118,20 +118,37 @@ public final class SpellGenerator {
 		});
 	}
 
-	/** The website's generator, as before: its earlier reply if this server kept one, otherwise a new request. */
+	/**
+	 * Clears the replies this server kept from the website's generator, before spells were planned for Minecraft:
+	 * none of them fit any more, so their words go to the new Oracle the next time someone crafts them. Spells
+	 * already in spellbooks are not touched (they are legacy spells).
+	 */
+	public static void purgeLegacyCache() {
+		Path dir = FabricLoader.getInstance().getConfigDir().resolve("omnispell").resolve("spells");
+		if (!Files.isDirectory(dir)) return;
+		int purged = 0;
+		try (var files = Files.list(dir)) {
+			for (Path file : (Iterable<Path>) files::iterator) {
+				if (file.toString().endsWith(".json") && Files.deleteIfExists(file)) purged++;
+			}
+			Files.deleteIfExists(dir);
+		} catch (Exception e) {
+			Omnispell.LOG.warn("Could not clear the old spell replies in {}", dir, e);
+		}
+		if (purged > 0) Omnispell.LOG.info("Cleared {} old spell replies; the Minecraft Oracle will make those spells afresh", purged);
+	}
+
+	/** The website's generator, used only when the Minecraft Oracle cannot be reached. Its replies are not kept. */
 	private static CompletableFuture<Boolean> fromWebsite(Spell spell, String discoverer) {
-		Path file = cacheFile("spells", spell.id);
-		if (read(spell, file)) return CompletableFuture.completedFuture(true);
 		return transport.apply(request(spell, discoverer)).handle((json, error) -> {
 			if (error != null) {
 				Omnispell.LOG.warn("Spell generator unavailable for {}: {}", spell.id, error.getMessage());
 				Fallback.fill(spell);
 				return false;
 			}
-			JsonObject generated = json.getAsJsonObject("spell");
-			spell.readGenerated(generated);
-			save(file, generated);
-			return true;
+			spell.readGenerated(json.getAsJsonObject("spell"));
+			spell.offline = true; // not planned for Minecraft: unstable, and crafted again once the Oracle is back
+			return false;
 		});
 	}
 

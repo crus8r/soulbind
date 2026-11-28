@@ -17,6 +17,7 @@ public final class PlayerData {
 	public double[] mana = new double[ManaPool.values().length];
 	public double corruption;
 	public Set<String> bosses = new LinkedHashSet<>();      // bosses defeated
+	public Set<String> retired = new LinkedHashSet<>();     // legacy spells forgotten for good: a restore does not bring them back
 	/** A named folder of spells. When shown, its spells also appear in the main list. */
 	public static final class Folder {
 		public String name;

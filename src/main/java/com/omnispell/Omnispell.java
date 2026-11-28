@@ -51,6 +51,7 @@ public class Omnispell implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		CONFIG = OmniConfig.load();
+		com.omnispell.spell.SpellGenerator.purgeLegacyCache();
 		WordBank.load();
 		com.omnispell.alchemy.Alchemy.load();
 		com.omnispell.alchemy.Vats.register();
@@ -250,6 +251,7 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.world.Arcanist.onEntityLoad(entity, level);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			com.omnispell.spell.Trails.clear();
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved
 			com.omnispell.waypoint.Waypoints.unload();
 			com.omnispell.boss.Bosses.clear();
@@ -264,6 +266,7 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.item.Attire.tick(server);
 			int tick = server.getTickCount();
 			com.omnispell.spell.Conjuring.tick(server);
+			com.omnispell.spell.Trails.tick(server);
 			com.omnispell.spell.Wards.tick(server);
 			com.omnispell.player.Reliquary.tick(server);
 			if (server.getTickCount() % 2 == 0) com.omnispell.spell.Mines.tick(server);

@@ -344,7 +344,7 @@ public final class SpellCrafting {
 		PlayerStore.syncVitals(player);
 		player.level().playSound(null, player.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, stable ? 1.0f : 0.6f);
 		tell(player, true, stable ? "Spell complete! Save it to your spellbook or discard it."
-				: "The Oracle could not be reached. This spell is unstable: it works, and can be re-crafted later.");
+				: "The Oracle could not be reached. This spell is unstable: it works, and you can forget it and craft it again once the Oracle is back.");
 	}
 
 	public static void savePending(ServerPlayer player) {
@@ -519,10 +519,14 @@ public final class SpellCrafting {
 
 	public static void forget(ServerPlayer player, String spellId) {
 		PlayerData data = PlayerStore.get(player);
-		if (data.spells.removeIf(s -> s.id.equals(spellId))) {
+		Spell gone = data.spell(spellId);
+		if (gone != null && data.spells.remove(gone)) {
+			if (gone.legacy()) data.retired.add(gone.id); // gone for good: a restore will not bring the old one back
 			PlayerStore.save(player);
 			PlayerStore.syncState(player);
-			tell(player, true, "The spell is struck from your spellbook. Wands that hold it keep it.");
+			tell(player, true, gone.legacy()
+					? "The legacy spell is gone for good. Wands that hold it keep it. Craft its words again for the new Oracle's spell."
+					: "The spell is struck from your spellbook. Wands that hold it keep it.");
 		}
 	}
 

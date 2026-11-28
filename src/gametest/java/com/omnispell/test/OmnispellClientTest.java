@@ -3406,6 +3406,82 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				p.setHealth(p.getMaxHealth());
 			});
 			context.waitTicks(5);
+			// ---- hunger, legacy spells, trails, and masonry that lifts foes instead of burying them
+			com.omnispell.spell.Spell[] plTrail = new com.omnispell.spell.Spell[1];
+			net.minecraft.world.entity.Mob[] plFoe = new net.minecraft.world.entity.Mob[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel plLevel = p.level();
+				for (var pool : com.omnispell.player.ManaPool.values()) PlayerStore.get(p).mana[pool.ordinal()] = com.omnispell.player.Mana.max(p, pool);
+				// A planned hunger toggle fills the food bar.
+				p.getFoodData().setFoodLevel(4);
+				com.omnispell.spell.Spell plFeast = new com.omnispell.spell.Spell();
+				plFeast.type = "defense";
+				plFeast.words.addAll(java.util.List.of("base:Nature", "command:Grow", "intention:Restoration"));
+				plFeast.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"A harvest's plenty mends you and fills your hunger.\",\"effect_code\":{\"type\":\"heal\",\"primary_value\":26,\"duration\":2,\"element\":\"nature\"},\"minecraft\":{\"form\":\"mend\",\"extras\":[\"sate\"]}}", com.google.gson.JsonObject.class));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), plFeast));
+				check(p.getFoodData().getFoodLevel() >= 10, "a spell with the hunger toggle fills the food bar (" + p.getFoodData().getFoodLevel() + ")");
+				// Legacy: a spell the old Oracle made is marked, and once forgotten a restore does not bring it back.
+				var plData = PlayerStore.get(p);
+				com.omnispell.spell.Spell plOld = new com.omnispell.spell.Spell();
+				plOld.id = "attack|test-legacy";
+				plOld.type = "attack";
+				plOld.name = "Vetus";
+				plOld.words.addAll(java.util.List.of("base:Fire", "command:Sever", "intention:Malice"));
+				check(plOld.legacy() && !plFeast.legacy(), "a spell without the Oracle's plan is a legacy spell; a planned one is not");
+				plData.spells.add(plOld);
+				com.omnispell.spell.SpellCrafting.forget(p, plOld.id);
+				ItemStack plWand = WandItem.create("oak", "flint");
+				WandItem.setSpell(plWand, 0, plOld);
+				ItemStack plWas = p.getInventory().getItem(21).copy();
+				p.getInventory().setItem(21, plWand);
+				com.omnispell.player.Recovery.restore(p);
+				check(plData.spell(plOld.id) == null && plData.retired.contains(plOld.id), "a forgotten legacy spell is gone for good: a restore does not bring it back");
+				p.getInventory().setItem(21, plWas);
+				// Masonry rising where a foe stands lifts it on top; with no room above, it stays.
+				BlockPos plLift = p.blockPosition().offset(3, 0, 0);
+				var zLift = EntityTypes.ZOMBIE.create(plLevel, EntitySpawnReason.COMMAND);
+				zLift.snapTo(plLift.getX() + 0.5, plLift.getY(), plLift.getZ() + 0.5, 0f, 0f);
+				zLift.setNoAi(true);
+				plLevel.addFreshEntity(zLift);
+				plLevel.setBlockAndUpdate(plLift, Blocks.STONE.defaultBlockState());
+				com.omnispell.spell.Masonry.liftOnto(plLevel, zLift);
+				check(zLift.getY() >= plLift.getY() + 1 - 1e-3, "a foe caught where stone rises is lifted onto it (" + zLift.getY() + ")");
+				plLevel.setBlockAndUpdate(plLift, Blocks.AIR.defaultBlockState());
+				zLift.discard();
+				// A lightning bridge, planned as a trail: it follows you, lit, and strikes what comes after you.
+				com.omnispell.spell.Spell trail = new com.omnispell.spell.Spell();
+				trail.type = "conjuration";
+				trail.words.addAll(java.util.List.of("base:Lightning", "command:Summon", "intention:Malice", "attribute:Bridge"));
+				trail.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"A crackling blue trail follows you and strikes foes who chase you along it.\",\"effect_code\":{\"type\":\"summon\",\"primary_value\":12,\"duration\":4,\"element\":\"storm\",\"modifiers\":[\"summoned_creature:12:4:Storm_Trail\"]},\"minecraft\":{\"form\":\"trail\",\"extras\":[\"strike\"]}}", com.google.gson.JsonObject.class));
+				plTrail[0] = trail;
+				check("trail".equals(com.omnispell.spell.Masonry.structure(trail)), "a bridge of lightning the Oracle reads as a trail is a trail, not stone (" + com.omnispell.spell.Masonry.structure(trail) + ")");
+				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), trail)) && com.omnispell.spell.Trails.laying(p), "the trail is cast and follows you");
+			});
+			for (int step = 1; step <= 4; step++) {
+				int st = step;
+				server.runOnServer(s -> {
+					ServerPlayer p = player(s);
+					p.teleportTo(p.level(), cHome[0].x - 40 + st, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+				});
+				context.waitTicks(3);
+			}
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel plLevel = p.level();
+				check(com.omnispell.spell.Trails.cells(p) >= 4, "it lays a stretch at every step (" + com.omnispell.spell.Trails.cells(p) + ")");
+				check(plLevel.getBlockState(BlockPos.containing(cHome[0].x - 39, cHome[0].y, cHome[0].z)).is(Blocks.LIGHT), "and it lights the way");
+				var z = EntityTypes.ZOMBIE.create(plLevel, EntitySpawnReason.COMMAND);
+				z.snapTo(cHome[0].x - 39.5 + 0.5, cHome[0].y, cHome[0].z, 0f, 0f);
+				z.setNoAi(true);
+				plLevel.addFreshEntity(z);
+				plFoe[0] = z;
+			});
+			context.waitTicks(25);
+			server.runOnServer(s -> {
+				check(plFoe[0].getHealth() < plFoe[0].getMaxHealth(), "a foe following along the trail is struck (" + plFoe[0].getHealth() + ")");
+				plFoe[0].discard();
+			});
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);

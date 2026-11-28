@@ -531,6 +531,14 @@ public class BookScreen extends Screen {
 			g.text(font(), "Unstable: crafted without the Oracle.", x, y, GOLD, false);
 			y += 11;
 		}
+		if (spell.legacy()) {
+			g.text(font(), fit("Legacy spell: made by the old Oracle.", w), x, y, 0xFFE0403A, false);
+			y += 10;
+			g.text(font(), fit("Forget it and it is gone for good;", w), x, y, DIM, false);
+			y += 10;
+			g.text(font(), fit("its words can then be crafted anew.", w), x, y, DIM, false);
+			y += 11;
+		}
 		if (spell.fizzle) {
 			g.text(font(), "These words refuse each other. It will only fizzle.", x, y, BAD, false);
 			y += 11;
@@ -620,6 +628,9 @@ public class BookScreen extends Screen {
 		}
 	}
 
+	/** The legacy spell whose Forget was clicked once: a second click forgets it for good. */
+	private String confirmForget;
+
 	private void spellbook(GuiGraphicsExtractor g) {
 		moveMenu = null;
 		spellbookPage(g);
@@ -656,7 +667,16 @@ public class BookScreen extends Screen {
 			if (isSelected || over(lx, cy - 1, lw, rh)) g.fill(lx, cy - 1, lx + lw, cy + rh - 1, isSelected ? 0xFF2A3E78 : 0xFF222C4A);
 			g.fill(lx + 2, cy + 1, lx + 9, cy + 8, 0xFF000000 | SpellLook.color(spell));
 			g.text(font(), SpellLook.glyph(spell), lx + 12, cy + 1, DIM, false);
-			g.text(font(), fit(spell.label(), lw - 26), lx + 21, cy + 1, SpellLook.tierColor(spell.tier), false);
+			g.text(font(), fit(spell.label(), lw - 26 - (spell.legacy() ? 6 : 0)), lx + 21, cy + 1, SpellLook.tierColor(spell.tier), false);
+			if (spell.legacy()) {
+				// A small red dot: a legacy spell, made by the old Oracle. It cannot be remade.
+				g.fill(lx + lw - 6, cy + 3, lx + lw - 3, cy + 6, 0xFFE0403A);
+				if (over(lx + lw - 8, cy, 8, 9)) {
+					tooltip = new ArrayList<>();
+					tooltip.add(Component.literal("Legacy spell").withStyle(net.minecraft.ChatFormatting.RED));
+					tooltip.add(Component.literal("Made by the old Oracle. It cannot be remade.").withStyle(net.minecraft.ChatFormatting.GRAY));
+				}
+			}
 			hit(lx, cy - 1, lw, rh, () -> {
 				selectedSpell = spell.id;
 				renaming = false;
@@ -736,10 +756,22 @@ public class BookScreen extends Screen {
 					}
 				};
 			}
-			button(g, dx + dw - 44, by, 44, 15, "Forget", true, false, () -> {
+			// A legacy spell cannot be remade, so forgetting it asks twice.
+			boolean confirm = shown.legacy() && shown.id.equals(confirmForget);
+			button(g, dx + dw - 44, by, 44, 15, confirm ? "Sure?" : "Forget", true, confirm, () -> {
+				if (shown.legacy() && !shown.id.equals(confirmForget)) {
+					confirmForget = shown.id;
+					return;
+				}
+				confirmForget = null;
 				send("forget", shown.id);
 				selectedSpell = null;
 			});
+			if (shown.legacy() && over(dx + dw - 44, by, 44, 15)) {
+				tooltip = new ArrayList<>();
+				tooltip.add(Component.literal(confirm ? "Click again to forget it for good" : "A legacy spell: once forgotten it cannot be remade").withStyle(net.minecraft.ChatFormatting.RED));
+				tooltip.add(Component.literal("Its words can then be crafted again by the new Oracle.").withStyle(net.minecraft.ChatFormatting.GRAY));
+			}
 		}
 
 		// The held wand's five slots, each with its key

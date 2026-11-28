@@ -523,12 +523,30 @@ public final class Defenses {
 			for (Holder<MobEffect> e : harmful) p.removeEffect(e);
 			p.clearFire();
 		}
+		if (spell.plannedExtra("sate")) {
+			// Hunger: the food bar fills, and with a spell that reaches friends (or shares), theirs too.
+			sate(cast, p, tier);
+			if (form.equals("aegis") || form.equals("sanctuary") || spell.plannedExtra("share")) {
+				for (LivingEntity friend : alliesNear(p, p.position(), form.equals("aegis") ? 8 : 6)) if (friend instanceof ServerPlayer other) sate(cast, other, tier);
+			} else if (form.equals("lifeline")) {
+				LivingEntity looked = Targeting.entity(p, 24);
+				if (looked instanceof ServerPlayer other && ally(p, other)) sate(cast, other, tier);
+			}
+		}
 		if (spell.plannedExtra("share") && !spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) {
 			for (LivingEntity friend : alliesNear(p, p.position(), 6)) {
 				give(cast, friend, amount * 0.5f, heal, ticks);
 				Fx.line(cast.level, p.getBoundingBox().getCenter(), friend.getBoundingBox().getCenter(), color, null, 2);
 			}
 		}
+	}
+
+	/** Fills a player's food bar: two drumsticks and a little more for each tier, with saturation to match. */
+	private static void sate(Cast cast, ServerPlayer who, int tier) {
+		who.getFoodData().eat(2 + 2 * tier, 0.3f + 0.1f * tier);
+		cast.level.sendParticles(new net.minecraft.core.particles.ItemParticleOption(ParticleTypes.ITEM, net.minecraft.world.item.Items.BREAD),
+				who.getX(), who.getY() + 1.2, who.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
+		cast.level.playSound(null, who.blockPosition(), SoundEvents.GENERIC_EAT.value(), SoundSource.PLAYERS, 0.8f, 1.2f);
 	}
 
 	/** The block a cocoon of this element is made of: dirt for Earth, ice for frost, moss for living things, coloured glass for light and shadow. */

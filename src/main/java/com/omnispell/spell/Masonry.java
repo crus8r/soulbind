@@ -33,6 +33,8 @@ public final class Masonry {
 
 	/** Which structure a conjuration's attribute word asks for, or null. */
 	public static String structure(Spell spell) {
+		// Something no one can stand on (lightning, light, wind...) the Oracle may read as a trail instead of a bridge.
+		if ("conjuration".equals(spell.type) && "trail".equals(spell.planned("form")) && !livingWord(spell)) return "trail";
 		for (String id : spell.words) {
 			switch (id) {
 				case "attribute:Bridge" -> {
@@ -130,20 +132,43 @@ public final class Masonry {
 
 	private static final class Builder {
 		final ServerLevel level;
+		final ServerPlayer owner;
 		final List<Stone> stones = new ArrayList<>();
 
-		Builder(ServerLevel level) {
+		Builder(ServerLevel level, ServerPlayer owner) {
 			this.level = level;
+			this.owner = owner;
 		}
 
 		void set(BlockPos pos, BlockState state) {
 			BlockPos at = pos.immutable();
 			BlockState before = level.getBlockState(at);
 			if (!before.canBeReplaced() || STANDING.contains(at)) return;
-			if (!level.getEntitiesOfClass(LivingEntity.class, new AABB(at)).isEmpty()) return;
+			List<LivingEntity> there = level.getEntitiesOfClass(LivingEntity.class, new AABB(at), LivingEntity::isAlive);
+			for (LivingEntity e : there) if (e == owner || Defenses.ally(owner, e)) return; // never built into a friend
 			level.setBlock(at, state, 3);
 			stones.add(new Stone(at, before, state));
 			STANDING.add(at);
+			for (LivingEntity e : there) liftOnto(level, e); // a foe in the way ends up standing on it
+		}
+	}
+
+	/**
+	 * Something caught where masonry rises is lifted onto it: to the first place above where it fits, up to six
+	 * blocks. Only if there is no room at all does it stay where it is (and the stone closes on it).
+	 */
+	public static void liftOnto(ServerLevel level, LivingEntity e) {
+		if (!e.isAlive()) return;
+		AABB box = e.getBoundingBox();
+		double base = Math.floor(box.minY);
+		for (int dy = 1; dy <= 6; dy++) {
+			double y = base + dy;
+			AABB moved = box.move(0, y - box.minY, 0);
+			if (!level.noCollision(e, moved)) continue;
+			e.teleportTo(e.getX(), y, e.getZ());
+			e.setDeltaMovement(0, 0, 0);
+			e.syncVelocity = true;
+			return;
 		}
 	}
 
@@ -492,7 +517,9 @@ public final class Masonry {
 			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, was), hole.getX() + 0.5, hole.getY() + 0.5, hole.getZ() + 0.5, 20, 0.3, 0.3, 0.3, 0.1);
 			level.playSound(null, hole, SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.0f, 0.6f);
 			Tasks.later(40, () -> {
-				if (STANDING.contains(hole) && level.getBlockState(hole).isAir()) level.setBlock(hole, was, 3);
+				if (!STANDING.contains(hole) || !level.getBlockState(hole).isAir()) return;
+				level.setBlock(hole, was, 3);
+				for (LivingEntity caught : level.getEntitiesOfClass(LivingEntity.class, new AABB(hole), LivingEntity::isAlive)) liftOnto(level, caught); // it rises back up under them
 			});
 		}
 	}
@@ -510,6 +537,7 @@ public final class Masonry {
 	public static String describe(Spell spell) {
 		String what = structure(spell);
 		if (what == null) return "";
+		if (what.equals("trail")) return Trails.describe(spell);
 		int secs = (int) (seconds(spell) * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
 		String kind = switch (what) {
 			case "bridge" -> bridgeToggles(spell).contains("gated") ? "a covered bridge across the way you face, walled, roofed and windowed, with a gate at each end that you can open and hostile creatures cannot" : "a dressed-stone bridge, railed and lit, across the way you face";
@@ -551,10 +579,11 @@ public final class Masonry {
 		ServerLevel level = cast.level;
 		Spell spell = cast.spell;
 		if (what == null) return false;
+		if (what.equals("trail")) return Trails.lay(cast);
 		Palette pal = palette(AttackForms.element(spell));
 		boolean big = spell.hasCharge("Maxima");
 		int tier = Math.max(1, Math.min(5, spell.tier));
-		Builder b = new Builder(level);
+		Builder b = new Builder(level, p);
 		Direction facing = p.getDirection();
 		Direction side = facing.getClockWise();
 		BlockPos feet = p.blockPosition();

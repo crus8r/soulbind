@@ -82,7 +82,7 @@ public final class Recovery {
 				for (JsonElement element : spells) {
 					try {
 						Spell spell = WordBank.GSON.fromJson(element, Spell.class);
-						if (spell == null || spell.id == null || !have.add(spell.id)) continue;
+						if (spell == null || spell.id == null || (spell.legacy() && data.retired.contains(spell.id)) || !have.add(spell.id)) continue;
 						data.spells.add(spell);
 						fromSaves++;
 					} catch (Exception ignored) {
@@ -111,7 +111,7 @@ public final class Recovery {
 			if (!WandItem.isWand(stack)) continue;
 			for (int slot = 0; slot < WandItem.SLOTS; slot++) {
 				Spell spell = WandItem.spell(stack, slot);
-				if (spell == null || spell.id == null || !have.add(spell.id)) continue;
+				if (spell == null || spell.id == null || (spell.legacy() && data.retired.contains(spell.id)) || !have.add(spell.id)) continue;
 				data.spells.add(WordBank.GSON.fromJson(WordBank.GSON.toJson(spell), Spell.class)); // its own copy
 				fromWands++;
 				for (String id : spell.words) if (data.words.add(id)) words++;
