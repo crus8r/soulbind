@@ -26,7 +26,9 @@ public final class Mechanics {
 	/** How an attack leaves the wand, by the same rules casting uses. */
 	public static String delivery(Spell spell) {
 		String weapon = Weapons.kind(spell);
-		if (weapon != null) return weapon.equals("bow") ? "three magic arrows, then the spell" : weapon.equals("arrow") ? "a magic arrow, then the spell" : "the wand becomes a " + weapon + " for a while";
+		String bow = Weapons.ranged(spell), blade = Weapons.melee(spell);
+		if (bow != null && blade != null) return (bow.equals("bow") ? "three magic arrows" : "a magic arrow") + ", then the wand becomes a " + blade + " for a while (each strike carries the spell)";
+		if (weapon != null) return weapon.equals("bow") ? "three magic arrows, then the spell" : weapon.equals("arrow") ? "a magic arrow, then the spell" : "the wand becomes a " + weapon + " for a while (each strike carries the spell)";
 		if (Surges.wallAttack(spell)) return "a wall that rolls forward";
 		if (Beams.piercing(spell)) return "a beam that pierces everything in line";
 		String planned = spell.planned("delivery");

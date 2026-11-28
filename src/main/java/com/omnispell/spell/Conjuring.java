@@ -152,13 +152,8 @@ public final class Conjuring {
 		if (flyer != null) return flyer;
 		Body armed = warriorFor(spell);
 		if (armed != null) return armed;
-		for (String id : spell.words) {
-			Word word = WordBank.word(id);
-			if (word != null && word.type.equals("attribute")) {
-				Body b = BODIES.get(word.english.toLowerCase(Locale.ROOT));
-				if (b != null) return b;
-			}
-		}
+		Body named = attributeBody(spell);
+		if (named != null) return named;
 		// With no word naming one, the creature the Oracle planned.
 		String planned = spell.planned("body");
 		if (planned != null && BODIES.containsKey(planned)) return BODIES.get(planned);
@@ -207,13 +202,8 @@ public final class Conjuring {
 		if (flyer != null) return flyer;
 		Body armed = warriorFor(spell);
 		if (armed != null) return armed;
-		for (String id : spell.words) {
-			Word word = WordBank.word(id);
-			if (word != null && word.type.equals("attribute")) {
-				Body b = BODIES.get(word.english.toLowerCase(Locale.ROOT));
-				if (b != null) return b;
-			}
-		}
+		Body named = attributeBody(spell);
+		if (named != null) return named;
 		// With no word naming one, the creature the Oracle planned.
 		String planned = spell.planned("body");
 		if (planned != null && BODIES.containsKey(planned)) return BODIES.get(planned);
@@ -516,6 +506,24 @@ public final class Conjuring {
 	}
 
 	/** The book's account of what the conjuration really does. */
+	/**
+	 * The creature an attribute word names. With two (Statue and Cat, Bear and Cat), the one the Oracle planned;
+	 * otherwise the first.
+	 */
+	private static Body attributeBody(Spell spell) {
+		Body first = null;
+		String planned = spell.planned("body");
+		for (String id : spell.words) {
+			Word word = WordBank.word(id);
+			if (word == null || !word.type.equals("attribute")) continue;
+			Body b = BODIES.get(word.english.toLowerCase(Locale.ROOT));
+			if (b == null) continue;
+			if (planned != null && b.id().equals(planned)) return b;
+			if (first == null) first = b;
+		}
+		return first;
+	}
+
 	/** A conjured horse called up for travel (Transportation, or the Oracle planned a steed) can be ridden. */
 	public static boolean steed(Spell spell) {
 		return "steed".equals(spell.planned("form")) || spell.words.contains("intention:Transportation");
@@ -782,6 +790,7 @@ public final class Conjuring {
 		if (owner.isAlive()) soulLink(owner, Math.max(0, before - foe.getHealth()));
 		Spell.EffectCode code = cast.spell.code;
 		if (code.status != null && !code.status.equals("none") && !code.status.equals("null") && foe.isAlive()) CombatEffects.status(cast, foe, code.status, 1);
+		CombatEffects.riders(cast, foe, 1); // a creature of Time slows what it strikes
 		if (foe.isAlive() && mob.getRandom().nextFloat() < 0.3f) AttackForms.apply(cast, foe, a.base * 0.35);
 	}
 

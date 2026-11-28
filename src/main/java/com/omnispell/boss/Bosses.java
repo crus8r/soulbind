@@ -261,10 +261,11 @@ public final class Bosses {
 
 	private static void use(ServerLevel level, Active boss, String ability, List<ServerPlayer> near) {
 		Mob mob = boss.entity;
-		// A ward that disrupts monsters' special attacks may unravel this one before it lands.
-		if (com.omnispell.spell.Modifiers.wardUnravels(level, near)) {
+		// A hexed boss cannot use its abilities; a ward that disrupts monsters' special attacks may unravel one before it lands.
+		if (com.omnispell.spell.Hex.hexed(mob) || com.omnispell.spell.Modifiers.wardUnravels(level, near)) {
 			level.sendParticles(ParticleTypes.SMOKE, mob.getX(), mob.getY() + mob.getBbHeight() * 0.7, mob.getZ(), 30, 0.5, 0.5, 0.5, 0.05);
-			for (ServerPlayer p : near) p.sendOverlayMessage(net.minecraft.network.chat.Component.literal("A ward unravels " + boss.def.name + "'s attack.").withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+			String why = com.omnispell.spell.Hex.hexed(mob) ? boss.def.name + " is hexed: its attack comes to nothing." : "A ward unravels " + boss.def.name + "'s attack.";
+			for (ServerPlayer p : near) p.sendOverlayMessage(net.minecraft.network.chat.Component.literal(why).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
 			return;
 		}
 		int tier = Math.min(6, boss.def.tier);

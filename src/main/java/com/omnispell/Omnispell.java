@@ -253,6 +253,8 @@ public class Omnispell implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			com.omnispell.spell.Trails.clear();
 			com.omnispell.spell.Auras.clear();
+			com.omnispell.spell.Hex.clear();
+			com.omnispell.spell.Rewind.clear();
 			Tasks.flush(); // conjured blocks and creatures vanish before the world is saved
 			com.omnispell.waypoint.Waypoints.unload();
 			com.omnispell.boss.Bosses.clear();
@@ -269,6 +271,8 @@ public class Omnispell implements ModInitializer {
 			com.omnispell.spell.Conjuring.tick(server);
 			com.omnispell.spell.Trails.tick(server);
 			com.omnispell.spell.Auras.tick(server);
+			com.omnispell.spell.Hex.tick(server);
+			com.omnispell.spell.Rewind.tick(server);
 			com.omnispell.spell.Wards.tick(server);
 			com.omnispell.player.Reliquary.tick(server);
 			if (server.getTickCount() % 2 == 0) com.omnispell.spell.Mines.tick(server);

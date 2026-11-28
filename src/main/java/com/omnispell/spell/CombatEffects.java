@@ -95,6 +95,7 @@ public final class CombatEffects {
 			if (other == first || !other.isAlive() || com.omnispell.familiar.Familiars.isFamiliar(other)) continue;
 			if (base > 0 && (cast.spell.type.equals("attack") || code.type.equals("damage"))) strike(cast, other, base * 0.6, false);
 			if (!code.status.equals("none") && !code.status.equals("null") && other.isAlive()) status(cast, other, code.status, Math.max(1, code.duration));
+			riders(cast, other, Math.max(1, code.duration));
 			hit++;
 		}
 		Fx.ring(cast.level, center.add(0, 0.3, 0), radius, Fx.color(cast.spell.visual.color1), null);
@@ -137,6 +138,7 @@ public final class CombatEffects {
 		if (!code.status.equals("none") && !code.status.equals("null") && target.isAlive()) {
 			status(cast, target, code.status, Math.max(1, code.duration));
 		}
+		riders(cast, target, Math.max(1, code.duration));
 		if (target.isAlive()) AttackForms.apply(cast, target, base);
 		if (wide(cast.spell)) spread(cast, target, target.position(), base);
 		return true;
@@ -242,12 +244,37 @@ public final class CombatEffects {
 	// ----- statuses -----
 
 	/** Applies one of the generator's statuses for a number of turns. Control statuses are paid for with Control mana. */
+	/** Time and stillness slow what they touch: Time, Stagnate, Decelerate. */
+	public static boolean slows(Spell spell) {
+		return spell.words.contains("base:Time") || spell.words.contains("command:Stagnate") || spell.words.contains("command:Decelerate");
+	}
+
+	/** Weakening weakens what it touches. */
+	public static boolean weakens(Spell spell) {
+		return spell.words.contains("intention:Weakening");
+	}
+
+	/**
+	 * What every hit of a spell carries besides its damage, form and status: a slowing (Time, Stagnate,
+	 * Decelerate), a weakening (Weakening) and a hex (an attack that unravels magic). Called wherever a hit lands.
+	 */
+	public static void riders(Cast cast, LivingEntity target, int turns) {
+		if (target == null || !target.isAlive() || target == cast.player) return;
+		Spell spell = cast.spell;
+		int ticks = cast.turns(Math.max(1, turns));
+		if (slows(spell) && !"slow".equals(spell.code.status)) target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, spell.tier >= 4 ? 3 : 2), cast.player);
+		if (weakens(spell) && !"weaken".equals(spell.code.status)) target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ticks, spell.tier >= 4 ? 1 : 0), cast.player);
+		if (Hex.hexes(spell)) Hex.hex(cast, target);
+	}
+
 	static void status(Cast cast, LivingEntity target, String status, int turns) {
 		ServerPlayer player = cast.player;
 		double wanted = turns + Modifiers.value(player, "debuff_extend");
 		switch (status) {
 			case "poison" -> target.addEffect(new MobEffectInstance(MobEffects.POISON, cast.turns(wanted), cast.spell.tier >= 4 ? 1 : 0), player);
 			case "distracted" -> MobControl.apply(player, target, "distracted", cast.turns(wanted), null);
+			case "slow" -> target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, cast.turns(wanted), cast.spell.tier >= 4 ? 3 : 2), player);
+			case "weaken" -> target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, cast.turns(wanted), cast.spell.tier >= 4 ? 1 : 0), player);
 			case "stun", "charm", "fear", "confusion" -> {
 				if (MobControl.immune(target)) {
 					cast.tell(target.getName().getString() + " resists.");
@@ -284,6 +311,7 @@ public final class CombatEffects {
 			target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, cast.turns(turns), cast.spell.tier >= 4 ? 1 : 0), player);
 			target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, cast.turns(turns), 0), player);
 		}
+		riders(cast, target, turns);
 		// Offensive spell types that debuff still sting a little, scaled well below a true attack.
 		if (cast.spell.type.equals("attack") && code.primaryValue > 0) strike(cast, target, code.primaryValue, true);
 		if (cast.spell.hasCharge("Sparsus")) spread(cast, target, target.position(), 0);

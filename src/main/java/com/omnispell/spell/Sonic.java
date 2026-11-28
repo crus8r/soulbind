@@ -92,6 +92,7 @@ public final class Sonic {
 			LivingEntity e = hit.get(i);
 			CombatEffects.strike(cast, e, i == 0 ? base : base * 0.75, i == 0);
 			if (i == 0 && e.isAlive()) AttackForms.apply(cast, e, base);
+			CombatEffects.riders(cast, e, Math.max(1, spell.code.duration));
 			if (e.isAlive() && com.omnispell.boss.Bosses.defOf(e) == null) {
 				Vec3 away = e.position().subtract(p.position()).multiply(1, 0, 1);
 				away = away.lengthSqr() < 1e-4 ? look : away.normalize();

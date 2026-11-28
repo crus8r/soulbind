@@ -469,6 +469,32 @@ public final class Terraform {
 	 * What the spell builds with. Common stuff is real and stays; anything
 	 * precious or strange (null here) is conjured as hardened magic that fades.
 	 */
+	/**
+	 * Steps the player up to this many blocks the way they look, to the furthest spot with room to stand that
+	 * they can see, never across the door of a sealed lair. Returns null if it worked, or why it did not.
+	 */
+	public static String blink(ServerPlayer p, ServerLevel level, double max) {
+		Vec3 look = p.getLookAngle();
+		Vec3 best = null;
+		for (double d = max; d >= 1; d -= 0.5) {
+			Vec3 spot = p.position().add(look.x * d, Math.max(-1, look.y * d), look.z * d);
+			BlockPos feet = BlockPos.containing(spot);
+			if (level.getBlockState(feet).getCollisionShape(level, feet).isEmpty() && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()
+					&& Targeting.block(p, d).getType() == HitResult.Type.MISS) {
+				best = spot;
+				break;
+			}
+		}
+		if (best == null) return "There is nowhere to step to.";
+		int sealed = com.omnispell.boss.Lairs.sealedBetween(level, p.position(), best);
+		if (sealed > 0) return com.omnispell.boss.Lairs.sealedMessage(sealed);
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
+		p.teleportTo(best.x, best.y, best.z);
+		p.fallDistance = 0;
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
+		return null;
+	}
+
 	public static Block material(Spell spell) {
 		String english = "";
 		for (String id : spell.words) {
@@ -821,24 +847,8 @@ public final class Terraform {
 			}
 			case "blink" -> {
 				if (!p.getAbilities().instabuild && com.omnispell.player.Mana.spend(p, com.omnispell.player.ManaPool.PHASE, 1) < 1) return c.fail("Not enough Phase mana.");
-				Vec3 look = p.getLookAngle();
-				Vec3 best = null;
-				for (double d = 6; d >= 1; d -= 0.5) {
-					Vec3 spot = p.position().add(look.x * d, Math.max(-1, look.y * d), look.z * d);
-					BlockPos feet = BlockPos.containing(spot);
-					if (level.getBlockState(feet).getCollisionShape(level, feet).isEmpty() && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()
-							&& Targeting.block(p, d).getType() == HitResult.Type.MISS) {
-						best = spot;
-						break;
-					}
-				}
-				if (best == null) return c.fail("There is nowhere to step to.");
-				int sealedBlink = com.omnispell.boss.Lairs.sealedBetween(level, p.position(), best);
-				if (sealedBlink > 0) return c.fail(com.omnispell.boss.Lairs.sealedMessage(sealedBlink));
-				level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
-				p.teleportTo(best.x, best.y, best.z);
-				p.fallDistance = 0;
-				level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 16, 0.3, 0.5, 0.3, 0.02);
+				String why = blink(p, level, 6);
+				if (why != null) return c.fail(why);
 				job.changed++;
 			}
 			case "shade" -> {

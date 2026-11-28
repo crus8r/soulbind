@@ -33,8 +33,10 @@ public final class Masonry {
 
 	/** Which structure a conjuration's attribute word asks for, or null. */
 	public static String structure(Spell spell) {
+		// A creature or weapon word calls something living, before any masonry: a Bridge and a Horse is a horse.
+		if ("conjuration".equals(spell.type) && livingWord(spell)) return null;
 		// Something no one can stand on (lightning, light, wind...) the Oracle may read as a trail instead of a bridge.
-		if ("conjuration".equals(spell.type) && "trail".equals(spell.planned("form")) && !livingWord(spell)) return "trail";
+		if ("conjuration".equals(spell.type) && "trail".equals(spell.planned("form"))) return "trail";
 		for (String id : spell.words) {
 			switch (id) {
 				case "attribute:Bridge" -> {

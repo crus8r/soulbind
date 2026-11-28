@@ -459,7 +459,14 @@ public final class Defenses {
 				LivingEntity looked = Targeting.entity(p, 24);
 				LivingEntity who = looked == null ? p : looked;
 				boolean friend = who == p || ally(p, who);
-				who.removeAllEffects();
+				if (friend && !wipes(spell)) {
+					// A cleansing that purifies takes away only what harms: blessings stay.
+					List<Holder<MobEffect>> harmful = new ArrayList<>();
+					for (MobEffectInstance instance : who.getActiveEffects()) if (!instance.getEffect().value().isBeneficial()) harmful.add(instance.getEffect());
+					for (Holder<MobEffect> e : harmful) who.removeEffect(e);
+				} else {
+					who.removeAllEffects(); // Disenchant and Nullify wipe the slate, good and bad; so does any cleansing cast at an enemy
+				}
 				who.clearFire();
 				level.sendParticles(ParticleTypes.END_ROD, who.getX(), who.getY() + who.getBbHeight() * 0.5, who.getZ(), 40, 0.4, 0.6, 0.4, 0.08);
 				level.playSound(null, who.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 0.7f);
@@ -521,12 +528,43 @@ public final class Defenses {
 		return true;
 	}
 
+	/** Disenchant and Nullify wipe every effect away, good and bad; any other cleansing only what harms. */
+	static boolean wipes(Spell spell) {
+		return spell.words.contains("command:Disenchant") || spell.words.contains("command:Nullify");
+	}
+
+	/**
+	 * A hold a defense puts on every hostile creature around it besides its form: the spell's own status (fear,
+	 * confusion, stun, charm), or one the Oracle planned as an extra. Null for none, or when the form is a hold already.
+	 */
+	public static String holdForm(Spell spell) {
+		if (!"defense".equals(spell.type) || controls(spell)) return null;
+		String status = spell.code.status == null ? "" : spell.code.status;
+		if (status.equals("fear") || spell.plannedExtra("fear")) return "terror";
+		if (status.equals("confusion") || spell.plannedExtra("daze")) return "daze";
+		if (status.equals("stun") || spell.plannedExtra("stun")) return "stagger";
+		if (status.equals("charm") || spell.plannedExtra("charm")) return "enthrall";
+		return null;
+	}
+
+	/** Does this defense blink you forward? Displace or Space in it (or the Oracle planned it). */
+	public static boolean blinks(Spell spell) {
+		return "defense".equals(spell.type) && (spell.plannedExtra("blink") || spell.words.contains("command:Displace") || spell.words.contains("base:Space"));
+	}
+
 	/** What the Oracle added on top of the form: each happens only if it planned it, and never twice over. */
 	private static void extras(Cast cast, String form, String element, boolean heal, float amount, int ticks, int color) {
 		Spell spell = cast.spell;
 		ServerPlayer p = cast.player;
 		int tier = Math.max(1, Math.min(5, spell.tier));
 		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) cocoon(cast, element, ticks);
+		String hold = holdForm(spell);
+		if (hold != null) sway(cast, hold, color); // the spell's own status, as a hold on everything hostile around you
+		if (Rewind.rewinds(spell)) Rewind.mark(cast);
+		if (blinks(spell) && !form.equals("stride")) {
+			String why = Terraform.blink(p, cast.level, 6 + tier);
+			if (why != null) cast.tell(why);
+		}
 		if (spell.plannedExtra("ram")) Auras.ram(cast, Math.max(100, Math.min(ticks, 160 + 40 * tier)));
 		if (spell.plannedExtra("trail")) Trails.lay(cast); // its planned effects, or its element's own way (mud snares, fire burns, lightning strikes)
 		if (spell.plannedExtra("regen") && !form.equals("mend")) effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), tier >= 4 ? 1 : 0);
@@ -572,6 +610,12 @@ public final class Defenses {
 	private static Block cocoonBlock(Spell spell, String element) {
 		Block own = AttackForms.shellOf(spell);
 		if (own != null) return own;
+		Block made = elementBlock(element);
+		Block colour = AttackForms.colourGlass(spell);
+		return colour != null && AttackForms.glass(made) ? colour : made; // a glass cocoon takes the colour word
+	}
+
+	private static Block elementBlock(String element) {
 		return switch (element) {
 			case "stone" -> Blocks.COBBLESTONE;
 			case "ice" -> Blocks.PACKED_ICE;
@@ -885,7 +929,9 @@ public final class Defenses {
 					+ (Beams.beamClaim(spell) ? " The beam holds while the spell lasts, as long as they stay in sight and within twenty-four blocks, and keeps " + (heal ? "mending them." : "their shield topped up.") : "");
 			case "sanctuary" -> "It marks a circle on the ground around you. Friends standing in it " + (heal ? "mend every second" : "keep a shield") + " while it lasts, and hostile creatures in it are slowed.";
 			case "barrier" -> "It raises a barrier wall in front of you, and gives you " + gift + ".";
-			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
+			case "cleanse" -> (wipes(spell) ? "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad,"
+					: "It purifies. Cast at the friend you look at (or yourself, looking at no one), it strips away every harmful effect on them (their blessings stay),")
+					+ " puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
 			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
 			case "aspect" -> "It gives you " + aspectText(creature(spell)) + ". You also get " + littleGift + ".";
 			case "stride" -> "It energises you: a dash the way you look, then a burst of speed and higher jumps for a while. You also get " + littleGift + ".";
@@ -901,6 +947,7 @@ public final class Defenses {
 		// What the Oracle added on top, as the cast carries it out.
 		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) what += " A small sphere of " + cocoonName(spell, element) + " closes around you too.";
 		if (spell.plannedExtra("regen") && !form.equals("mend")) what += " You regenerate for a while.";
+		what += addedText(spell, form);
 		if (spell.plannedExtra("ram")) what += " For a while hostile creatures that touch you are knocked flying and hurt" + (element.equals("storm") ? " by a jolt" : "") + "; the faster you move, the harder they fly.";
 		if (spell.plannedExtra("trail")) what += " You leave a glowing trail behind you as you move.";
 		if (spell.plannedExtra("unseen") && !form.equals("veil") && !form.equals("cleanse")) what += " You turn invisible for a few seconds.";
@@ -909,6 +956,21 @@ public final class Defenses {
 		if (spell.plannedExtra("sate")) what += " It fills your hunger" + (form.equals("aegis") || form.equals("sanctuary") || form.equals("lifeline") || spell.plannedExtra("share") ? ", and your friends'." : ".");
 		if (spell.plannedExtra("share") && !spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Friends close by get half of it.";
 		return what;
+	}
+
+	/** Words for what a defense does besides its form that the Oracle could not name: a hold, a rewind, a blink. */
+	public static String addedText(Spell spell, String form) {
+		StringBuilder sb = new StringBuilder();
+		String hold = holdForm(spell);
+		if (hold != null) sb.append(switch (hold) {
+			case "terror" -> " It also strikes fear into every hostile creature around you, and they run.";
+			case "daze" -> " It also leaves every hostile creature around you reeling and confused.";
+			case "stagger" -> " It also stuns every hostile creature around you where it stands.";
+			default -> " It also charms every hostile creature around you: for a while they will not fight you.";
+		});
+		if (Rewind.rewinds(spell)) sb.append(" Time marks where you stand: ").append(Rewind.seconds(spell)).append(" seconds later you snap back there with the health you had then, at once if a blow would kill you.");
+		if (blinks(spell) && !form.equals("stride")) sb.append(" It blinks you a few blocks the way you look.");
+		return sb.toString();
 	}
 
 	private static String cocoonName(Spell spell, String element) {

@@ -179,6 +179,20 @@ public final class AttackForms {
 			if (sb.length() > 0) sb.append(' ');
 			sb.append(element.equals("ice") ? "Often" : "Sometimes").append(", ").append(phrase(sig, element)).append(" as well.");
 		}
+		String riders = ridersText(spell);
+		if (!riders.isEmpty()) sb.append(sb.length() > 0 ? " " : "").append(riders);
+		return sb.toString();
+	}
+
+	/** Words for what every hit carries besides its form: a slowing, a weakening, a hex. */
+	public static String ridersText(Spell spell) {
+		java.util.List<String> parts = new java.util.ArrayList<>();
+		if (CombatEffects.slows(spell)) parts.add("slowed");
+		if (CombatEffects.weakens(spell)) parts.add("weakened");
+		StringBuilder sb = new StringBuilder();
+		if (!parts.isEmpty()) sb.append("What it hits is left ").append(String.join(" and ", parts)).append(" for a while.");
+		if (Hex.hexes(spell)) sb.append(sb.length() > 0 ? " " : "").append("It hexes what it hits: for ").append(Hex.seconds(spell))
+				.append(" seconds a monster cannot use its special attacks (no arrows, fireballs, potions, blasts, summons or teleports; a boss for a third as long).");
 		return sb.toString();
 	}
 
@@ -477,11 +491,34 @@ public final class AttackForms {
 		return material;
 	}
 
+	/** The stained glass of the spell's colour word (Red, Orange, Yellow, Green, Blue, Indigo, Violet), or null. */
+	public static Block colourGlass(Spell spell) {
+		for (String id : spell.words) {
+			net.minecraft.world.item.DyeColor dye = switch (id) {
+				case "attribute:Red" -> net.minecraft.world.item.DyeColor.RED;
+				case "attribute:Orange" -> net.minecraft.world.item.DyeColor.ORANGE;
+				case "attribute:Yellow" -> net.minecraft.world.item.DyeColor.YELLOW;
+				case "attribute:Green" -> net.minecraft.world.item.DyeColor.LIME;
+				case "attribute:Blue" -> net.minecraft.world.item.DyeColor.BLUE;
+				case "attribute:Indigo" -> net.minecraft.world.item.DyeColor.PURPLE;
+				case "attribute:Violet" -> net.minecraft.world.item.DyeColor.MAGENTA;
+				default -> null;
+			};
+			if (dye != null) return Blocks.STAINED_GLASS.pick(dye);
+		}
+		return null;
+	}
+
+	/** Is this one of the glass blocks a shell can be made of? */
+	public static boolean glass(Block block) {
+		return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).getPath().contains("glass");
+	}
+
 	/** The shell: temporary blocks in the empty spaces around the target, gone again a few seconds later. */
 	static int encase(Cast cast, LivingEntity target, String element, int tier) {
 		if (steadfast(target) || target.getBbWidth() > 1.6 || target.getBbHeight() > 3.2) return 0;
 		ServerLevel level = cast.level;
-		BlockState shell = switch (element) {
+		BlockState made = switch (element) {
 			case "ice", "water" -> Blocks.ICE.defaultBlockState();
 			case "stone" -> {
 				Block material = shellOf(cast.spell);
@@ -495,6 +532,9 @@ public final class AttackForms {
 			case "blood" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.RED).defaultBlockState();
 			default -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.PURPLE).defaultBlockState();
 		};
+		// A shell of glass takes the spell's colour word: a yellow one is yellow glass.
+		Block colour = colourGlass(cast.spell);
+		final BlockState shell = colour != null && glass(made.getBlock()) ? colour.defaultBlockState() : made;
 		AABB box = target.getBoundingBox();
 		BlockPos min = BlockPos.containing(box.minX, box.minY, box.minZ);
 		BlockPos max = BlockPos.containing(box.maxX - 1e-4, box.maxY - 1e-4, box.maxZ - 1e-4);

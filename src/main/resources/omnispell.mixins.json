@@ -12,7 +12,10 @@
 		"DeathCaptureMixin",
 		"CaptureDropsMixin",
 		"ReliquaryPickupMixin",
-		"MobGoalsAccessor"
+		"MobGoalsAccessor",
+		"HexSpawnMixin",
+		"HexEndermanMixin",
+		"HexShulkerMixin"
 	],
 	"client": [
 		"DarkSightMixin",

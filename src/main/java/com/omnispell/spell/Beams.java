@@ -227,6 +227,7 @@ public final class Beams {
 			CombatEffects.strike(cast, e, i == 0 ? base : base * 0.6, i == 0);
 			if (!e.isAlive()) continue;
 			mark(cast, e, element, look);
+			CombatEffects.riders(cast, e, Math.max(1, spell.code.duration));
 			if (i == 0) {
 				Spell.EffectCode code = spell.code;
 				if (code.status != null && !code.status.equals("none") && !code.status.equals("null")) CombatEffects.status(cast, e, code.status, Math.max(1, code.duration));

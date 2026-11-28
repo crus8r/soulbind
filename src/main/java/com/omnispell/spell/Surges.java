@@ -117,6 +117,7 @@ public final class Surges {
 							CombatEffects.strike(cast, mob, base * 0.7, false);
 							String status = spell.code.status;
 							if (status != null && !status.equals("none") && !status.equals("null") && mob.isAlive()) CombatEffects.status(cast, mob, status, Math.max(1, spell.code.duration));
+							CombatEffects.riders(cast, mob, Math.max(1, spell.code.duration));
 						} else {
 							switch (element) {
 								case "fire" -> mob.igniteForSeconds(2);

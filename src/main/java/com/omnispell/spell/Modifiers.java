@@ -165,6 +165,11 @@ public final class Modifiers {
 		}
 		if (has(player, "true_sight")) {
 			for (Holder<MobEffect> effect : CONFUSIONS) player.removeEffect(effect);
+			// True sight also shows what hides: every hostile creature near, and anything invisible, glows through walls.
+			for (LivingEntity seen : player.level().getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(24),
+					e -> e != player && e.isAlive() && !Defenses.ally(player, e) && (e instanceof net.minecraft.world.entity.monster.Enemy || e.isInvisible()))) {
+				seen.addEffect(new MobEffectInstance(MobEffects.GLOWING, 30, 0, false, false));
+			}
 		}
 		Defenses.aspectSecond(player);
 		double anchor = value(player, "arcane_anchor");
@@ -258,6 +263,8 @@ public final class Modifiers {
 	/** Fortify, resistances and mana shield change how much a hit does. Called from the damage mixin. */
 	public static float modifyIncoming(LivingEntity entity, DamageSource source, float amount) {
 		if (amount > 0 && Conjuring.spares(entity, source)) return 0;
+		if (amount > 0 && Hex.blocks(source)) return 0; // a hexed monster's special attack does no harm
+		if (amount > 0 && entity instanceof ServerPlayer marked && Rewind.saves(marked, amount)) return 0; // a fatal blow rewinds you instead
 		if (amount > 0 && !(entity instanceof ServerPlayer)) {
 			if (com.omnispell.familiar.Familiars.spared(entity, source)) return 0;
 			return com.omnispell.boss.Bosses.modifyDamage(entity, source, com.omnispell.charm.Charms.outgoing(source, amount));

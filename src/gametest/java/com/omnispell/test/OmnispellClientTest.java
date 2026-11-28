@@ -3598,6 +3598,182 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				}
 			});
 			context.waitTicks(3);
+			// ---- the review's toggles: weapons that carry their spell, true sight, cleansing, holds, slow, hex, rewind, blink
+			net.minecraft.world.entity.Mob[] rvFoe = new net.minecraft.world.entity.Mob[3];
+			Vec3[] rvMark = new Vec3[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel lv = p.level();
+				BlockPos rvAt = BlockPos.containing(cHome[0].x - 40, cHome[0].y, cHome[0].z + 16);
+				for (BlockPos pos : BlockPos.betweenClosed(rvAt.offset(-7, 0, -7), rvAt.offset(7, 5, 7))) lv.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(rvAt.offset(-7, -1, -7), rvAt.offset(7, -1, 7))) lv.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				p.teleportTo(lv, rvAt.getX() + 0.5, rvAt.getY(), rvAt.getZ() + 0.5, java.util.Set.of(), 0f, 0f, true);
+				p.removeAllEffects();
+				p.setHealth(p.getMaxHealth());
+				for (var pool : com.omnispell.player.ManaPool.values()) PlayerStore.get(p).mana[pool.ordinal()] = com.omnispell.player.Mana.max(p, pool);
+			});
+			context.waitTicks(10);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel lv = p.level();
+				ItemStack rvWand = WandItem.create("oak", "flint");
+				// 1. An enchanted sword of Ice + Freeze + Weakening: each strike weakens, and seals what it hits in ice.
+				var z = EntityTypes.ZOMBIE.create(lv, EntitySpawnReason.COMMAND);
+				z.snapTo(p.getX(), p.getY(), p.getZ() + 2.2, 180f, 0f);
+				z.setNoAi(true);
+				lv.addFreshEntity(z);
+				rvFoe[0] = z;
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, z.getBoundingBox().getCenter());
+				com.omnispell.spell.Spell sword = new com.omnispell.spell.Spell();
+				sword.type = "attack";
+				sword.tier = 2;
+				sword.code.primaryValue = 20;
+				sword.code.element = "ice";
+				sword.words.addAll(java.util.List.of("base:Ice", "command:Freeze", "intention:Weakening", "attribute:Sword"));
+				check(com.omnispell.spell.Weapons.cast(new com.omnispell.spell.Cast(p, rvWand, sword)) && com.omnispell.spell.Weapons.imbued(p), "the wand becomes a sword of ice");
+				com.omnispell.spell.Weapons.swing(p, rvWand);
+				int ice = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(z.blockPosition().offset(-1, 0, -1), z.blockPosition().offset(1, 2, 1))) if (lv.getBlockState(pos).is(Blocks.ICE)) ice++;
+				check(z.hasEffect(MobEffects.WEAKNESS) && ice > 0, "a strike of the enchanted sword carries its spell: weakened and sealed in ice (" + ice + " ice)");
+				com.omnispell.spell.Weapons.unimbue(p);
+				for (BlockPos pos : BlockPos.betweenClosed(z.blockPosition().offset(-1, 0, -1), z.blockPosition().offset(1, 2, 1))) if (lv.getBlockState(pos).is(Blocks.ICE)) lv.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				// 2. Arrow + Sword: the arrow flies, then the wand is the sword.
+				com.omnispell.spell.Spell both = new com.omnispell.spell.Spell();
+				both.type = "attack";
+				both.tier = 2;
+				both.words.addAll(java.util.List.of("base:Fire", "command:Release", "intention:Malice", "attribute:Arrow", "attribute:Sword"));
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(p.getX() + 10, p.getEyeY() + 2, p.getZ()));
+				check(com.omnispell.spell.Weapons.cast(new com.omnispell.spell.Cast(p, rvWand, both)) && com.omnispell.spell.Weapons.imbued(p)
+						&& !lv.getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.Arrow.class, p.getBoundingBox().inflate(8), a -> a.entityTags().contains("omnispell_magic_arrow")).isEmpty(),
+						"Arrow + Sword looses its arrow and then makes the wand a sword");
+				com.omnispell.spell.Weapons.unimbue(p);
+				// 3. True sight shows what hides: the zombie glows.
+				com.omnispell.spell.Modifiers.add(p, "true_sight", 1, 200);
+				// 4. Purify keeps your blessings and takes the poison; Disenchant wipes everything.
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SPEED, 400, 0));
+				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.POISON, 400, 0));
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(p.getX(), p.getEyeY() + 20, p.getZ() - 1));
+				com.omnispell.spell.Spell purify = new com.omnispell.spell.Spell();
+				purify.type = "defense";
+				purify.words.addAll(java.util.List.of("base:Light", "command:Purify", "intention:Restoration"));
+				purify.readGenerated(WordBank.GSON.fromJson("{\"tier\":1,\"description\":\"x\",\"effect_code\":{\"type\":\"heal\",\"primary_value\":18,\"duration\":1},\"minecraft\":{\"form\":\"cleanse\"}}", com.google.gson.JsonObject.class));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, rvWand, purify));
+				check(p.hasEffect(MobEffects.SPEED) && !p.hasEffect(MobEffects.POISON), "a purifying cleanse takes the poison and keeps your blessings");
+				com.omnispell.spell.Spell wipe = new com.omnispell.spell.Spell();
+				wipe.type = "defense";
+				wipe.words.addAll(java.util.List.of("base:Light", "command:Disenchant", "intention:Concealment"));
+				wipe.readGenerated(WordBank.GSON.fromJson("{\"tier\":1,\"description\":\"x\",\"effect_code\":{\"type\":\"shield\",\"primary_value\":15,\"duration\":1},\"minecraft\":{\"form\":\"cleanse\"}}", com.google.gson.JsonObject.class));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, rvWand, wipe));
+				check(!p.hasEffect(MobEffects.SPEED), "Disenchant wipes the slate, blessings too");
+				p.removeAllEffects();
+				// 5. Bridge + Horse calls the horse; Statue + Cat calls the cat the Oracle planned (the golem without a plan).
+				com.omnispell.spell.Spell brHorse = new com.omnispell.spell.Spell();
+				brHorse.type = "conjuration";
+				brHorse.words.addAll(java.util.List.of("base:Earth", "command:Summon", "intention:Creation", "attribute:Bridge", "attribute:Horse"));
+				check(com.omnispell.spell.Masonry.structure(brHorse) == null && "horse".equals(com.omnispell.spell.Conjuring.bodyFor(brHorse, null).id()), "a creature word beats Bridge: it calls the horse");
+				com.omnispell.spell.Spell stCat = new com.omnispell.spell.Spell();
+				stCat.type = "conjuration";
+				stCat.words.addAll(java.util.List.of("base:Marrow", "command:Summon", "intention:Binding", "attribute:Statue", "attribute:Cat"));
+				String unplanned = com.omnispell.spell.Conjuring.bodyFor(stCat, null).id();
+				stCat.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"minecraft\":{\"body\":\"cat\"}}", com.google.gson.JsonObject.class));
+				check("golem".equals(unplanned) && "cat".equals(com.omnispell.spell.Conjuring.bodyFor(stCat, null).id()), "with two creature words the Oracle's planned one is called (" + unplanned + " without a plan)");
+				// 6. A glass cocoon takes the colour word.
+				com.omnispell.spell.Spell redDome = new com.omnispell.spell.Spell();
+				redDome.type = "defense";
+				redDome.words.addAll(java.util.List.of("base:Light", "command:Envelop", "intention:Concealment", "attribute:Red"));
+				redDome.readGenerated(WordBank.GSON.fromJson("{\"tier\":1,\"description\":\"x\",\"effect_code\":{\"type\":\"shield\",\"primary_value\":15,\"duration\":1},\"minecraft\":{\"form\":\"cocoon\"}}", com.google.gson.JsonObject.class));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, rvWand, redDome));
+				int red = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(p.blockPosition().offset(-3, -1, -3), p.blockPosition().offset(3, 4, 3))) if (lv.getBlockState(pos).is(Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.RED))) {
+					red++;
+					lv.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				}
+				check(red >= 15, "a cocoon of light with Red is red glass (" + red + " blocks)");
+				// 7. A shell with the Oracle's fear status: every hostile creature around you runs.
+				com.omnispell.spell.Spell fright = new com.omnispell.spell.Spell();
+				fright.type = "defense";
+				fright.words.addAll(java.util.List.of("base:Fire", "command:Shield", "intention:Warding"));
+				fright.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"effect_code\":{\"type\":\"shield\",\"primary_value\":20,\"duration\":2,\"status\":\"fear\"},\"minecraft\":{\"form\":\"shell\"}}", com.google.gson.JsonObject.class));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, rvWand, fright));
+				check(com.omnispell.spell.MobControl.held(z, "fear"), "a shell carrying the fear status frightens the creatures around you");
+				// 8. Time slows what it strikes.
+				z.removeAllEffects();
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, z.getBoundingBox().getCenter());
+				com.omnispell.spell.Spell slowBolt = new com.omnispell.spell.Spell();
+				slowBolt.type = "attack";
+				slowBolt.tier = 2;
+				slowBolt.code.primaryValue = 10;
+				slowBolt.words.addAll(java.util.List.of("base:Time", "command:Release", "intention:Malice"));
+				z.damageCooldownTime = 0;
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, rvWand, slowBolt));
+				check(z.hasEffect(MobEffects.SLOWNESS), "a bolt of Time slows what it hits");
+				// 9. A hex: an attack that unravels magic stops the skeleton loosing arrows.
+				var sk = EntityTypes.SKELETON.create(lv, EntitySpawnReason.COMMAND);
+				sk.snapTo(p.getX() + 3, p.getY(), p.getZ(), 90f, 0f);
+				sk.setNoAi(true);
+				lv.addFreshEntity(sk);
+				rvFoe[1] = sk;
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, sk.getBoundingBox().getCenter());
+				com.omnispell.spell.Spell hexer = new com.omnispell.spell.Spell();
+				hexer.type = "attack";
+				hexer.tier = 2;
+				hexer.code.primaryValue = 10;
+				hexer.code.modifiers.add("counter_spell:1:1");
+				hexer.words.addAll(java.util.List.of("base:Light", "command:Release", "intention:Malice"));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, rvWand, hexer));
+				var shot = new net.minecraft.world.entity.projectile.arrow.Arrow(lv, sk, new ItemStack(Items.ARROW), null);
+				shot.setPos(sk.getX(), sk.getEyeY(), sk.getZ());
+				check(com.omnispell.spell.Hex.hexed(sk) && !lv.addFreshEntity(shot), "a hexed skeleton's arrow never leaves its bow");
+			});
+			context.waitTicks(25);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(rvFoe[0].hasEffect(MobEffects.GLOWING), "true sight makes the hostile creature near you glow");
+				com.omnispell.spell.Modifiers.add(p, "true_sight", 0, 1);
+				rvFoe[0].discard();
+				rvFoe[1].discard();
+				// 10. Rewind: Time marks where you stand; a few seconds later you snap back with the health you had.
+				p.removeAllEffects();
+				p.setHealth(p.getMaxHealth());
+				com.omnispell.spell.Spell rewind = new com.omnispell.spell.Spell();
+				rewind.type = "defense";
+				rewind.words.addAll(java.util.List.of("base:Time", "command:Shield", "intention:Warding"));
+				rewind.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"effect_code\":{\"type\":\"shield\",\"primary_value\":20,\"duration\":2},\"minecraft\":{\"form\":\"shell\"}}", com.google.gson.JsonObject.class));
+				rvMark[0] = p.position();
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), rewind));
+				check(com.omnispell.spell.Rewind.marked(p), "a defense of Time marks where you stand");
+				p.teleportTo(p.level(), p.getX() + 5, p.getY(), p.getZ(), java.util.Set.of(), 0f, 0f, true);
+				p.setHealth(6f);
+			});
+			context.waitTicks(20 * 5 + 15);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				check(p.position().distanceTo(rvMark[0]) < 1.5 && p.getHealth() >= p.getMaxHealth() - 0.01f, "a few seconds later you snap back to the mark with the health you had ("
+						+ String.format("%.1f", p.position().distanceTo(rvMark[0])) + " blocks, " + p.getHealth() + " health)");
+				// A blow that would kill you rewinds you at once instead.
+				com.omnispell.spell.Spell rewind = new com.omnispell.spell.Spell();
+				rewind.type = "defense";
+				rewind.words.addAll(java.util.List.of("base:Memory", "command:Shield", "intention:Warding"));
+				rewind.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"effect_code\":{\"type\":\"shield\",\"primary_value\":20,\"duration\":2},\"minecraft\":{\"form\":\"shell\"}}", com.google.gson.JsonObject.class));
+				rvMark[0] = p.position();
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), rewind));
+				p.teleportTo(p.level(), p.getX() + 4, p.getY(), p.getZ(), java.util.Set.of(), 0f, 0f, true);
+				p.hurtServer(p.level(), p.level().damageSources().magic(), 1000f);
+				check(p.isAlive() && p.position().distanceTo(rvMark[0]) < 1.5 && !com.omnispell.spell.Rewind.marked(p), "a blow that would have killed you rewinds you instead");
+				// 11. Blink: a defense of Space steps you forward.
+				p.removeAllEffects();
+				Vec3 rvBefore = p.position();
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(p.getX() - 20, p.getEyeY(), p.getZ()));
+				com.omnispell.spell.Spell blink = new com.omnispell.spell.Spell();
+				blink.type = "defense";
+				blink.words.addAll(java.util.List.of("base:Space", "command:Shield", "intention:Warding"));
+				blink.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"effect_code\":{\"type\":\"shield\",\"primary_value\":20,\"duration\":2},\"minecraft\":{\"form\":\"shell\"}}", com.google.gson.JsonObject.class));
+				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), blink));
+				check(p.position().distanceTo(rvBefore) >= 3, "a defense of Space blinks you a few blocks forward (" + String.format("%.1f", p.position().distanceTo(rvBefore)) + ")");
+				p.removeAllEffects();
+				p.setHealth(p.getMaxHealth());
+			});
+			context.waitTicks(3);
 			// Thunder as sound: a thunderclap rolls out in front of you; Gravity drawing foes in slams them together.
 			net.minecraft.world.entity.Mob[] clapFoes = new net.minecraft.world.entity.Mob[2];
 			server.runOnServer(s -> {

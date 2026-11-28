@@ -323,8 +323,15 @@ public final class SpellCrafting {
 			String really = Conjuring.describe(spell, null);
 			if (spell.description == null || !spell.description.contains(really)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + really;
 		}
-		// A spell the Minecraft Oracle planned already says what it does: the game adds nothing to it.
-		if (spell.plan != null && !"conjuration".equals(spell.type)) return;
+		// A spell the Minecraft Oracle planned already says what it does: the game adds only what the Oracle could
+		// not name (a hold, a rewind, a blink; a slowing, a weakening, a hex), so nothing it does goes unsaid.
+		if (spell.plan != null && !"conjuration".equals(spell.type)) {
+			String added = "defense".equals(spell.type) ? Defenses.addedText(spell, Defenses.form(spell)).trim()
+					: "attack".equals(spell.type) ? AttackForms.ridersText(spell) : "";
+			if (!added.isEmpty() && (spell.description == null || !spell.description.contains(added)))
+				spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + added;
+			return;
+		}
 		if ("defense".equals(spell.type) || (spell.code != null && "shield".equals(spell.code.type))) {
 			String ward = "defense".equals(spell.type) ? Defenses.describe(spell) : Wards.describe(spell);
 			if (spell.description == null || !spell.description.contains(ward)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + ward;

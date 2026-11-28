@@ -50,41 +50,89 @@ public final class Weapons {
 		return null;
 	}
 
-	/** Casts an attack spell that carries a weapon word. Returns false if it has none. */
+	/** The melee weapon word (Sword, Blade, Club, Spear), or null. */
+	public static String melee(Spell spell) {
+		for (String id : spell.words) {
+			switch (id) {
+				case "attribute:Sword" -> { return "sword"; }
+				case "attribute:Blade/Knife" -> { return "blade"; }
+				case "attribute:Club" -> { return "club"; }
+				case "attribute:Spear" -> { return "spear"; }
+				default -> {
+				}
+			}
+		}
+		return null;
+	}
+
+	/** The ranged weapon word (Bow, Arrow), or null. */
+	public static String ranged(Spell spell) {
+		if (spell.words.contains("attribute:Bow")) return "bow";
+		if (spell.words.contains("attribute:Arrow")) return "arrow";
+		return null;
+	}
+
+	/**
+	 * Casts an attack spell that carries a weapon word. Returns false if it has none. With both a ranged and a
+	 * melee word, the arrows fly first and then the wand becomes the weapon.
+	 */
 	public static boolean cast(Cast cast) {
 		String kind = cast.spell.type.equals("attack") ? kind(cast.spell) : null;
 		if (kind == null) return false;
+		String bowKind = ranged(cast.spell), bladeKind = melee(cast.spell);
+		if (bowKind != null && bladeKind != null) {
+			loose(cast, bowKind);
+			return imbue(cast, bladeKind);
+		}
+		if (kind.equals("arrow") || kind.equals("bow")) {
+			loose(cast, kind);
+			return false; // the arrows fly, and the spell is still cast: its own effect follows them
+		}
+		return imbue(cast, kind);
+	}
+
+	/** Looses the spell's magic arrows: three in a fan from a bow, one for an arrow. */
+	private static void loose(Cast cast, String kind) {
 		ServerPlayer p = cast.player;
 		ServerLevel level = cast.level;
 		int color = Fx.color(cast.spell.visual.color1);
-		if (kind.equals("arrow") || kind.equals("bow")) {
-			double websiteDamage = cast.spell.code.primaryValue > 0 ? cast.spell.code.primaryValue : cast.spell.tier * 10.0;
-			float damage = (float) (websiteDamage * cast.scale * cast.damageBonus(cast.spell.code.element));
-			int arrows = kind.equals("bow") ? 3 : 1;
-			for (int n = 0; n < arrows; n++) {
-				Arrow arrow = new Arrow(level, p, new ItemStack(Items.ARROW), null);
-				float spread = kind.equals("bow") ? (n - 1) * 6f : 0f;
-				arrow.shootFromRotation(p, p.getXRot(), p.getYRot() + spread, 0f, 3.2f, 0.4f);
-				arrow.setBaseDamage(damage * 0.5 / 3.2 / (kind.equals("bow") ? 1.6 : 1.0)); // the spell itself follows the arrows, so they carry half; an arrow's damage grows with its speed
-				arrow.setCritArrow(true);
-				arrow.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
-				AttackForms.tip(arrow, AttackForms.element(cast.spell), cast.spell.tier);
-				arrow.addTag("omnispell_magic_arrow");
-				level.addFreshEntity(arrow);
-				for (int k = 1; k <= 6; k++) {
-					Vec3 at = Targeting.hand(p).add(p.getLookAngle().scale(k * 0.6));
-					Fx.burst(level, at, color, null, 1);
-				}
+		double websiteDamage = cast.spell.code.primaryValue > 0 ? cast.spell.code.primaryValue : cast.spell.tier * 10.0;
+		float damage = (float) (websiteDamage * cast.scale * cast.damageBonus(cast.spell.code.element));
+		int arrows = kind.equals("bow") ? 3 : 1;
+		for (int n = 0; n < arrows; n++) {
+			Arrow arrow = new Arrow(level, p, new ItemStack(Items.ARROW), null);
+			float spread = kind.equals("bow") ? (n - 1) * 6f : 0f;
+			arrow.shootFromRotation(p, p.getXRot(), p.getYRot() + spread, 0f, 3.2f, 0.4f);
+			arrow.setBaseDamage(damage * 0.5 / 3.2 / (kind.equals("bow") ? 1.6 : 1.0)); // the spell itself follows the arrows, so they carry half; an arrow's damage grows with its speed
+			arrow.setCritArrow(true);
+			arrow.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
+			AttackForms.tip(arrow, AttackForms.element(cast.spell), cast.spell.tier);
+			arrow.addTag("omnispell_magic_arrow");
+			level.addFreshEntity(arrow);
+			for (int k = 1; k <= 6; k++) {
+				Vec3 at = Targeting.hand(p).add(p.getLookAngle().scale(k * 0.6));
+				Fx.burst(level, at, color, null, 1);
 			}
-			level.playSound(null, p.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 1.0f, 1.4f);
-			return false; // the arrows fly, and the spell is still cast: its own effect follows them
 		}
+		level.playSound(null, p.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 1.0f, 1.4f);
+	}
+
+	/** Makes the wand the melee weapon for a while. */
+	private static boolean imbue(Cast cast, String kind) {
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		int color = Fx.color(cast.spell.visual.color1);
 		int seconds = 20 + 10 * Math.max(1, Math.min(5, cast.spell.tier));
 		IMBUED.put(p.getUUID(), new Imbued(cast.spell, kind, Tasks.now() + seconds * 20L));
 		Fx.helix(level, p.position(), 2.0, 0.6, color, null);
 		level.playSound(null, p.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, 1.3f);
 		p.sendOverlayMessage(Component.literal("Your wand strikes like a " + kind + " of " + cast.spell.label() + " for " + seconds + " seconds. Left-click to strike."));
 		return true;
+	}
+
+	/** Ends an enchanted weapon at once (tests, and anything that should break the enchantment). */
+	public static void unimbue(ServerPlayer player) {
+		IMBUED.remove(player.getUUID());
 	}
 
 	/** True if the player's wand is a weapon right now. */
@@ -132,6 +180,7 @@ public final class Weapons {
 		level.playSound(null, player.blockPosition(), kind.equals("club") ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0f, 1.1f);
 		if (target == null) return;
 		CombatEffects.strike(cast, target, websiteDamage * share, false);
+		carry(cast, target, websiteDamage * share);
 		Fx.burst(level, target.position().add(0, target.getBbHeight() * 0.5, 0), color, null, 2);
 		if (kind.equals("club")) {
 			Vec3 away = target.position().subtract(player.position()).multiply(1, 0, 1).normalize();
@@ -142,6 +191,43 @@ public final class Weapons {
 			for (LivingEntity other : Targeting.around(player, target.position(), 1.8, false)) {
 				if (other != target && other.isAlive() && !com.omnispell.familiar.Familiars.isFamiliar(other)) CombatEffects.strike(cast, other, websiteDamage * share * 0.5, false);
 			}
+		}
+		// Sparsus (or a spell meant to burst) splashes every strike over what stands close by.
+		if (cast.spell.hasCharge("Sparsus") || "area".equals(cast.spell.planned("delivery"))) {
+			for (LivingEntity other : Targeting.around(player, target.position(), 2.5, false)) {
+				if (other == target || !other.isAlive() || Defenses.ally(player, other) || com.omnispell.familiar.Familiars.isFamiliar(other)) continue;
+				CombatEffects.strike(cast, other, websiteDamage * share * 0.5, false);
+				CombatEffects.riders(cast, other, 1);
+			}
+			Fx.ring(level, target.position().add(0, 0.3, 0), 2.5, color, null);
+		}
+	}
+
+	/** The heavy forms happen at most once a second on each target; the control holds at most every four seconds. */
+	private static final Map<LivingEntity, Long> FORM_READY = new java.util.WeakHashMap<>();
+	private static final Map<LivingEntity, Long> HOLD_READY = new java.util.WeakHashMap<>();
+	private static final java.util.Set<String> HOLDS = java.util.Set.of("stun", "charm", "fear", "confusion");
+
+	/**
+	 * What a strike of an enchanted weapon carries besides its damage: the spell's status, its riders (slow,
+	 * weaken, hex) and its form (a root, a shell of ice, a slam...), as the spell itself would on a hit.
+	 */
+	private static void carry(Cast cast, LivingEntity target, double base) {
+		if (!target.isAlive()) return;
+		long now = Tasks.now();
+		Spell.EffectCode code = cast.spell.code;
+		String status = code.status == null ? "none" : code.status;
+		if (!status.equals("none") && !status.equals("null")) {
+			boolean hold = HOLDS.contains(status);
+			if (!hold || HOLD_READY.getOrDefault(target, 0L) <= now) {
+				CombatEffects.status(cast, target, status, 1);
+				if (hold) HOLD_READY.put(target, now + 80);
+			}
+		}
+		CombatEffects.riders(cast, target, 1);
+		if (target.isAlive() && FORM_READY.getOrDefault(target, 0L) <= now) {
+			FORM_READY.put(target, now + 20);
+			AttackForms.apply(cast, target, base);
 		}
 	}
 
