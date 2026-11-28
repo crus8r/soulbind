@@ -177,7 +177,7 @@ public final class Conjuring {
 
 	/** Thunder and its kin strike with sound: the creature's spell is a sonic blast. */
 	public static boolean sonic(Spell spell) {
-		for (String id : spell.words) if (id.equals("base:Thunder") || id.equals("base:Sound") || id.equals("base:Echo") || id.equals("base:Vibration")) return true;
+		for (String id : spell.words) if (id.equals("base:Thunder") || id.equals("base:Sound") || id.equals("base:Echo") || id.equals("base:Vibration") || id.equals("base:Music")) return true;
 		return false;
 	}
 

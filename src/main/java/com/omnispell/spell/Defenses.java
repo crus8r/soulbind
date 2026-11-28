@@ -551,11 +551,10 @@ public final class Defenses {
 
 	/** The block a cocoon of this element is made of: dirt for Earth, ice for frost, moss for living things, coloured glass for light and shadow. */
 	private static Block cocoonBlock(Spell spell, String element) {
+		Block own = AttackForms.shellOf(spell);
+		if (own != null) return own;
 		return switch (element) {
-			case "stone" -> {
-				Block material = Terraform.material(spell);
-				yield material == null ? Blocks.COBBLESTONE : material;
-			}
+			case "stone" -> Blocks.COBBLESTONE;
 			case "ice" -> Blocks.PACKED_ICE;
 			case "water" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.LIGHT_BLUE);
 			case "nature" -> Blocks.MOSS_BLOCK;
@@ -894,7 +893,8 @@ public final class Defenses {
 		Block block = cocoonBlock(spell, element);
 		return block == Blocks.DIRT ? "dirt" : block == Blocks.PACKED_ICE ? "ice" : block == Blocks.MOSS_BLOCK ? "moss" : block == Blocks.MAGMA_BLOCK ? "magma"
 				: block == Blocks.COBBLED_DEEPSLATE ? "deepslate" : block == Blocks.COBBLESTONE ? "stone" : block == Blocks.SAND ? "sand" : block == Blocks.MUD ? "mud" : block == Blocks.GRAVEL ? "gravel"
-				: block == Blocks.OAK_PLANKS ? "wood" : block == Blocks.BASALT ? "basalt" : "coloured glass";
+				: block == Blocks.OAK_PLANKS ? "wood" : block == Blocks.BASALT ? "basalt" : block == Blocks.WOOL.pick(net.minecraft.world.item.DyeColor.WHITE) ? "spun silk" : block == Blocks.HONEY_BLOCK ? "amber"
+				: block == Blocks.OBSIDIAN ? "obsidian" : block == Blocks.AMETHYST_BLOCK ? "crystal" : block == Blocks.SANDSTONE ? "sandstone" : block == Blocks.TUFF ? "packed dust" : block == Blocks.SNOW_BLOCK ? "snow" : "coloured glass";
 	}
 
 	private static String boonText(String element) {

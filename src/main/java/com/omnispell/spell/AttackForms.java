@@ -166,6 +166,15 @@ public final class AttackForms {
 		String sig = Conjuring.sonic(spell) ? "blast" : signature(element); // sound throws back; it does not spin
 		StringBuilder sb = new StringBuilder();
 		if (form != null) sb.append("What it hits is ").append(phrase(form, element)).append('.');
+		Block shell = shellOf(spell);
+		if (shell != null && "stone".equals(element)) {
+			String name = shell == Blocks.HONEY_BLOCK ? "amber" : shell == Blocks.OBSIDIAN ? "obsidian" : shell == Blocks.AMETHYST_BLOCK ? "crystal" : shell == Blocks.DIRT ? "earth"
+					: shell == Blocks.SANDSTONE ? "sandstone" : shell == Blocks.COBBLED_DEEPSLATE ? "deepslate" : shell == Blocks.MUD ? "mud" : shell == Blocks.TUFF ? "packed dust" : null;
+			if (name != null) {
+				int at = sb.indexOf("a shell of stone");
+				if (at >= 0) sb.replace(at, at + "a shell of stone".length(), "a shell of " + name);
+			}
+		}
 		if (!sig.equals(form)) {
 			if (sb.length() > 0) sb.append(' ');
 			sb.append(element.equals("ice") ? "Often" : "Sometimes").append(", ").append(phrase(sig, element)).append(" as well.");
@@ -444,6 +453,30 @@ public final class AttackForms {
 		});
 	}
 
+	/**
+	 * The block a shell of this spell's base word is made of, when the word names a substance: dirt for Earth,
+	 * planks for Wood, spun silk (white wool) for Silk, amber (honey) for Amber, obsidian, crystal, deepslate for
+	 * Metal. Never a block that falls: sand becomes sandstone, dust packed tuff. Null if the word names none.
+	 */
+	public static Block shellOf(Spell spell) {
+		for (String id : spell.words) {
+			if (!id.startsWith("base:")) continue;
+			Block own = switch (id.substring(5)) {
+				case "Silk" -> Blocks.WOOL.pick(net.minecraft.world.item.DyeColor.WHITE);
+				case "Amber" -> Blocks.HONEY_BLOCK;
+				case "Obsidian" -> Blocks.OBSIDIAN;
+				case "Crystal" -> Blocks.AMETHYST_BLOCK;
+				case "Sleet" -> Blocks.SNOW_BLOCK;
+				default -> null;
+			};
+			if (own != null) return own;
+		}
+		Block material = Terraform.material(spell);
+		if (material == Blocks.SAND) return Blocks.SANDSTONE;
+		if (material == Blocks.GRAVEL) return Blocks.TUFF;
+		return material;
+	}
+
 	/** The shell: temporary blocks in the empty spaces around the target, gone again a few seconds later. */
 	static int encase(Cast cast, LivingEntity target, String element, int tier) {
 		if (steadfast(target) || target.getBbWidth() > 1.6 || target.getBbHeight() > 3.2) return 0;
@@ -451,7 +484,7 @@ public final class AttackForms {
 		BlockState shell = switch (element) {
 			case "ice", "water" -> Blocks.ICE.defaultBlockState();
 			case "stone" -> {
-				Block material = Terraform.material(cast.spell);
+				Block material = shellOf(cast.spell);
 				yield (material == null ? Blocks.COBBLESTONE : material).defaultBlockState();
 			}
 			case "nature" -> Blocks.AZALEA_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
