@@ -3458,8 +3458,8 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				com.omnispell.spell.Spell plAspect = new com.omnispell.spell.Spell();
 				plAspect.type = "defense";
 				plAspect.words.addAll(java.util.List.of("base:Air", "command:Shield", "attribute:Bird"));
-				plAspect.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"minecraft\":{\"form\":\"veil\"}}", com.google.gson.JsonObject.class));
-				check("aspect".equals(com.omnispell.spell.Defenses.form(plAspect)), "a creature word in a defense is still its traits");
+				plAspect.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"minecraft\":{\"form\":\"guardian\"}}", com.google.gson.JsonObject.class));
+				check("aspect".equals(com.omnispell.spell.Defenses.form(plAspect)), "a defense never calls anything living: a planned guardian is refused, and the creature word is its traits");
 				p.removeAllEffects();
 				p.setHealth(p.getMaxHealth());
 			});
@@ -3540,6 +3540,36 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(plFoe[0].getHealth() < plFoe[0].getMaxHealth(), "a foe following along the trail is struck (" + plFoe[0].getHealth() + ")");
 				plFoe[0].discard();
 			});
+			// Ingenuity: Lightning + Obscure + Restoration + Bear + Red, as a charged red rush that knocks foes flying.
+			net.minecraft.world.entity.Mob[] rushFoe = new net.minecraft.world.entity.Mob[1];
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel plLevel = p.level();
+				p.teleportTo(plLevel, cHome[0].x - 40, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+				p.removeAllEffects();
+				for (var pool : com.omnispell.player.ManaPool.values()) PlayerStore.get(p).mana[pool.ordinal()] = com.omnispell.player.Mana.max(p, pool);
+				com.omnispell.spell.Spell rush = new com.omnispell.spell.Spell();
+				rush.type = "defense";
+				rush.words.addAll(java.util.List.of("base:Lightning", "command:Obscure", "intention:Restoration", "attribute:Bear", "attribute:Red"));
+				rush.readGenerated(WordBank.GSON.fromJson("{\"tier\":3,\"description\":\"You surge forward in a red blur of lightning.\",\"effect_code\":{\"type\":\"heal\",\"primary_value\":20,\"duration\":3,\"element\":\"storm\"},\"minecraft\":{\"form\":\"stride\",\"extras\":[\"ram\",\"trail\"],\"mana\":\"restoration\"}}", com.google.gson.JsonObject.class));
+				check("stride".equals(com.omnispell.spell.Defenses.form(rush)), "the plan reads the bear as part of the idea, not as bear traits (" + com.omnispell.spell.Defenses.form(rush) + ")");
+				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(cHome[0].x - 30, p.getEyeY(), cHome[0].z));
+				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), rush)), "the charged rush is cast");
+				check(p.hasEffect(MobEffects.SPEED) && com.omnispell.spell.Auras.ramming(p) && com.omnispell.spell.Trails.laying(p), "it gives speed, a ramming aura and a trail");
+				var z = EntityTypes.ZOMBIE.create(plLevel, EntitySpawnReason.COMMAND);
+				z.snapTo(p.getX() + 0.6, p.getY(), p.getZ(), 0f, 0f);
+				z.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.SLOWNESS, 200, 9));
+				plLevel.addFreshEntity(z);
+				rushFoe[0] = z;
+			});
+			context.waitTicks(4);
+			server.runOnServer(s -> {
+				check(rushFoe[0].getHealth() < rushFoe[0].getMaxHealth(), "a foe that touches you is knocked flying and jolted (" + rushFoe[0].getHealth() + ")");
+				rushFoe[0].discard();
+				player(s).removeAllEffects();
+				player(s).setDeltaMovement(0, 0, 0);
+			});
+			context.waitTicks(5);
 			// Thunder as sound: a thunderclap rolls out in front of you; Gravity drawing foes in slams them together.
 			net.minecraft.world.entity.Mob[] clapFoes = new net.minecraft.world.entity.Mob[2];
 			server.runOnServer(s -> {

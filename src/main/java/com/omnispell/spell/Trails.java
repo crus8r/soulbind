@@ -85,11 +85,16 @@ public final class Trails {
 	}
 
 	public static boolean lay(Cast cast) {
+		return lay(cast, effects(cast.spell));
+	}
+
+	/** Lays a trail that does these things (a defense's own trail, say). */
+	public static boolean lay(Cast cast, Set<String> effects) {
 		Spell spell = cast.spell;
 		int tier = Math.max(1, Math.min(5, spell.tier));
 		int ticks = (int) (seconds(spell) * 20 * (spell.hasCharge("Duratus") ? 1.6 : 1.0));
 		if (Masonry.lifeOverride > 0) ticks = Masonry.lifeOverride;
-		Active a = new Active(cast, effects(spell), AttackForms.element(spell), Conjuring.tintFor(spell), Tasks.now() + ticks, 80 + 20 * tier);
+		Active a = new Active(cast, effects, AttackForms.element(spell), Conjuring.tintFor(spell), Tasks.now() + ticks, 80 + 20 * tier);
 		ACTIVE.put(cast.player.getUUID(), a);
 		mark(a, cast.player.blockPosition());
 		cast.level.playSound(null, cast.player.blockPosition(), Beams.storm(spell) ? SoundEvents.LIGHTNING_BOLT_IMPACT : SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.8f, 1.4f);

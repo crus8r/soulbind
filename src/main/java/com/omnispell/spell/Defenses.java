@@ -66,10 +66,14 @@ public final class Defenses {
 	private static final java.util.Set<String> SURGING = java.util.Set.of("Repel", "Throw", "Release", "Banish", "Dismiss", "Displace", "Disperse", "Scatter", "Move");
 
 	/** The shapes the Oracle may plan for a defense. (Aspect, walls, lifeline by Bridge and guardians come only from the words.) */
-	public static final java.util.Set<String> PLANNED_FORMS = java.util.Set.of("shell", "veil", "cocoon", "boon", "bulwark", "mend", "aegis", "lifeline", "sanctuary", "barrier", "cleanse", "terror", "daze", "stagger", "enthrall");
+	public static final java.util.Set<String> PLANNED_FORMS = java.util.Set.of("shell", "veil", "cocoon", "stride", "boon", "bulwark", "mend", "aegis", "lifeline", "sanctuary", "barrier", "surge", "cleanse", "terror", "daze", "stagger", "enthrall", "aspect");
 
 	/** The spell's shape: what the words fix first (a creature's traits, a wall, a bridge), then the Oracle's plan, then the words again. */
 	public static String form(Spell spell) {
+		// The Oracle's plan comes first: it may read every word, a creature word included, as part of one idea.
+		// (A defense never calls anything living, whatever the plan: there is no planned guardian.)
+		String planned = spell.planned("form");
+		if (planned != null && PLANNED_FORMS.contains(planned) && !(planned.equals("aspect") && creature(spell).isEmpty())) return planned;
 		for (String id : spell.words) {
 			switch (id) {
 				case "attribute:Wall", "attribute:Tower", "attribute:Door" -> {
@@ -85,8 +89,6 @@ public final class Defenses {
 				}
 			}
 		}
-		String planned = spell.planned("form");
-		if (planned != null && PLANNED_FORMS.contains(planned)) return planned;
 		return wordForm(spell);
 	}
 
@@ -481,6 +483,21 @@ public final class Defenses {
 				give(cast, p, amount * 0.6f, heal, ticks);
 				aspect(cast, creature(spell), ticks);
 			}
+			case "stride" -> {
+				// Energised: a burst of speed and a dash the way you look, with a little of the gift.
+				int strideTicks = Math.max(100, Math.min(ticks, 160 + 40 * tier));
+				effect(p, MobEffects.SPEED, strideTicks, tier >= 4 ? 2 : 1);
+				effect(p, MobEffects.JUMP_BOOST, strideTicks, 0);
+				Vec3 look = p.getLookAngle().multiply(1, 0, 1);
+				if (look.lengthSqr() > 1e-4) {
+					look = look.normalize().scale(1.3 + 0.15 * tier);
+					p.setDeltaMovement(look.x, 0.25, look.z);
+					p.syncVelocity = true;
+				}
+				give(cast, p, amount * 0.5f, heal, ticks);
+				level.sendParticles(Beams.storm(spell) ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD, p.getX(), p.getY() + 0.5, p.getZ(), 30, 0.4, 0.4, 0.4, 0.2);
+				level.playSound(null, p.blockPosition(), Beams.storm(spell) ? SoundEvents.TRIDENT_THUNDER.value() : SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 0.6f, 1.5f);
+			}
 			case "cocoon" -> {
 				give(cast, p, amount, heal, ticks);
 				if (heal) effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), 0);
@@ -510,6 +527,13 @@ public final class Defenses {
 		ServerPlayer p = cast.player;
 		int tier = Math.max(1, Math.min(5, spell.tier));
 		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) cocoon(cast, element, ticks);
+		if (spell.plannedExtra("ram")) Auras.ram(cast, Math.max(100, Math.min(ticks, 160 + 40 * tier)));
+		if (spell.plannedExtra("trail")) {
+			java.util.Set<String> effects = new java.util.LinkedHashSet<>();
+			for (String e : spell.plan.extras) if (Trails.EFFECTS.contains(e)) effects.add(e);
+			if (effects.isEmpty()) effects.add("swift"); // a trail of your own: you and your friends run faster along it
+			Trails.lay(cast, effects);
+		}
 		if (spell.plannedExtra("regen") && !form.equals("mend")) effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), tier >= 4 ? 1 : 0);
 		if (spell.plannedExtra("unseen") && !form.equals("veil") && !form.equals("cleanse")) {
 			int unseen = 120 + 40 * tier;
@@ -869,6 +893,7 @@ public final class Defenses {
 			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
 			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
 			case "aspect" -> "It gives you " + aspectText(creature(spell)) + ". You also get " + littleGift + ".";
+			case "stride" -> "It energises you: a dash the way you look, then a burst of speed and higher jumps for a while. You also get " + littleGift + ".";
 			case "cocoon" -> "A small dome of " + cocoonName(spell, element) + " closes around you like an igloo for a few seconds, with a doorway of hardened air the way you face (crouch to slip out; foes only wade in slowly), while you take " + gift + ".";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
 			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get " + littleGift + ".";
@@ -881,6 +906,8 @@ public final class Defenses {
 		// What the Oracle added on top, as the cast carries it out.
 		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) what += " A small sphere of " + cocoonName(spell, element) + " closes around you too.";
 		if (spell.plannedExtra("regen") && !form.equals("mend")) what += " You regenerate for a while.";
+		if (spell.plannedExtra("ram")) what += " For a while hostile creatures that touch you are knocked flying and hurt" + (element.equals("storm") ? " by a jolt" : "") + "; the faster you move, the harder they fly.";
+		if (spell.plannedExtra("trail")) what += " You leave a glowing trail behind you as you move.";
 		if (spell.plannedExtra("unseen") && !form.equals("veil") && !form.equals("cleanse")) what += " You turn invisible for a few seconds.";
 		if (spell.plannedExtra("boon") && !form.equals("boon") && !form.equals("aegis") && !form.equals("lifeline")) what += " It blesses you with " + boonText(element) + ".";
 		if (spell.plannedExtra("cleanse") && !form.equals("cleanse")) what += " Harmful effects on you are cleared.";
