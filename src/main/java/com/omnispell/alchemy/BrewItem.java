@@ -140,6 +140,8 @@ public class BrewItem extends Item {
 
 	/** How much longer a potion's gifts last than a spell's turn. */
 	public static final int LASTING = 12;
+	/** Thrown harming potions deal this many times their brewed damage. */
+	public static final double DAMAGE = 2.0;
 
 	/** Carries out a potion on whoever drank it or was splashed by it. Numbers are the potioneer's, scaled like spells. */
 	static void apply(ServerPlayer user, Brew brew, LivingEntity target) {
@@ -162,7 +164,8 @@ public class BrewItem extends Item {
 				level.sendParticles(ParticleTypes.HEART, target.getX(), target.getY() + target.getBbHeight(), target.getZ(), 4, 0.3, 0.2, 0.3, 0.0);
 			}
 			case "damage" -> {
-				float amount = (float) (value * scale);
+				// Harming brews hit twice as hard as their numbers once did: a whole bottle of poison should hurt.
+				float amount = (float) (value * scale * DAMAGE);
 				Modifiers.withSpellElement(brew.element, () -> target.hurtServer(level, level.damageSources().indirectMagic(user, user), amount));
 				if (brew.element.equals("fire")) target.igniteForSeconds(2 + brew.tier);
 				if (brew.element.equals("ice")) target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 1), user);

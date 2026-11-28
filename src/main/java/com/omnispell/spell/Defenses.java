@@ -528,12 +528,7 @@ public final class Defenses {
 		int tier = Math.max(1, Math.min(5, spell.tier));
 		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) cocoon(cast, element, ticks);
 		if (spell.plannedExtra("ram")) Auras.ram(cast, Math.max(100, Math.min(ticks, 160 + 40 * tier)));
-		if (spell.plannedExtra("trail")) {
-			java.util.Set<String> effects = new java.util.LinkedHashSet<>();
-			for (String e : spell.plan.extras) if (Trails.EFFECTS.contains(e)) effects.add(e);
-			if (effects.isEmpty()) effects.add("swift"); // a trail of your own: you and your friends run faster along it
-			Trails.lay(cast, effects);
-		}
+		if (spell.plannedExtra("trail")) Trails.lay(cast); // its planned effects, or its element's own way (mud snares, fire burns, lightning strikes)
 		if (spell.plannedExtra("regen") && !form.equals("mend")) effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), tier >= 4 ? 1 : 0);
 		if (spell.plannedExtra("unseen") && !form.equals("veil") && !form.equals("cleanse")) {
 			int unseen = 120 + 40 * tier;

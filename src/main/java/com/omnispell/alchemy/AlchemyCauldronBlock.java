@@ -381,6 +381,7 @@ public class AlchemyCauldronBlock extends Block {
 				PotionGenerator.fallback(result, base, ingredients, warnings);
 			}
 			result.decideSplash(gunpowder);
+			result.colour(key); // each brew comes out a colour of its own
 			vat.brew = WordBank.GSON.toJson(result);
 			vat.servings = 3;
 			Vats.save(server);

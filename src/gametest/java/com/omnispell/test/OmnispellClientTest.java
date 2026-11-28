@@ -1548,6 +1548,17 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				ServerPlayer p = player(s);
 				p.getMainHandItem().getItem().use(p.level(), p, InteractionHand.MAIN_HAND);
 				check(zombie[0].getHealth() < 20f, "the thrown potion hurt its target (" + zombie[0].getHealth() + ")");
+				// Each brew comes out a colour of its own: the one its name speaks of, or its kind's colour turned by the recipe.
+				com.omnispell.alchemy.Brew bCrimson = new com.omnispell.alchemy.Brew();
+				bCrimson.name = "Crimson Draught";
+				bCrimson.codeType = "heal";
+				bCrimson.colour("a");
+				com.omnispell.alchemy.Brew bOne = new com.omnispell.alchemy.Brew(), bTwo = new com.omnispell.alchemy.Brew();
+				bOne.name = bTwo.name = "Bitter Tonic";
+				bOne.codeType = bTwo.codeType = "damage";
+				bOne.colour("water|nettle|bone");
+				bTwo.colour("lava|ash|ember");
+				check(bCrimson.color() == 0xE0283C && bOne.color() != bTwo.color() && bOne.color() != 0, "brews take a colour of their own (" + Integer.toHexString(bOne.color()) + " vs " + Integer.toHexString(bTwo.color()) + ")");
 				zombie[0].discard();
 				p.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
 			});
@@ -3570,6 +3581,23 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				player(s).setDeltaMovement(0, 0, 0);
 			});
 			context.waitTicks(5);
+			// A steed called up for travel comes saddled and carries its caster.
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.teleportTo(p.level(), cHome[0].x - 40, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+				com.omnispell.spell.Spell steed = new com.omnispell.spell.Spell();
+				steed.type = "conjuration";
+				steed.tier = 2;
+				steed.words.addAll(java.util.List.of("base:Lightning", "command:Mobilize", "intention:Transportation", "attribute:Horse"));
+				com.omnispell.spell.Conjuring.spawn(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), steed), "Lightning_Steed", 10, 20);
+				check(p.getVehicle() instanceof net.minecraft.world.entity.animal.equine.AbstractHorse h && h.isSaddled(), "a conjured steed for travel comes saddled and carries you (" + p.getVehicle() + ")");
+				if (p.getVehicle() != null) {
+					var ride = p.getVehicle();
+					p.stopRiding();
+					ride.discard();
+				}
+			});
+			context.waitTicks(3);
 			// Thunder as sound: a thunderclap rolls out in front of you; Gravity drawing foes in slams them together.
 			net.minecraft.world.entity.Mob[] clapFoes = new net.minecraft.world.entity.Mob[2];
 			server.runOnServer(s -> {

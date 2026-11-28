@@ -22,6 +22,7 @@ public final class Brew {
 	public String resistType;
 	public String status = "none";    // none, poison, regen, haste, fortify
 	public String manaType;
+	public int tint;                  // the colour this brew came out of the cauldron with (0: its kind's own colour)
 	public double manaPercent;        // crafted mana potions: restore this share of the pool, so they suit any size of reserve
 
 	public void read(JsonObject json) {
@@ -70,6 +71,39 @@ public final class Brew {
 	}
 
 	public int color() {
+		if (tint != 0) return tint;
+		return kindColor();
+	}
+
+	/**
+	 * Gives a freshly brewed potion a colour of its own: one its name speaks of (a Crimson Draught is crimson, an
+	 * Azure Tonic azure), or else its kind's colour turned a little by the recipe, so every recipe looks its own
+	 * while a harming brew still looks like one. The same recipe always comes out the same colour.
+	 */
+	public void colour(String recipe) {
+		String n = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+		String[][] named = {{"crimson", "E0283C"}, {"scarlet", "F0283C"}, {"ruby", "D0103C"}, {"blood", "A01020"}, {"red", "E04030"}, {"rose", "F07090"}, {"pink", "F58CC8"},
+				{"orange", "F08A30"}, {"amber", "F0A830"}, {"golden", "F0C838"}, {"gold", "F0C838"}, {"yellow", "F0E040"}, {"sun", "F8D850"}, {"emerald", "30C060"}, {"jade", "50B080"},
+				{"green", "58C04A"}, {"verdant", "48B040"}, {"moss", "6A8A3A"}, {"teal", "30A8A0"}, {"azure", "3A9AF0"}, {"sapphire", "2A50D0"}, {"blue", "4A78E8"}, {"sky", "80C0F8"},
+				{"frost", "A8E4FF"}, {"ice", "A8E4FF"}, {"indigo", "5A48C8"}, {"violet", "A858E0"}, {"purple", "9040D0"}, {"amethyst", "A070E0"}, {"silver", "C8CCD8"}, {"white", "F0F0F0"},
+				{"pearl", "F0E8E0"}, {"black", "282030"}, {"shadow", "3A2A50"}, {"obsidian", "2A1A40"}, {"midnight", "202060"}, {"copper", "C87040"}, {"bronze", "B08040"}};
+		for (String[] c : named) {
+			if (n.matches(".*\\b" + c[0] + "\\b.*")) {
+				tint = Integer.parseInt(c[1], 16);
+				return;
+			}
+		}
+		int base = kindColor();
+		float[] hsb = java.awt.Color.RGBtoHSB((base >> 16) & 0xFF, (base >> 8) & 0xFF, base & 0xFF, null);
+		int h = (recipe == null ? n : recipe).hashCode();
+		float hue = hsb[0] + ((h & 0xFF) / 255f - 0.5f) * 0.34f; // up to about sixty degrees either way
+		float sat = Math.max(0.35f, Math.min(1f, hsb[1] + (((h >> 8) & 0xFF) / 255f - 0.5f) * 0.3f));
+		float bri = Math.max(0.45f, Math.min(1f, hsb[2] + (((h >> 16) & 0xFF) / 255f - 0.5f) * 0.3f));
+		tint = java.awt.Color.HSBtoRGB(hue - (float) Math.floor(hue), sat, bri) & 0xFFFFFF;
+		if (tint == 0) tint = 1;
+	}
+
+	private int kindColor() {
 		if (codeType.equals("mana_restore") && BrewItem.pool(manaType) != null) return BrewItem.pool(manaType).color;
 		return switch (codeType) {
 			case "sludge" -> 0x6E6E64;

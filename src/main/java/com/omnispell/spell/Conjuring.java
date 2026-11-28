@@ -447,6 +447,15 @@ public final class Conjuring {
 		active.traits.addAll(traits(spell));
 		if (body.weapon == null && body == flyingCreature(spell)) active.gift = gift(spell);
 		ACTIVE.put(mob.getUUID(), active);
+		// A steed called for travel comes saddled, and the first of them carries its caster at once.
+		if (steed(spell) && mob instanceof net.minecraft.world.entity.animal.equine.AbstractHorse horse) {
+			horse.tameWithName(player);
+			horse.setItemSlot(net.minecraft.world.entity.EquipmentSlot.SADDLE, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SADDLE));
+			horse.setDropChance(net.minecraft.world.entity.EquipmentSlot.SADDLE, 0);
+			set(horse.getAttribute(Attributes.MOVEMENT_SPEED), 0.3 + 0.025 * tier);
+			set(horse.getAttribute(Attributes.JUMP_STRENGTH), 0.8 + 0.05 * tier);
+			if (index == 0 && !player.isPassenger()) player.startRiding(horse);
+		}
 		return active;
 	}
 
@@ -507,6 +516,11 @@ public final class Conjuring {
 	}
 
 	/** The book's account of what the conjuration really does. */
+	/** A conjured horse called up for travel (Transportation, or the Oracle planned a steed) can be ridden. */
+	public static boolean steed(Spell spell) {
+		return "steed".equals(spell.planned("form")) || spell.words.contains("intention:Transportation");
+	}
+
 	public static String describe(Spell spell, String name) {
 		if (Masonry.structure(spell) != null) return Masonry.describe(spell);
 		Body body = bodyFor(spell, name);
@@ -546,6 +560,7 @@ public final class Conjuring {
 		if (t.contains("allies")) sb.append(" It slowly mends you and your allies nearby.");
 		if (t.contains("guard")) sb.append(" While it is near you, it takes a share of the blows meant for you.");
 		if (t.contains("taunt")) sb.append(" Hostile creatures nearby turn on it instead of you.");
+		if (steed(spell) && body.type == net.minecraft.world.entity.EntityTypes.HORSE) sb.append(" It comes saddled and carries you: you are on its back at once, and it runs fast and leaps high.");
 		return sb.toString();
 	}
 
@@ -684,7 +699,7 @@ public final class Conjuring {
 				side = side.lengthSqr() < 0.01 ? new Vec3(1, 0, 0) : side.normalize();
 				goal = owner.position().add(-side.z * 2.2, a.body.flies ? 1.8 : 0, side.x * 2.2);
 			}
-			if (goal != null) move(a, goal, foe != null);
+			if (goal != null && !mob.isVehicle()) move(a, goal, foe != null); // a steed with a rider goes where its rider takes it
 		}
 	}
 
