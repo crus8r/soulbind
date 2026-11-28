@@ -323,6 +323,8 @@ public final class SpellCrafting {
 			String really = Conjuring.describe(spell, null);
 			if (spell.description == null || !spell.description.contains(really)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + really;
 		}
+		// A spell the Minecraft Oracle planned already says what it does: the game adds nothing to it.
+		if (spell.plan != null && !"conjuration".equals(spell.type)) return;
 		if ("defense".equals(spell.type) || (spell.code != null && "shield".equals(spell.code.type))) {
 			String ward = "defense".equals(spell.type) ? Defenses.describe(spell) : Wards.describe(spell);
 			if (spell.description == null || !spell.description.contains(ward)) spell.description = (spell.description == null || spell.description.isBlank() ? "" : spell.description.trim() + " ") + ward;

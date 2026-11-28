@@ -29,7 +29,7 @@ public final class Surges {
 	}
 
 	public static boolean wallAttack(Spell spell) {
-		return "attack".equals(spell.type) && spell.words.contains("attribute:Wall");
+		return "attack".equals(spell.type) && (spell.words.contains("attribute:Wall") || "wall".equals(spell.planned("delivery")));
 	}
 
 	private static ParticleOptions particle(String element) {
@@ -113,7 +113,7 @@ public final class Surges {
 					mob.syncVelocity = true;
 					if (first) {
 						if (attack) {
-							mob.setInvulnerableTime(0);
+							mob.damageCooldownTime = 0;
 							CombatEffects.strike(cast, mob, base * 0.7, false);
 							String status = spell.code.status;
 							if (status != null && !status.equals("none") && !status.equals("null") && mob.isAlive()) CombatEffects.status(cast, mob, status, Math.max(1, spell.code.duration));

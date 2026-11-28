@@ -29,16 +29,18 @@ import java.util.concurrent.CompletableFuture;
 public final class SpellGenerator {
 	private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
 
-	/** Tests (and offline servers) can swap this for a stand-in. */
-	public static java.util.function.Function<JsonObject, CompletableFuture<JsonObject>> transport = SpellGenerator::post;
+	/** Tests (and offline servers) can swap these for stand-ins: the website's generator, and the Minecraft Oracle. */
+	public static java.util.function.Function<JsonObject, CompletableFuture<JsonObject>> transport = body -> post(Omnispell.CONFIG.generatorUrl, body);
+	public static java.util.function.Function<JsonObject, CompletableFuture<JsonObject>> oracle = body -> post(Omnispell.CONFIG.oracleUrl, body);
 
 	private SpellGenerator() {
 	}
 
-	private static Path cacheFile(String spellId) {
+	/** Where a reply is kept: "spells" for the website's generator, "oracle" for the Minecraft Oracle. */
+	private static Path cacheFile(String folder, String spellId) {
 		String safe = spellId.replaceAll("[^A-Za-z0-9_,|:()-]", "_").replace('|', '-').replace(':', '.');
 		if (safe.length() > 180) safe = safe.substring(0, 150) + "_" + Integer.toHexString(spellId.hashCode());
-		return FabricLoader.getInstance().getConfigDir().resolve("omnispell").resolve("spells").resolve(safe + ".json");
+		return FabricLoader.getInstance().getConfigDir().resolve("omnispell").resolve(folder).resolve(safe + ".json");
 	}
 
 	/** The request body the website sends to generate-spell. */
@@ -66,8 +68,8 @@ public final class SpellGenerator {
 		return body;
 	}
 
-	private static CompletableFuture<JsonObject> post(JsonObject body) {
-		HttpRequest request = HttpRequest.newBuilder(URI.create(Omnispell.CONFIG.generatorUrl))
+	private static CompletableFuture<JsonObject> post(String url, JsonObject body) {
+		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
 				.timeout(Duration.ofSeconds(Omnispell.CONFIG.generatorTimeoutSeconds))
 				.header("Content-Type", "application/json")
 				.header("apikey", Omnispell.CONFIG.generatorKey)
@@ -90,24 +92,36 @@ public final class SpellGenerator {
 	}
 
 	/**
-	 * Fills in a combat spell. Completes with true if the generator (or the local
-	 * copy of an earlier reply) answered, false if the built-in fallback was used.
-	 * The future completes on a background thread.
+	 * Fills in a combat spell. Completes with true if the Oracle (or the website's generator, or the local
+	 * copy of an earlier reply) answered, false if the built-in fallback was used. The future completes on
+	 * a background thread.
+	 *
+	 * The Minecraft Oracle is asked first. Each request carries only this spell's words, and the reply is
+	 * kept under exactly those words, so one spell never colours another.
 	 */
 	public static CompletableFuture<Boolean> generate(Spell spell, String discoverer) {
-		Path file = cacheFile(spell.id);
-		try {
-			if (Files.exists(file)) {
-				spell.readGenerated(WordBank.GSON.fromJson(Files.readString(file), JsonObject.class));
-				return CompletableFuture.completedFuture(true);
-			}
-		} catch (Exception e) {
-			Omnispell.LOG.warn("Could not read saved spell {}", file, e);
-		}
+		Path planned = cacheFile("oracle", spell.id);
+		if (read(spell, planned)) return CompletableFuture.completedFuture(true);
 		if (!Omnispell.CONFIG.useGenerator) {
 			Fallback.fill(spell);
 			return CompletableFuture.completedFuture(false);
 		}
+		if (!Omnispell.CONFIG.useOracle) return fromWebsite(spell, discoverer);
+		return oracle.apply(request(spell, null)).thenApply(json -> {
+			JsonObject generated = json.getAsJsonObject("spell");
+			spell.readGenerated(generated);
+			save(planned, generated);
+			return true;
+		}).exceptionallyCompose(error -> {
+			Omnispell.LOG.warn("The Minecraft Oracle is unavailable for {} ({}); asking the website's generator", spell.id, error.getMessage());
+			return fromWebsite(spell, discoverer);
+		});
+	}
+
+	/** The website's generator, as before: its earlier reply if this server kept one, otherwise a new request. */
+	private static CompletableFuture<Boolean> fromWebsite(Spell spell, String discoverer) {
+		Path file = cacheFile("spells", spell.id);
+		if (read(spell, file)) return CompletableFuture.completedFuture(true);
 		return transport.apply(request(spell, discoverer)).handle((json, error) -> {
 			if (error != null) {
 				Omnispell.LOG.warn("Spell generator unavailable for {}: {}", spell.id, error.getMessage());
@@ -116,13 +130,29 @@ public final class SpellGenerator {
 			}
 			JsonObject generated = json.getAsJsonObject("spell");
 			spell.readGenerated(generated);
-			try {
-				Files.createDirectories(file.getParent());
-				Files.writeString(file, generated.toString());
-			} catch (Exception e) {
-				Omnispell.LOG.warn("Could not save spell {}", file, e);
-			}
+			save(file, generated);
 			return true;
 		});
+	}
+
+	private static boolean read(Spell spell, Path file) {
+		try {
+			if (Files.exists(file)) {
+				spell.readGenerated(WordBank.GSON.fromJson(Files.readString(file), JsonObject.class));
+				return true;
+			}
+		} catch (Exception e) {
+			Omnispell.LOG.warn("Could not read saved spell {}", file, e);
+		}
+		return false;
+	}
+
+	private static void save(Path file, JsonObject generated) {
+		try {
+			Files.createDirectories(file.getParent());
+			Files.writeString(file, generated.toString());
+		} catch (Exception e) {
+			Omnispell.LOG.warn("Could not save spell {}", file, e);
+		}
 	}
 }

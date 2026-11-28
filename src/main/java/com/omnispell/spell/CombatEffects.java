@@ -101,6 +101,11 @@ public final class CombatEffects {
 		return hit;
 	}
 
+	/** Sparsus, or an attack the Oracle planned to burst where it lands, washes over everything near. */
+	private static boolean wide(Spell spell) {
+		return spell.hasCharge("Sparsus") || "area".equals(spell.planned("delivery"));
+	}
+
 	/** The spell's look on its way from the wand: lightning as a jagged bolt, everything else as its manifest says. */
 	private static void send(Cast cast, Vec3 from, Vec3 to) {
 		if (Beams.storm(cast.spell)) Beams.bolt(cast.level, from, to, Conjuring.tintFor(cast.spell));
@@ -117,7 +122,7 @@ public final class CombatEffects {
 		if (target == null) {
 			Vec3 end = Targeting.point(player, cast.range);
 			send(cast, hand, end);
-			if (cast.spell.hasCharge("Sparsus") && spread(cast, null, end, code.primaryValue > 0 ? code.primaryValue : cast.spell.tier * 10.0) > 0) return true;
+			if (wide(cast.spell) && spread(cast, null, end, code.primaryValue > 0 ? code.primaryValue : cast.spell.tier * 10.0) > 0) return true;
 			cast.cooldownFactor = 0.5; // a miss costs less
 			return true;
 		}
@@ -128,7 +133,7 @@ public final class CombatEffects {
 			status(cast, target, code.status, Math.max(1, code.duration));
 		}
 		if (target.isAlive()) AttackForms.apply(cast, target, base);
-		if (cast.spell.hasCharge("Sparsus")) spread(cast, target, target.position(), base);
+		if (wide(cast.spell)) spread(cast, target, target.position(), base);
 		return true;
 	}
 
@@ -198,7 +203,7 @@ public final class CombatEffects {
 		if (chain > 0) Beams.chain(cast, target, websiteDamage * chain / 100.0);
 		double multi = Modifiers.value(player, "multi_strike");
 		if (multi > 0 && target.isAlive() && player.getRandom().nextDouble() * 100 < multi) {
-			target.setInvulnerableTime(0);
+			target.damageCooldownTime = 0;
 			strike(cast, target, websiteDamage, false);
 		}
 		double echo = Modifiers.value(player, "spell_echo");
@@ -206,7 +211,7 @@ public final class CombatEffects {
 			Tasks.later(8, () -> {
 				if (!target.isAlive()) return;
 				Fx.play(cast.level, cast.spell.visual, Targeting.hand(player), target.getBoundingBox().getCenter());
-				target.setInvulnerableTime(0);
+				target.damageCooldownTime = 0;
 				strike(cast, target, websiteDamage * 0.5, false);
 			});
 		}

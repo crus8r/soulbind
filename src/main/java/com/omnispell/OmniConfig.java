@@ -17,6 +17,12 @@ public final class OmniConfig {
 	/** false = never call the generator; every combat spell is made by the built-in fallback rules. */
 	public boolean useGenerator = true;
 	public int generatorTimeoutSeconds = 45;
+	/**
+	 * The Minecraft Oracle: plans each new combat spell from the mod's real effects, so it does what it says.
+	 * If it cannot be reached (or is switched off), the website's generator above is asked instead.
+	 */
+	public String oracleUrl = "https://htzuhpsejbpodpqqnfqz.supabase.co/functions/v1/minecraft-oracle";
+	public boolean useOracle = true;
 
 	/** One website "turn" lasts this many seconds in Minecraft (durations and cooldowns). */
 	public double turnSeconds = 5.0;

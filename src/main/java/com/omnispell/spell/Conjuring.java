@@ -159,6 +159,9 @@ public final class Conjuring {
 				if (b != null) return b;
 			}
 		}
+		// With no word naming one, the creature the Oracle planned.
+		String planned = spell.planned("body");
+		if (planned != null && BODIES.containsKey(planned)) return BODIES.get(planned);
 		String text = ((name == null ? "" : name) + " " + (spell.name == null ? "" : spell.name) + " " + SpellCrafting.oracleText(spell)).toLowerCase(Locale.ROOT);
 		Body best = null;
 		int at = Integer.MAX_VALUE;
@@ -211,6 +214,9 @@ public final class Conjuring {
 				if (b != null) return b;
 			}
 		}
+		// With no word naming one, the creature the Oracle planned.
+		String planned = spell.planned("body");
+		if (planned != null && BODIES.containsKey(planned)) return BODIES.get(planned);
 		String text = ((name == null ? "" : name) + " " + (spell.name == null ? "" : spell.name) + " " + SpellCrafting.oracleText(spell)).toLowerCase(Locale.ROOT);
 		Body best = null;
 		int at = Integer.MAX_VALUE;
@@ -267,6 +273,7 @@ public final class Conjuring {
 			};
 			if (c != null) return c;
 		}
+		if (spell.planned("color") != null) return Fx.color(spell.planned("color")); // the Oracle recoloured it
 		return switch (AttackForms.element(spell)) {
 			case "fire" -> 0xFF8A40;
 			case "ice" -> 0xA8E4FF;
@@ -752,7 +759,7 @@ public final class Conjuring {
 			Fx.play(cast.level, cast.spell.visual, from, foe.getBoundingBox().getCenter());
 			Fx.sound(cast.level, mob.position(), cast.spell.code.element, Math.max(1, cast.spell.visual.intensity - 1));
 		}
-		foe.setInvulnerableTime(0);
+		foe.damageCooldownTime = 0;
 		float before = foe.getHealth();
 		CombatEffects.strike(cast, foe, a.base * 0.35, false);
 		chainFrom(a, foe);

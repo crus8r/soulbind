@@ -156,6 +156,8 @@ public final class Casting {
 				default -> explorePool(spell.toggle);
 			};
 		}
+		com.omnispell.player.ManaPool planned = plannedPool(spell);
+		if (planned != null) return planned;
 		// Conjured creatures and masonry draw on Spirit; defense spells on Restoration when they heal, Barrier when they shield.
 		if (spell.type.equals("conjuration")) return com.omnispell.player.ManaPool.SPIRIT;
 		if (spell.type.equals("defense")) return Defenses.controls(spell) ? com.omnispell.player.ManaPool.SPIRIT : Defenses.healing(spell) ? com.omnispell.player.ManaPool.RESTORATION : com.omnispell.player.ManaPool.BARRIER;
@@ -166,6 +168,29 @@ public final class Casting {
 			case "shield" -> com.omnispell.player.ManaPool.BARRIER;
 			case "debuff", "status" -> com.omnispell.player.ManaPool.SPIRIT;
 			case "damage" -> com.omnispell.player.ManaPool.FORCE;
+			default -> null;
+		};
+	}
+
+	/** The reserve the Oracle planned, if it is one this type of spell may draw on; otherwise null. */
+	public static com.omnispell.player.ManaPool plannedPool(Spell spell) {
+		String mana = spell == null ? null : spell.planned("mana");
+		if (mana == null || spell.type == null) return null;
+		java.util.Set<String> allowed = switch (spell.type) {
+			case "attack" -> java.util.Set.of("force", "spirit");
+			case "defense" -> java.util.Set.of("barrier", "restoration", "spirit");
+			case "charm", "conjuration" -> java.util.Set.of("spirit");
+			case "illusion" -> java.util.Set.of("spirit", "phase");
+			case "enchantment" -> java.util.Set.of("force", "barrier", "restoration", "phase", "spirit");
+			default -> java.util.Set.of();
+		};
+		if (!allowed.contains(mana)) return null;
+		return switch (mana) {
+			case "barrier" -> com.omnispell.player.ManaPool.BARRIER;
+			case "restoration" -> com.omnispell.player.ManaPool.RESTORATION;
+			case "spirit" -> com.omnispell.player.ManaPool.SPIRIT;
+			case "force" -> com.omnispell.player.ManaPool.FORCE;
+			case "phase" -> com.omnispell.player.ManaPool.PHASE;
 			default -> null;
 		};
 	}

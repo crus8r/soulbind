@@ -30,11 +30,46 @@ public final class Spell {
 	public EffectCode code = new EffectCode();
 	public Visual visual = new Visual();
 
+	/** How the Minecraft Oracle planned the spell to play (null on spells it did not plan). */
+	public Plan plan;
+
 	// Exploration spells only.
 	public String toggle;
 	public String element;
 	public boolean fizzle;
 	public boolean siphon;
+
+	/**
+	 * The Minecraft Oracle's plan: the real effects it chose, so the spell does what its description says.
+	 * Every field is optional; what is missing (or not valid for the spell's type) is decided from the words as before.
+	 */
+	public static final class Plan {
+		public String form;                            // the shape for its type (a defense shell, cocoon, veil...; an attack's rend, encase...)
+		public String delivery;                        // attack: bolt, beam, lightning, wall or area
+		public List<String> extras = new ArrayList<>(); // defense riders (cocoon, regen, unseen, share, boon, cleanse); bridge toggles
+		public String mana;                            // barrier, restoration, spirit, force or phase
+		public String color;                           // a colour key or #rrggbb it is recoloured to
+		public String body;                            // conjuration: the creature, when no word names one
+		public String concept;                         // the Oracle's one line on how the words combine
+	}
+
+	/** The plan's form, delivery or mana, or null. */
+	public String planned(String what) {
+		if (plan == null) return null;
+		String v = switch (what) {
+			case "form" -> plan.form;
+			case "delivery" -> plan.delivery;
+			case "mana" -> plan.mana;
+			case "color" -> plan.color;
+			case "body" -> plan.body;
+			default -> null;
+		};
+		return v == null || v.isBlank() ? null : v.toLowerCase(java.util.Locale.ROOT);
+	}
+
+	public boolean plannedExtra(String extra) {
+		return plan != null && plan.extras != null && plan.extras.contains(extra);
+	}
 
 	public static final class EffectCode {
 		public String type = "damage";   // damage, heal, shield, buff, debuff, status, utility, summon
@@ -163,6 +198,21 @@ public final class Spell {
 			if (ec.has("modifiers") && ec.get("modifiers").isJsonArray()) {
 				for (JsonElement e : ec.getAsJsonArray("modifiers")) {
 					if (e.isJsonPrimitive()) code.modifiers.add(e.getAsString());
+				}
+			}
+		}
+		JsonObject mc = objectOf(json, "minecraft");
+		if (mc != null) {
+			plan = new Plan();
+			plan.form = stringOf(mc, "form", null);
+			plan.delivery = stringOf(mc, "delivery", null);
+			plan.mana = stringOf(mc, "mana", null);
+			plan.color = stringOf(mc, "color", null);
+			plan.body = stringOf(mc, "body", null);
+			plan.concept = stringOf(json, "concept", null);
+			if (mc.has("extras") && mc.get("extras").isJsonArray()) {
+				for (JsonElement e : mc.getAsJsonArray("extras")) {
+					if (e.isJsonPrimitive()) plan.extras.add(e.getAsString().toLowerCase(java.util.Locale.ROOT));
 				}
 			}
 		}

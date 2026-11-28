@@ -57,7 +57,14 @@ public final class Masonry {
 	 * in malice, a shelter over yourself otherwise.
 	 */
 	private static String construct(Spell spell) {
-		if (!"conjuration".equals(spell.type) || Conjuring.namedBody(spell, null) != null) return null;
+		if (!"conjuration".equals(spell.type)) return null;
+		// The Oracle's plan, unless a creature or weapon word asks for something living.
+		String planned = spell.planned("form");
+		if (planned != null && !livingWord(spell)) {
+			if (planned.equals("cage") || planned.equals("shelter")) return planned;
+			if (planned.equals("creature")) return null;
+		}
+		if (Conjuring.namedBody(spell, null) != null) return null;
 		String kind = "", intention = "";
 		for (String id : spell.words) {
 			com.omnispell.data.Word w = com.omnispell.data.WordBank.word(id);
@@ -71,6 +78,14 @@ public final class Masonry {
 			// A colour word with a gentler intention calls a being of that colour (a hollow knight, a sprite) instead.
 			default -> Conjuring.colourWord(spell) != null ? null : "shelter";
 		};
+	}
+
+	private static boolean livingWord(Spell spell) {
+		for (String id : spell.words) {
+			com.omnispell.data.Word w = com.omnispell.data.WordBank.word(id);
+			if (w != null && w.type.equals("attribute") && (Conjuring.creatureWord(w.english) || java.util.Set.of("Bow", "Arrow", "Sword", "Blade/Knife", "Club", "Spear").contains(w.english))) return true;
+		}
+		return false;
 	}
 
 	private record Palette(BlockState deck, BlockState rail, BlockState light, Block glass) {
@@ -151,6 +166,8 @@ public final class Masonry {
 	 * <li>collapse: it gives way (collapses, crumbles, plunges...): its deck drops out under foes, then closes</li>
 	 * </ul>
 	 */
+	public static final Set<String> BRIDGE_TOGGLES = Set.of("spikes", "gated", "snare", "mend", "swift", "repel", "veil", "feather", "glow", "turrets", "collapse");
+
 	public static Set<String> bridgeToggles(Spell spell) {
 		Set<String> on = new java.util.LinkedHashSet<>();
 		if (spell == null || !"conjuration".equals(spell.type)) return on;
@@ -184,6 +201,10 @@ public final class Masonry {
 		if (says(claim, "shoot", "shoots", "bolts", "arrow", "volley", "barrage", "turret", "fires at", "fires bolts", "chain_lightning")) on.add("turrets");
 		if (says(claim, "collaps", "crumbl", "gives way", "give way", "plunge", "pitfall", "swallow")
 				|| java.util.Set.of("Disintegrate", "Erode").contains(command)) on.add("collapse");
+		// What the Oracle planned for it, on top of what its words and text call for.
+		if (spell.plan != null && spell.plan.extras != null) {
+			for (String extra : spell.plan.extras) if (BRIDGE_TOGGLES.contains(extra)) on.add(extra);
+		}
 		return on;
 	}
 

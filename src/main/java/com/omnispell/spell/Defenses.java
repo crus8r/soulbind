@@ -26,6 +26,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -64,8 +65,33 @@ public final class Defenses {
 	/** The commands that drive a wall out instead of raising it. */
 	private static final java.util.Set<String> SURGING = java.util.Set.of("Repel", "Throw", "Release", "Banish", "Dismiss", "Displace", "Disperse", "Scatter", "Move");
 
-	/** The spell's shape. */
+	/** The shapes the Oracle may plan for a defense. (Aspect, walls, lifeline by Bridge and guardians come only from the words.) */
+	public static final java.util.Set<String> PLANNED_FORMS = java.util.Set.of("shell", "veil", "cocoon", "boon", "bulwark", "mend", "aegis", "lifeline", "sanctuary", "barrier", "cleanse", "terror", "daze", "stagger", "enthrall");
+
+	/** The spell's shape: what the words fix first (a creature's traits, a wall, a bridge), then the Oracle's plan, then the words again. */
 	public static String form(Spell spell) {
+		for (String id : spell.words) {
+			switch (id) {
+				case "attribute:Wall", "attribute:Tower", "attribute:Door" -> {
+					return SURGING.contains(command(spell, false)) ? "surge" : "barrier";
+				}
+				case "attribute:Bridge" -> {
+					return "lifeline";
+				}
+				case "attribute:Bird", "attribute:Wolf", "attribute:Bear", "attribute:Fox", "attribute:Eagle", "attribute:Snake", "attribute:Horse", "attribute:Cat", "attribute:Insect", "attribute:Frog" -> {
+					return "aspect";
+				}
+				default -> {
+				}
+			}
+		}
+		String planned = spell.planned("form");
+		if (planned != null && PLANNED_FORMS.contains(planned)) return planned;
+		return wordForm(spell);
+	}
+
+	/** The shape the words alone give. */
+	private static String wordForm(Spell spell) {
 		for (String id : spell.words) {
 			switch (id) {
 				case "attribute:Shield", "attribute:Chest/Box" -> {
@@ -342,7 +368,8 @@ public final class Defenses {
 		if (!heal) want *= 1.0 + Modifiers.value(p, "shield_overcharge") / 100.0;
 		if (form.equals("aegis") || form.equals("sanctuary")) want *= 1.3; // reaching others costs more
 		boolean control = controls(spell);
-		ManaPool pool = control ? ManaPool.SPIRIT : heal ? ManaPool.RESTORATION : ManaPool.BARRIER;
+		ManaPool pool = Casting.plannedPool(spell);
+		if (pool == null) pool = control ? ManaPool.SPIRIT : heal ? ManaPool.RESTORATION : ManaPool.BARRIER;
 		double paid = Mana.spend(p, pool, want);
 		if (paid < 1) return cast.fail("Your " + pool.label + " mana is spent.");
 		float amount = (float) (paid * cast.scale * cast.mendingBonus() / (form.equals("aegis") || form.equals("sanctuary") ? 1.3 : 1.0));
@@ -454,12 +481,18 @@ public final class Defenses {
 				give(cast, p, amount * 0.6f, heal, ticks);
 				aspect(cast, creature(spell), ticks);
 			}
+			case "cocoon" -> {
+				give(cast, p, amount, heal, ticks);
+				if (heal) effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), 0);
+				if (cocoon(cast, element, ticks) == 0) cast.tell("There was no room for it to close around you.");
+			}
 			default -> { // shell
 				float hearts = amount * (Wards.habit(spell).equals("bulwark") ? 1.25f : 1.0f);
 				give(cast, p, hearts, heal, ticks);
 				Wards.raise(cast, ticks);
 			}
 		}
+		extras(cast, form, element, heal, amount, ticks, color);
 		// Maxima sometimes reaches out: a self spell also covers the friends close by, at half strength.
 		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) {
 			for (LivingEntity friend : alliesNear(p, p.position(), 6)) {
@@ -469,6 +502,80 @@ public final class Defenses {
 			}
 		}
 		return true;
+	}
+
+	/** What the Oracle added on top of the form: each happens only if it planned it, and never twice over. */
+	private static void extras(Cast cast, String form, String element, boolean heal, float amount, int ticks, int color) {
+		Spell spell = cast.spell;
+		ServerPlayer p = cast.player;
+		int tier = Math.max(1, Math.min(5, spell.tier));
+		if (spell.plannedExtra("cocoon") && !form.equals("cocoon")) cocoon(cast, element, ticks);
+		if (spell.plannedExtra("regen") && !form.equals("mend")) effect(p, MobEffects.REGENERATION, Math.max(100, ticks / 2), tier >= 4 ? 1 : 0);
+		if (spell.plannedExtra("unseen") && !form.equals("veil") && !form.equals("cleanse")) {
+			int unseen = 120 + 40 * tier;
+			effect(p, MobEffects.INVISIBILITY, unseen, 0);
+			Shroud.apply(p, unseen);
+		}
+		if (spell.plannedExtra("boon") && !form.equals("boon") && !form.equals("aegis") && !form.equals("lifeline")) boon(p, p, element, Math.min(ticks, 400));
+		if (spell.plannedExtra("cleanse") && !form.equals("cleanse")) {
+			List<Holder<MobEffect>> harmful = new ArrayList<>();
+			for (MobEffectInstance instance : p.getActiveEffects()) if (!instance.getEffect().value().isBeneficial()) harmful.add(instance.getEffect());
+			for (Holder<MobEffect> e : harmful) p.removeEffect(e);
+			p.clearFire();
+		}
+		if (spell.plannedExtra("share") && !spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) {
+			for (LivingEntity friend : alliesNear(p, p.position(), 6)) {
+				give(cast, friend, amount * 0.5f, heal, ticks);
+				Fx.line(cast.level, p.getBoundingBox().getCenter(), friend.getBoundingBox().getCenter(), color, null, 2);
+			}
+		}
+	}
+
+	/** The block a cocoon of this element is made of: dirt for Earth, ice for frost, moss for living things, coloured glass for light and shadow. */
+	private static Block cocoonBlock(Spell spell, String element) {
+		return switch (element) {
+			case "stone" -> {
+				Block material = Terraform.material(spell);
+				yield material == null ? Blocks.COBBLESTONE : material;
+			}
+			case "ice" -> Blocks.PACKED_ICE;
+			case "water" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.LIGHT_BLUE);
+			case "nature" -> Blocks.MOSS_BLOCK;
+			case "fire" -> Blocks.MAGMA_BLOCK;
+			case "light" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.YELLOW);
+			case "shadow" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.BLACK);
+			case "void" -> Blocks.TINTED_GLASS;
+			case "blood" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.RED);
+			case "wind", "storm" -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.WHITE);
+			default -> Blocks.STAINED_GLASS.pick(net.minecraft.world.item.DyeColor.PURPLE);
+		};
+	}
+
+	/**
+	 * A cocoon: a small hollow sphere of the element's own blocks closes around the caster, leaving them room to
+	 * stand, and comes apart a few seconds later. Only empty space is filled, and never where someone else stands.
+	 */
+	public static int cocoon(Cast cast, String element, int ticks) {
+		ServerPlayer p = cast.player;
+		ServerLevel level = cast.level;
+		Block block = cocoonBlock(cast.spell, element);
+		int tier = Math.max(1, Math.min(5, cast.spell.tier));
+		int life = Math.max(60, Math.min(ticks, 100 + 20 * tier));
+		BlockPos feet = p.blockPosition();
+		Vec3 heart = new Vec3(feet.getX() + 0.5, feet.getY() + 1.0, feet.getZ() + 0.5);
+		int placed = 0;
+		for (BlockPos pos : BlockPos.betweenClosed(feet.offset(-2, -1, -2), feet.offset(2, 3, 2))) {
+			double d = Vec3.atCenterOf(pos).distanceTo(heart);
+			if (d < 1.6 || d > 2.6) continue;
+			BlockPos at = pos.immutable();
+			if (!level.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(at), e -> e != p).isEmpty()) continue;
+			if (TempBlocks.place(level, at, block, life)) placed++;
+		}
+		if (placed > 0) {
+			level.playSound(null, feet, block.defaultBlockState().getSoundType().getPlaceSound(), SoundSource.PLAYERS, 1.0f, 0.8f);
+			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, block.defaultBlockState()), heart.x, heart.y, heart.z, 30, 1.2, 1.0, 1.2, 0.1);
+		}
+		return placed;
 	}
 
 	/**
@@ -741,6 +848,7 @@ public final class Defenses {
 			case "cleanse" -> "It wipes the slate clean. Cast at the friend you look at (or yourself, looking at no one), it strips away every effect on them, good and bad, puts out fire, and leaves them invisible for a few seconds with " + littleGift + ", so they can slip away. Cast at an enemy, it strips every effect from them and nothing more.";
 			case "surge" -> Surges.describe(false, element) + " You also get " + littleGift + ".";
 			case "aspect" -> "It gives you " + aspectText(creature(spell)) + ". You also get " + littleGift + ".";
+			case "cocoon" -> "A small sphere of " + cocoonName(spell, element) + " closes around you for a few seconds, keeping foes off while you take " + gift + ". You can break out of it.";
 			case "guardian" -> "It calls a guardian creature that fights at your side and takes a share of the blows meant for you. You also get " + gift + ".";
 			case "terror" -> "It strikes fear into every hostile creature around you, and they run. The weak (20 health or less) flee longest; the strong for less; bosses and the like not at all. You also get " + littleGift + ".";
 			case "daze" -> "It leaves every hostile creature around you reeling and confused. The weak are lost longest; bosses and the like are not moved. You also get " + littleGift + ".";
@@ -750,6 +858,13 @@ public final class Defenses {
 		};
 		if (spreads(spell) && !form.equals("aegis") && !form.equals("sanctuary") && !form.equals("lifeline")) what += " Maxima carries it out to your friends nearby too, at half strength.";
 		return what;
+	}
+
+	private static String cocoonName(Spell spell, String element) {
+		Block block = cocoonBlock(spell, element);
+		return block == Blocks.DIRT ? "dirt" : block == Blocks.PACKED_ICE ? "ice" : block == Blocks.MOSS_BLOCK ? "moss" : block == Blocks.MAGMA_BLOCK ? "magma"
+				: block == Blocks.COBBLESTONE || block == Blocks.COBBLED_DEEPSLATE ? "stone" : block == Blocks.SAND ? "sand" : block == Blocks.MUD ? "mud" : block == Blocks.GRAVEL ? "gravel"
+				: block == Blocks.OAK_PLANKS ? "wood" : block == Blocks.BASALT ? "basalt" : "coloured glass";
 	}
 
 	private static String boonText(String element) {

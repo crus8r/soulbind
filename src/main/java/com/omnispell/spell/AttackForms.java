@@ -75,8 +75,13 @@ public final class AttackForms {
 		return null;
 	}
 
+	public static final java.util.Set<String> PLANNED_FORMS = java.util.Set.of("none", "hurl", "blast", "root", "encase", "engulf", "burst", "smite", "siphon", "displace", "linger", "pull", "rend", "crumble");
+
 	/** The form the command gives, or null for none. */
 	public static String commandForm(Spell spell) {
+		// The Oracle's planned form comes first ("none": just the hit).
+		String planned = "attack".equals(spell.type) ? spell.planned("form") : null;
+		if (planned != null && PLANNED_FORMS.contains(planned)) return planned.equals("none") ? null : planned;
 		Word word = command(spell);
 		if (word == null) return null;
 		switch (word.english) {
@@ -316,7 +321,7 @@ public final class AttackForms {
 					Vec3 top = target.position().add(0, 6, 0);
 					Fx.line(level, top, target.getBoundingBox().getCenter(), color, null, 3);
 				}
-				target.setInvulnerableTime(0);
+				target.damageCooldownTime = 0;
 				CombatEffects.strike(cast, target, base * 0.5, false);
 			});
 			case "siphon" -> {

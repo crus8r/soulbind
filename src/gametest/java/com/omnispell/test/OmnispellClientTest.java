@@ -119,6 +119,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		if (System.getenv("OMNISPELL_WORLDGEN") != null) return; // the worldgen test runs alone
 		var realGenerator = SpellGenerator.transport;
+		var realOracle = SpellGenerator.oracle;
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			TestServerContext server = world.getServer();
 			SERVER = server;
@@ -229,6 +230,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				});
 			}
 			SpellGenerator.transport = OmnispellClientTest::fakeGenerator;
+			SpellGenerator.oracle = OmnispellClientTest::fakeGenerator;
 
 			// ---- starter bundle
 			server.runOnServer(s -> {
@@ -2568,7 +2570,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				cgCow.snapTo(cgArena.getX() + 8.5, cgArena.getY(), cgArena.getZ() + 0.5, 0f, 0f);
 				cgLevel.addFreshEntity(cgCow);
 				for (int i = 0; i < 6; i++) {
-					cgCow.setInvulnerableTime(0);
+					cgCow.damageCooldownTime = 0;
 					com.omnispell.spell.CombatEffects.strike(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), cgRock), cgCow, 1, false);
 				}
 				check(!cgCow.hasEffect(MobEffects.POISON), "crushing rock never poisons");
@@ -2652,7 +2654,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(cgFoe.isRemoved() || cgFoe.getHealth() < cageHealth[0], "the caged zombie is smothered (" + cgFoe.getHealth() + " of " + cageHealth[0] + ")");
 				check(cgHunter.getTarget() == null, "and it stays lost while you are unseen");
 				p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.INVISIBILITY, 200, 0));
-				cgHunter.setInvulnerableTime(0);
+				cgHunter.damageCooldownTime = 0;
 				boolean cgHit = cgHunter.hurtServer(p.level(), p.damageSources().playerAttack(p), 4f);
 				check(!com.omnispell.spell.Shroud.hiddenFrom(p, cgHunter) && com.omnispell.spell.Shroud.hiddenFrom(p, EntityTypes.ZOMBIE.create(p.level(), EntitySpawnReason.COMMAND)), "strike it while invisible and it alone knows where you are (hit " + cgHit + ", invisible " + p.hasEffect(MobEffects.INVISIBILITY) + ", alive " + cgHunter.isAlive() + ")");
 				for (var m : cageMobs) if (m != null && !m.isRemoved()) m.discard();
@@ -3132,7 +3134,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				asBiter.snapTo(p.getX() + 1.5, p.getY(), p.getZ(), 0f, 0f);
 				asBiter.setNoAi(true);
 				asLevel.addFreshEntity(asBiter);
-				p.setInvulnerableTime(0);
+				p.damageCooldownTime = 0;
 				p.hurtServer(asLevel, asLevel.damageSources().mobAttack(asBiter), 1f);
 				check(asBiter.hasEffect(MobEffects.POISON) || asBiter.getHealth() < asBiter.getMaxHealth(), "with the snake's traits, whatever strikes you is poisoned (a zombie, immune to poison, is burned by the venom instead)");
 				asBiter.discard();
@@ -3161,7 +3163,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				// Space + Reflect + Warding: half of every blow goes back, even while the barrier catches it.
 				com.omnispell.spell.Modifiers.add(p, "damage_reflection", 50, 200);
 				p.setAbsorptionAmount(10f);
-				p.setInvulnerableTime(0);
+				p.damageCooldownTime = 0;
 				p.hurtServer(tgLevel, tgLevel.damageSources().mobAttack(tgFoe), 4f);
 				check(tgFoe.getHealth() <= 198.1f, "with the barrier up, half the blow goes back to the striker (zombie at " + tgFoe.getHealth() + ")");
 				com.omnispell.spell.Modifiers.add(p, "damage_reflection", 0, 1);
@@ -3274,19 +3276,19 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				// A spell that does not say so stays a single strike.
 				for (var z : lbFoes) {
 					z.setHealth(200f);
-					z.setInvulnerableTime(0); // the beam struck them a moment ago
+					z.damageCooldownTime = 0; // the beam struck them a moment ago
 				}
 				com.omnispell.spell.Spell lbPlain = new com.omnispell.spell.Spell();
 				lbPlain.type = "attack";
 				lbPlain.tier = 3;
 				lbPlain.code.type = "damage";
-				lbPlain.code.element = "fire";
+				lbPlain.code.element = "water"; // the zombies are fire-proof against the lightning's burning
 				lbPlain.code.primaryValue = 20;
-				lbPlain.description = "Hurls a ball of fire at the target.";
-				lbPlain.words.addAll(java.util.List.of("base:Fire", "command:Sever", "intention:Malice")); // a single-target form
+				lbPlain.description = "Hurls a ball of water at the target.";
+				lbPlain.words.addAll(java.util.List.of("base:Water", "command:Sever", "intention:Malice")); // a single-target form
 				p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, lbFoes[0].getBoundingBox().getCenter());
 				com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbPlain));
-				check(lbFoes[0].getHealth() < 200f && lbFoes[2].getHealth() >= 200f, "a fireball that is no beam strikes only what it hits first (" + lbFoes[0].getHealth() + ", " + lbFoes[2].getHealth() + ")");
+				check(lbFoes[0].getHealth() < 200f && lbFoes[2].getHealth() >= 200f, "a water ball that is no beam strikes only what it hits first (" + lbFoes[0].getHealth() + ", " + lbFoes[2].getHealth() + ")");
 				// A lightning environment spell: a grapple leaves the wand as a bolt and pulls you; landing, it jolts the foes around you.
 				com.omnispell.spell.Spell lbGrap = new com.omnispell.spell.Spell();
 				lbGrap.type = "exploration";
@@ -3299,7 +3301,10 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				check(com.omnispell.spell.ExploreEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbGrap)) && p.getDeltaMovement().length() > 0.3, "the lightning grapple pulls you");
 				p.setDeltaMovement(0, 0, 0);
 				p.teleportTo(lbLevel, lbAt.getX() + 0.5, lbAt.getY(), lbAt.getZ() + 6.0, java.util.Set.of(), 0f, 0f, true);
-				for (var z : lbFoes) z.setHealth(200f);
+				for (var z : lbFoes) {
+					z.setHealth(200f);
+					z.damageCooldownTime = 0; // the water ball struck the first a moment ago
+				}
 				int arcs = com.omnispell.spell.Beams.discharge(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), lbGrap), p.position(), 5);
 				check(arcs >= 2 && lbFoes[0].getHealth() < 200f && lbWolf[0].getHealth() >= lbWolf[0].getMaxHealth(), "landing, it arcs to the zombies near you and not to the wolf (" + arcs + " arcs)");
 				// A healing beam holds: Light + Guide + Restoration that says it is a beam keeps mending the wolf.
@@ -3323,6 +3328,86 @@ public class OmnispellClientTest implements FabricClientGameTest {
 				for (var z : lbFoes) z.discard();
 				lbWolf[0].discard();
 				p.removeAllEffects();
+				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(5);
+
+			// ---- the Minecraft Oracle's plan: the spell does what the Oracle planned, whatever the words alone would give
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.teleportTo(p.level(), cHome[0].x - 40, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
+			});
+			context.waitTicks(30); // let that ground load
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				ServerLevel plLevel = p.level();
+				BlockPos plAt = p.blockPosition();
+				for (BlockPos pos : BlockPos.betweenClosed(plAt.offset(-4, 0, -4), plAt.offset(4, 5, 4))) plLevel.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				for (BlockPos pos : BlockPos.betweenClosed(plAt.offset(-4, -1, -4), plAt.offset(4, -1, 4))) plLevel.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+				p.removeAllEffects();
+				p.setHealth(10f);
+				for (var pool : com.omnispell.player.ManaPool.values()) PlayerStore.get(p).mana[pool.ordinal()] = com.omnispell.player.Mana.max(p, pool);
+				// Earth + Conceal + Restoration, planned as a cocoon: a small dirt sphere closes around you while you heal.
+				com.omnispell.spell.Spell plCocoon = new com.omnispell.spell.Spell();
+				plCocoon.type = "defense";
+				plCocoon.words.addAll(java.util.List.of("base:Earth", "command:Conceal", "intention:Restoration"));
+				plCocoon.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"Earth closes around you in a small dirt sphere while you heal 3 hearts.\",\"effect\":\"Dirt rises.\","
+						+ "\"effect_code\":{\"type\":\"heal\",\"primary_value\":26,\"duration\":2,\"element\":\"stone\",\"status\":\"none\",\"secondary\":null,\"modifiers\":[]},"
+						+ "\"minecraft\":{\"form\":\"cocoon\",\"extras\":[\"regen\"],\"mana\":\"restoration\"}}", com.google.gson.JsonObject.class));
+				check("cocoon".equals(com.omnispell.spell.Defenses.form(plCocoon)), "Earth + Conceal + Restoration planned as a cocoon is a cocoon, not the veil Conceal alone gives (" + com.omnispell.spell.Defenses.form(plCocoon) + ")");
+				check(com.omnispell.spell.Casting.poolOf(plCocoon) == com.omnispell.player.ManaPool.RESTORATION, "and it draws on the mana the Oracle planned (" + com.omnispell.spell.Casting.poolOf(plCocoon) + ")");
+				check(com.omnispell.spell.CombatEffects.cast(new com.omnispell.spell.Cast(p, WandItem.create("oak", "flint"), plCocoon)), "the cocoon is cast");
+				int dirt = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(plAt.offset(-3, -1, -3), plAt.offset(3, 4, 3))) if (plLevel.getBlockState(pos).is(Blocks.DIRT)) dirt++;
+				check(dirt >= 20 && plLevel.getBlockState(plAt).isAir() && plLevel.getBlockState(plAt.above()).isAir(), "a hollow sphere of dirt closes around you, with room to stand (" + dirt + " blocks)");
+				check(p.getHealth() > 10f && p.hasEffect(MobEffects.REGENERATION), "and you heal inside it (" + p.getHealth() + ")");
+				// An attack's plan: how it travels and what it does to what it hits.
+				com.omnispell.spell.Spell plBeam = new com.omnispell.spell.Spell();
+				plBeam.type = "attack";
+				plBeam.words.addAll(java.util.List.of("base:Water", "command:Sever", "intention:Malice"));
+				plBeam.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"Water cuts through every foe in line.\",\"minecraft\":{\"form\":\"encase\",\"delivery\":\"beam\",\"mana\":\"spirit\"}}", com.google.gson.JsonObject.class));
+				check(com.omnispell.spell.Beams.piercing(plBeam) && "encase".equals(com.omnispell.spell.AttackForms.commandForm(plBeam)) && com.omnispell.spell.Casting.poolOf(plBeam) == com.omnispell.player.ManaPool.SPIRIT,
+						"a planned beam pierces, takes the planned form over its command's, and draws on the planned mana");
+				com.omnispell.spell.Spell plBolt = new com.omnispell.spell.Spell();
+				plBolt.type = "attack";
+				plBolt.words.addAll(java.util.List.of("base:Light", "command:Illuminate", "intention:Malice"));
+				plBolt.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"A ray of light strikes the target.\",\"minecraft\":{\"delivery\":\"bolt\",\"mana\":\"barrier\"}}", com.google.gson.JsonObject.class));
+				check(!com.omnispell.spell.Beams.piercing(plBolt) && com.omnispell.spell.Casting.poolOf(plBolt) != com.omnispell.player.ManaPool.BARRIER,
+						"a planned bolt stays one strike even when its text says ray, and mana an attack cannot use is ignored");
+				// A conjuration's plan: the creature when no word names one, the colour, a shelter, the bridge's toggles.
+				com.omnispell.spell.Spell plBear = new com.omnispell.spell.Spell();
+				plBear.type = "conjuration";
+				plBear.words.addAll(java.util.List.of("base:Ice", "command:Summon", "intention:Malice", "attribute:Blue"));
+				plBear.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"A frost beast hunts your foes.\",\"minecraft\":{\"form\":\"creature\",\"body\":\"bear\"}}", com.google.gson.JsonObject.class));
+				check("bear".equals(com.omnispell.spell.Conjuring.bodyFor(plBear, null).id()) && com.omnispell.spell.Conjuring.tintFor(plBear) == 0x4A78E8, "a planned creature is called, in the colour word's colour");
+				com.omnispell.spell.Spell plHome = new com.omnispell.spell.Spell();
+				plHome.type = "conjuration";
+				plHome.words.addAll(java.util.List.of("base:Earth", "command:Shield", "intention:Warding", "attribute:Yellow"));
+				plHome.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"Earth rises into a shelter over you.\",\"minecraft\":{\"form\":\"shelter\",\"color\":\"#33cc66\"}}", com.google.gson.JsonObject.class));
+				check("shelter".equals(com.omnispell.spell.Masonry.structure(plHome)), "a planned shelter is built (" + com.omnispell.spell.Masonry.structure(plHome) + ")");
+				com.omnispell.spell.Spell plTint = new com.omnispell.spell.Spell();
+				plTint.type = "defense";
+				plTint.words.addAll(java.util.List.of("base:Fire", "command:Shield", "intention:Warding"));
+				plTint.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"A green flame shields you.\",\"minecraft\":{\"form\":\"shell\",\"color\":\"#33cc66\"}}", com.google.gson.JsonObject.class));
+				check(com.omnispell.spell.Conjuring.tintFor(plTint) == 0x33CC66, "a recoloured spell takes the Oracle's colour");
+				com.omnispell.spell.Spell plBridge = new com.omnispell.spell.Spell();
+				plBridge.type = "conjuration";
+				plBridge.words.addAll(java.util.List.of("base:Earth", "command:Summon", "intention:Creation", "attribute:Bridge"));
+				plBridge.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"A plain bridge.\",\"minecraft\":{\"extras\":[\"turrets\",\"glow\"]}}", com.google.gson.JsonObject.class));
+				var plToggles = com.omnispell.spell.Masonry.bridgeToggles(plBridge);
+				check(plToggles.contains("turrets") && plToggles.contains("glow"), "a bridge carries the toggles the Oracle planned (" + plToggles + ")");
+				// Words that fix the shape still win: a creature word in a defense gives its traits, whatever the plan says.
+				com.omnispell.spell.Spell plAspect = new com.omnispell.spell.Spell();
+				plAspect.type = "defense";
+				plAspect.words.addAll(java.util.List.of("base:Air", "command:Shield", "attribute:Bird"));
+				plAspect.readGenerated(WordBank.GSON.fromJson("{\"tier\":2,\"description\":\"x\",\"minecraft\":{\"form\":\"veil\"}}", com.google.gson.JsonObject.class));
+				check("aspect".equals(com.omnispell.spell.Defenses.form(plAspect)), "a creature word in a defense is still its traits");
+				p.removeAllEffects();
+				p.setHealth(p.getMaxHealth());
+			});
+			context.waitTicks(5);
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
 				p.teleportTo(p.level(), cHome[0].x, cHome[0].y, cHome[0].z, java.util.Set.of(), 0f, 0f, true);
 			});
 			context.waitTicks(5);
@@ -3461,6 +3546,7 @@ public class OmnispellClientTest implements FabricClientGameTest {
 			context.takeScreenshot("30-after-respawn");
 		} finally {
 			SpellGenerator.transport = realGenerator;
+			SpellGenerator.oracle = realOracle;
 		}
 	}
 }

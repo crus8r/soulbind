@@ -329,7 +329,7 @@ public class WorldgenTest implements FabricClientGameTest {
 				bossId[0] = def.id;
 				// Some bodies shrug off the first blows (a wildfire's shields), so strike until it falls.
 				for (int blow = 0; blow < 12 && boss[0].isAlive(); blow++) {
-					boss[0].setInvulnerableTime(0);
+					boss[0].damageCooldownTime = 0;
 					boss[0].hurtServer(level, level.damageSources().playerAttack(p), 100000f);
 				}
 				check(!boss[0].isAlive(), "the boss can be killed");

@@ -270,11 +270,11 @@ public final class Modifiers {
 			return 0;
 		}
 		// A creature's venom or sting answers every blow that lands, even one a shield soaks up entirely.
-		if (player.getInvulnerableTime() <= 10 && source.getEntity() instanceof LivingEntity biter && biter != player && biter.isAlive() && !source.is(DamageTypes.THORNS)) Defenses.aspectStruck(player, biter);
+		if (player.damageCooldownTime <= 10 && source.getEntity() instanceof LivingEntity biter && biter != player && biter.isAlive() && !source.is(DamageTypes.THORNS)) Defenses.aspectStruck(player, biter);
 		// Reflection turns part of the whole blow back on the striker, even what a barrier would have caught.
 		// While a barrier holds (any shield of extra hearts) it costs nothing; without one it is paid from Barrier mana.
 		double reflect = value(player, "damage_reflection");
-		if (reflect > 0 && player.getInvulnerableTime() <= 10 && source.getEntity() instanceof LivingEntity striker && striker != player && striker.isAlive() && !source.is(DamageTypes.THORNS)) {
+		if (reflect > 0 && player.damageCooldownTime <= 10 && source.getEntity() instanceof LivingEntity striker && striker != player && striker.isAlive() && !source.is(DamageTypes.THORNS)) {
 			double want = amount * reflect / 100.0;
 			double scale = Omnispell.CONFIG.valueScale;
 			double back = player.getAbsorptionAmount() > 0 ? want : Mana.spend(player, ManaPool.BARRIER, want / scale) * scale;

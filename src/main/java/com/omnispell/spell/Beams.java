@@ -36,7 +36,7 @@ public final class Beams {
 
 	/** A lightning or thunder spell, by the Oracle's element or the spell's own base word. */
 	public static boolean storm(Spell spell) {
-		return stormWords(spell) || (!spell.isExploration() && AttackForms.element(spell).equals("storm"));
+		return stormWords(spell) || "lightning".equals(spell.planned("delivery")) || (!spell.isExploration() && AttackForms.element(spell).equals("storm"));
 	}
 
 	/** The base word is Lightning or Thunder (an environment spell of either explores like the wind, but it is lightning). */
@@ -46,6 +46,7 @@ public final class Beams {
 
 	/** Does the spell say it is a beam (a beam, ray, lance, laser, jet, stream or torrent)? */
 	public static boolean beamClaim(Spell spell) {
+		if ("beam".equals(spell.planned("delivery"))) return true;
 		String text = (SpellCrafting.oracleText(spell) + " " + (spell.effect == null ? "" : spell.effect)).toLowerCase(Locale.ROOT);
 		for (String w : new String[]{"beam", "ray ", "rays", "ray,", "ray.", "lance", "laser", "jet ", "jets", "stream", "torrent"}) {
 			int i = text.indexOf(w);
@@ -178,7 +179,7 @@ public final class Beams {
 			}
 			if (next == null) break;
 			bolt(level, here, next.getBoundingBox().getCenter(), color);
-			next.setInvulnerableTime(0);
+			next.damageCooldownTime = 0;
 			CombatEffects.strike(cast, next, websiteDamage, false);
 			struck.add(next);
 			at = next;
@@ -189,7 +190,10 @@ public final class Beams {
 
 	/** Is this attack a beam that pierces: everything in its path is struck, not just the first thing? */
 	public static boolean piercing(Spell spell) {
-		return "attack".equals(spell.type) && beamClaim(spell);
+		if (!"attack".equals(spell.type)) return false;
+		String delivery = spell.planned("delivery");
+		if (delivery != null) return delivery.equals("beam"); // the Oracle planned how it travels
+		return beamClaim(spell);
 	}
 
 	/**
@@ -219,7 +223,7 @@ public final class Beams {
 		}
 		for (int i = 0; i < path.size(); i++) {
 			LivingEntity e = path.get(i);
-			e.setInvulnerableTime(0);
+			e.damageCooldownTime = 0;
 			CombatEffects.strike(cast, e, i == 0 ? base : base * 0.6, i == 0);
 			if (!e.isAlive()) continue;
 			mark(cast, e, element, look);
@@ -284,7 +288,7 @@ public final class Beams {
 			if (to.subtract(dir.scale(along)).length() <= 0.6 + e.getBbWidth() / 2) hit.add(e);
 		}
 		for (LivingEntity e : hit) {
-			e.setInvulnerableTime(0);
+			e.damageCooldownTime = 0;
 			CombatEffects.strike(cast, e, e == foe ? websiteDamage : websiteDamage * 0.6, false);
 			if (e.isAlive()) mark(cast, e, element, dir);
 		}
